@@ -1,0 +1,6 @@
+@OTPLoginAPI_HostAddress = http://localhost:5234
+
+GET {{OTPLoginAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

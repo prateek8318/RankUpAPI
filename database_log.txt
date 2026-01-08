@@ -1,0 +1,236 @@
+[2026-01-07 10:08:04.174] DB connection error: Only the invariant culture is supported in globalization-invariant mode. See https://aka.ms/GlobalizationInvariantMode for more information. (Parameter 'name')
+en-us is an invalid culture identifier.
+[2026-01-07 10:14:40.766] DB connection error: Login failed for user 'sa'.
+[2026-01-07 10:20:58.408] DB connection error: Login failed for user 'sa'.
+[2026-01-07 10:23:02.430] info: 01/07/2026 15:53:02.429 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 10:23:02.500] Connected to DB: ABHIJEET | Database: RankUpDB
+[2026-01-07 10:23:02.510] info: 01/07/2026 15:53:02.510 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 10:23:02.518] info: 01/07/2026 15:53:02.518 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-07 10:23:02.520] info: 01/07/2026 15:53:02.520 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 10:23:02.563] info: 01/07/2026 15:53:02.563 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      CREATE TABLE [__EFMigrationsHistory] (
+          [MigrationId] nvarchar(150) NOT NULL,
+          [ProductVersion] nvarchar(32) NOT NULL,
+          CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+      );
+[2026-01-07 10:23:02.565] info: 01/07/2026 15:53:02.565 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 10:23:02.567] info: 01/07/2026 15:53:02.567 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-07 10:23:02.571] info: 01/07/2026 15:53:02.571 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-07 10:37:10.552] info: 01/07/2026 16:07:10.552 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 10:37:37.188] info: 01/07/2026 16:07:37.188 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 10:37:52.304] info: 01/07/2026 16:07:52.304 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 10:37:52.517] info: 01/07/2026 16:07:52.517 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (15ms) [Parameters=[@__phoneNumber_0='8888888888' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-07 10:37:52.629] info: 01/07/2026 16:07:52.629 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (5ms) [Parameters=[@p0='2026-01-07T10:37:52.5277742Z', @p1='8888888888@rankup.com' (Size = 100), @p2=NULL (Size = 20), @p3='False', @p4=NULL (DbType = DateTime2), @p5='User8888888888' (Size = 100), @p6=NULL (Size = 255), @p7='8888888888' (Nullable = false) (Size = 15), @p8=NULL (Size = 100), @p9=NULL (Size = 255), @p10=NULL (Size = 4000), @p11=NULL (DbType = DateTime2), @p12='2026-01-07T10:37:52.5278166Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [Users] ([CreatedAt], [Email], [Gender], [IsPhoneVerified], [LastLoginAt], [Name], [PasswordHash], [PhoneNumber], [PreferredExam], [ProfilePhoto], [RefreshToken], [RefreshTokenExpiryTime], [UpdatedAt])
+      OUTPUT INSERTED.[Id], INSERTED.[IsActive]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-07 10:37:52.661] info: 01/07/2026 16:07:52.661 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@p3='4', @p0='True', @p1='2026-01-07T10:37:52.6499173Z' (Nullable = true), @p2='2026-01-07T10:37:52.6531063Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [IsPhoneVerified] = @p0, [LastLoginAt] = @p1, [UpdatedAt] = @p2
+      OUTPUT 1
+      WHERE [Id] = @p3;
+[2026-01-07 10:38:16.956] info: 01/07/2026 16:08:16.956 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__userId_0='4' (Size = 4000)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE CONVERT(varchar(11), [u].[Id]) = @__userId_0
+[2026-01-07 12:18:15.417] info: 01/07/2026 17:48:15.417 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:18:15.838] Connected to DB: ABHIJEET | Database: RankUpDB
+[2026-01-07 12:18:15.843] Table: dbo.__efmigrationshistory
+[2026-01-07 12:18:15.844] Table: dbo.admins
+[2026-01-07 12:18:15.845] Table: dbo.sysdiagrams
+[2026-01-07 12:18:15.845] Table: dbo.users
+[2026-01-07 12:18:15.853] info: 01/07/2026 17:48:15.853 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:18:15.879] info: 01/07/2026 17:48:15.879 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (23ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-07 12:18:15.882] info: 01/07/2026 17:48:15.882 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:18:15.883] info: 01/07/2026 17:48:15.883 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-07 12:18:15.941] info: 01/07/2026 17:48:15.941 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (49ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-07 12:18:27.441] info: 01/07/2026 17:48:27.441 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:18:31.370] info: 01/07/2026 17:48:31.370 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:18:31.587] fail: 01/07/2026 17:48:31.587 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (30ms) [Parameters=[@__phoneNumber_0='8888888888' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-07 12:27:19.974] info: 01/07/2026 17:57:19.973 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:27:20.069] Connected to DB: ABHIJEET | Database: RankUpDB
+[2026-01-07 12:27:20.074] Table: dbo.__efmigrationshistory
+[2026-01-07 12:27:20.074] Table: dbo.admins
+[2026-01-07 12:27:20.075] Table: dbo.sysdiagrams
+[2026-01-07 12:27:20.075] Table: dbo.users
+[2026-01-07 12:27:20.106] info: 01/07/2026 17:57:20.106 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:27:20.112] info: 01/07/2026 17:57:20.112 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-07 12:27:20.114] info: 01/07/2026 17:57:20.114 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:27:20.115] info: 01/07/2026 17:57:20.115 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-07 12:27:20.127] info: 01/07/2026 17:57:20.127 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-07 12:27:28.869] info: 01/07/2026 17:57:28.869 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:27:34.022] info: 01/07/2026 17:57:34.022 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:27:34.250] info: 01/07/2026 17:57:34.250 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[@__phoneNumber_0='8888888888' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-07 12:27:34.388] info: 01/07/2026 17:57:34.388 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[@p3='4', @p0='True', @p1='2026-01-07T12:27:34.3243606Z' (Nullable = true), @p2='2026-01-07T12:27:34.3458610Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [IsPhoneVerified] = @p0, [LastLoginAt] = @p1, [UpdatedAt] = @p2
+      OUTPUT 1
+      WHERE [Id] = @p3;
+[2026-01-07 12:28:40.149] info: 01/07/2026 17:58:40.149 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@__p_0='4'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__p_0
+[2026-01-07 12:28:40.156] info: 01/07/2026 17:58:40.156 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@p3='4', @p0='Male' (Size = 20), @p1='John Doe' (Size = 100), @p2='UPSC' (Size = 100)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [Gender] = @p0, [Name] = @p1, [PreferredExam] = @p2
+      OUTPUT 1
+      WHERE [Id] = @p3;
+[2026-01-07 12:28:54.321] info: 01/07/2026 17:58:54.321 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__userId_0='4' (Size = 4000)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE CONVERT(varchar(11), [u].[Id]) = @__userId_0
+[2026-01-07 12:32:07.805] info: 01/07/2026 18:02:07.804 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:32:07.841] Connected to DB: ABHIJEET | Database: RankUpDB
+[2026-01-07 12:32:07.846] Table: dbo.__efmigrationshistory
+[2026-01-07 12:32:07.846] Table: dbo.admins
+[2026-01-07 12:32:07.847] Table: dbo.sysdiagrams
+[2026-01-07 12:32:07.847] Table: dbo.users
+[2026-01-07 12:32:07.878] info: 01/07/2026 18:02:07.878 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:32:07.885] info: 01/07/2026 18:02:07.885 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-07 12:32:07.887] info: 01/07/2026 18:02:07.887 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:32:07.888] info: 01/07/2026 18:02:07.888 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-07 12:32:07.898] info: 01/07/2026 18:02:07.898 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-07 12:32:55.817] info: 01/07/2026 18:02:55.817 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:33:09.921] info: 01/07/2026 18:03:09.921 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-07 12:33:10.093] info: 01/07/2026 18:03:10.093 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (10ms) [Parameters=[@__phoneNumber_0='9999999999' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-07 12:33:10.221] info: 01/07/2026 18:03:10.221 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (9ms) [Parameters=[@p0='2026-01-07T12:33:10.1021960Z', @p1=NULL (DbType = Date), @p2='9999999999@rankup.com' (Size = 100), @p3=NULL (Size = 20), @p4='False', @p5=NULL (Size = 50), @p6=NULL (DbType = DateTime2), @p7='User9999999999' (Size = 100), @p8=NULL (Size = 255), @p9='9999999999' (Nullable = false) (Size = 15), @p10=NULL (Size = 100), @p11=NULL (Size = 255), @p12=NULL (Size = 100), @p13=NULL (Size = 4000), @p14=NULL (DbType = DateTime2), @p15='2026-01-07T12:33:10.1022051Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [Users] ([CreatedAt], [DateOfBirth], [Email], [Gender], [IsPhoneVerified], [LanguagePreference], [LastLoginAt], [Name], [PasswordHash], [PhoneNumber], [PreferredExam], [ProfilePhoto], [Qualification], [RefreshToken], [RefreshTokenExpiryTime], [UpdatedAt])
+      OUTPUT INSERTED.[Id], INSERTED.[IsActive]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15);
+[2026-01-07 12:33:10.248] info: 01/07/2026 18:03:10.248 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@p3='5', @p0='True', @p1='2026-01-07T12:33:10.2395684Z' (Nullable = true), @p2='2026-01-07T12:33:10.2425874Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [IsPhoneVerified] = @p0, [LastLoginAt] = @p1, [UpdatedAt] = @p2
+      OUTPUT 1
+      WHERE [Id] = @p3;
+[2026-01-07 12:33:30.107] info: 01/07/2026 18:03:30.107 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='5' (Size = 4000)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE CONVERT(varchar(11), [u].[Id]) = @__userId_0
+[2026-01-07 12:33:47.888] info: 01/07/2026 18:03:47.888 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__p_0='5'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__p_0
+[2026-01-07 12:33:47.901] info: 01/07/2026 18:03:47.901 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[@p4='5', @p0='john.doe@example.com' (Size = 100), @p1='Male' (Size = 20), @p2='John Doe' (Size = 100), @p3='UPSC' (Size = 100)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [Email] = @p0, [Gender] = @p1, [Name] = @p2, [PreferredExam] = @p3
+      OUTPUT 1
+      WHERE [Id] = @p4;
+[2026-01-07 12:33:53.204] info: 01/07/2026 18:03:53.204 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__userId_0='5' (Size = 4000)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE CONVERT(varchar(11), [u].[Id]) = @__userId_0

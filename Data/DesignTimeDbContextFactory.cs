@@ -19,11 +19,10 @@ namespace RankUpAPI.Data
             var configuration = builder.Build();
             var connectionString = configuration.GetConnectionString("DefaultConnection")
                                    ?? System.Environment.GetEnvironmentVariable("DefaultConnection")
-                                   ?? "Server=localhost;Database=RankUpDB;User=root;Password=;";
+                                   ?? "Server=localhost;Database=RankUpDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            var serverVersion = ServerVersion.AutoDetect(connectionString);
-            optionsBuilder.UseMySql(connectionString, serverVersion);
+            optionsBuilder.UseSqlServer(connectionString);
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }

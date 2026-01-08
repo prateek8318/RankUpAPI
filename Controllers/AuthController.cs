@@ -19,16 +19,18 @@ namespace RankUpAPI.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly IUserService _userService;
+        private readonly ILogger<AuthController> _logger;
         
         // In-memory storage for OTPs (in production, use a distributed cache like Redis)
         private static readonly ConcurrentDictionary<string, string> OtpStore = new();
         private const string DefaultOtp = "1234"; // Default OTP
         private const int OtpExpirationMinutes = 5; // OTP expiration time in minutes
 
-        public AuthController(IConfiguration configuration, IUserService userService)
+        public AuthController(IConfiguration configuration, IUserService userService, ILogger<AuthController> logger)
         {
             _configuration = configuration;
             _userService = userService;
+            _logger = logger;
         }
 
         [HttpPost("send-otp")]
@@ -161,6 +163,118 @@ namespace RankUpAPI.Controllers
                 Success = true, 
                 Message = $"Token is valid for user: {mobileNumber}" 
             });
+        }
+
+        [Authorize]
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] ProfileUpdateRequest profileUpdate)
+        {
+            try
+            {
+                // Get the user ID from the token
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    return Unauthorized(new AuthResponse 
+                    { 
+                        Success = false, 
+                        Message = "Invalid user token" 
+                    });
+                }
+
+                // Update the user profile
+                var updatedUser = await _userService.UpdateUserProfileAsync(userId, profileUpdate);
+
+                return Ok(new 
+                { 
+                    Success = true, 
+                    Message = "Profile updated successfully",
+                    User = new 
+                    {
+                        updatedUser.Id,
+                        updatedUser.Name,
+                        updatedUser.Email,
+                        updatedUser.Gender,
+                        DateOfBirth = updatedUser.DateOfBirth?.ToString("yyyy-MM-dd"),
+                        updatedUser.Qualification,
+                        updatedUser.LanguagePreference,
+                        updatedUser.PreferredExam
+                    }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new AuthResponse 
+                { 
+                    Success = false, 
+                    Message = ex.Message 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating profile");
+                return StatusCode(500, new AuthResponse 
+                { 
+                    Success = false, 
+                    Message = "An error occurred while updating the profile" 
+                });
+            }
+        }
+
+        [Authorize]
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile()
+        {
+            try
+            {
+                // Get the user ID from the token
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    return Unauthorized(new AuthResponse 
+                    { 
+                        Success = false, 
+                        Message = "Invalid user token" 
+                    });
+                }
+
+                // Get the user profile
+                var user = await _userService.GetUserByIdAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(new AuthResponse 
+                    { 
+                        Success = false, 
+                        Message = "User not found" 
+                    });
+                }
+
+                return Ok(new 
+                { 
+                    Success = true, 
+                    Data = new 
+                    {
+                        user.Id,
+                        user.Name,
+                        user.Email,
+                        user.Gender,
+                        DateOfBirth = user.DateOfBirth?.ToString("yyyy-MM-dd"),
+                        user.Qualification,
+                        user.LanguagePreference,
+                        user.PreferredExam,
+                        user.PhoneNumber
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting profile");
+                return StatusCode(500, new AuthResponse 
+                { 
+                    Success = false, 
+                    Message = "An error occurred while retrieving the profile" 
+                });
+            }
         }
     }
 }

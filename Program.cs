@@ -14,6 +14,19 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
+
+// Ensure globalization invariant is disabled (if it was set in environment), to avoid CultureNotFoundException
+try
+{
+    Environment.SetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT", "false");
+}
+catch { }
+
+// Ensure invariant culture for threads (fallback)
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 // Create the web application builder
 var builder = WebApplication.CreateBuilder(args);
@@ -40,22 +53,49 @@ builder.Logging.AddDebug();
 // Register UserService
 builder.Services.AddScoped<IUserService, RankUpAPI.Services.UserService>();
 
-// Add DbContext with MySQL
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+// Add DbContext with SQL Server
+builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
 {
+    var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    var serverVersion = ServerVersion.AutoDetect(connectionString);
     
-    options.UseMySql(connectionString, serverVersion, 
-        mySqlOptions => mySqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null
-        )
-    )
-    .LogTo(Console.WriteLine, LogLevel.Information)
-    .EnableSensitiveDataLogging()
-    .EnableDetailedErrors();
+    logger.LogInformation($"Using connection string: {connectionString}");
+    
+    try
+    {
+        options.UseSqlServer(connectionString, 
+            sqlServerOptions => 
+            {
+                sqlServerOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+                sqlServerOptions.CommandTimeout(60);
+                // Use the executing assembly name for migrations to match runtime assembly
+                sqlServerOptions.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
+            })
+        .LogTo(message => 
+        {
+            try 
+            {
+                System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
+                Console.WriteLine($"[DB] {message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to write to log file: {ex.Message}");
+            }
+        }, 
+        new[] { DbLoggerCategory.Database.Command.Name }, 
+        LogLevel.Information)
+        .EnableSensitiveDataLogging()
+        .EnableDetailedErrors();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to configure database context");
+        throw;
+    }
 });
 
 // Add support for API versioning
@@ -136,7 +176,16 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Initialize the database
-await InitializeDatabaseAsync(app);
+try
+{
+    await InitializeDatabaseAsync(app);
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "An error occurred while initializing the database");
+    throw;
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -167,104 +216,117 @@ async Task InitializeDatabaseAsync(WebApplication app)
     
     try 
     {
-        var context = services.GetRequiredService<ApplicationDbContext>();
+        logger.LogInformation("Initializing database...");
         
-        logger.LogInformation("Ensuring database exists...");
-        bool created = await context.Database.EnsureCreatedAsync();
-        logger.LogInformation(created ? "Database was created" : "Database already exists");
+        using var context = services.GetRequiredService<ApplicationDbContext>();
         
-        bool canConnect = await context.Database.CanConnectAsync();
-        logger.LogInformation(canConnect ? "Successfully connected to database" : "Failed to connect to database");
-        
-        if (!canConnect)
-        {
-            throw new Exception("Failed to connect to the database");
-        }
-        
-        // Log all tables in the database
-        var connection = context.Database.GetDbConnection();
-        await connection.OpenAsync();
-        var command = connection.CreateCommand();
-        command.CommandText = "SHOW TABLES;";
-        using (var reader = await command.ExecuteReaderAsync())
-        {
-            logger.LogInformation("Database tables:");
-            while (await reader.ReadAsync())
-            {
-                logger.LogInformation($"- {reader[0]}");
-            }
-        }
+        // Try to connect
+        var canConnect = await context.Database.CanConnectAsync();
+        logger.LogInformation($"Database can connect: {canConnect}");
 
-        // Ensure required columns exist on Users table; add missing columns if necessary
-        var checkCmd = connection.CreateCommand();
-        checkCmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Users';";
-        using (var colReader = await checkCmd.ExecuteReaderAsync())
+        // Attempt to open a direct connection and log details
+        try
         {
-            var existingCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            while (await colReader.ReadAsync())
-            {
-                existingCols.Add(colReader.GetString(0));
-            }
+            var connection = context.Database.GetDbConnection();
+            await connection.OpenAsync();
 
-            var alterCommands = new List<string>();
-            if (!existingCols.Contains("IsActive"))
+            logger.LogInformation($"Connected to DB. DataSource: {connection.DataSource}, Database: {connection.Database}");
+            try
             {
-                alterCommands.Add("ALTER TABLE `Users` ADD COLUMN `IsActive` TINYINT(1) NOT NULL DEFAULT 1;");
+                logger.LogInformation($"Server Version: {connection.ServerVersion}");
             }
-            if (!existingCols.Contains("IsPhoneVerified"))
-            {
-                alterCommands.Add("ALTER TABLE `Users` ADD COLUMN `IsPhoneVerified` TINYINT(1) NOT NULL DEFAULT 0;");
-            }
-            if (!existingCols.Contains("LastLoginAt"))
-            {
-                alterCommands.Add("ALTER TABLE `Users` ADD COLUMN `LastLoginAt` DATETIME NULL;");
-            }
-            if (!existingCols.Contains("UpdatedAt"))
-            {
-                alterCommands.Add("ALTER TABLE `Users` ADD COLUMN `UpdatedAt` DATETIME NULL;");
-            }
+            catch { /* ignore if provider doesn't support ServerVersion */ }
 
-            foreach (var sql in alterCommands)
+            // List user tables
+            try
             {
-                try
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_SCHEMA, TABLE_NAME;";
+                using var reader = await cmd.ExecuteReaderAsync();
+                logger.LogInformation("Database tables:");
+                System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Connected to DB: {connection.DataSource} | Database: {connection.Database}{Environment.NewLine}");
+                while (await reader.ReadAsync())
                 {
-                    using var alterCmd = connection.CreateCommand();
-                    alterCmd.CommandText = sql;
-                    logger.LogInformation($"Executing schema update: {sql}");
-                    await alterCmd.ExecuteNonQueryAsync();
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, $"Failed to execute schema update: {sql}");
+                    var schema = reader.GetString(0);
+                    var name = reader.GetString(1);
+                    logger.LogInformation($"- {schema}.{name}");
+                    System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Table: {schema}.{name}{Environment.NewLine}");
                 }
             }
-        }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to list tables from INFORMATION_SCHEMA.TABLES");
+                System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Failed to list tables: {ex.Message}{Environment.NewLine}");
+            }
 
+            // Ensure Users table has required columns (add missing columns for SQL Server)
+            try
+            {
+                using var colCmd = connection.CreateCommand();
+                colCmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND TABLE_CATALOG = DB_NAME();";
+                var existingCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var colReader = await colCmd.ExecuteReaderAsync())
+                {
+                    while (await colReader.ReadAsync())
+                    {
+                        existingCols.Add(colReader.GetString(0));
+                    }
+                }
+
+                var alterCommands = new List<string>();
+                if (!existingCols.Contains("DateOfBirth"))
+                {
+                    alterCommands.Add("ALTER TABLE [Users] ADD [DateOfBirth] DATE NULL;");
+                }
+                if (!existingCols.Contains("LanguagePreference"))
+                {
+                    alterCommands.Add("ALTER TABLE [Users] ADD [LanguagePreference] VARCHAR(50) NULL;");
+                }
+                if (!existingCols.Contains("Qualification"))
+                {
+                    alterCommands.Add("ALTER TABLE [Users] ADD [Qualification] VARCHAR(100) NULL;");
+                }
+
+                foreach (var sql in alterCommands)
+                {
+                    try
+                    {
+                        using var alterCmd = connection.CreateCommand();
+                        alterCmd.CommandText = sql;
+                        logger.LogInformation($"Executing schema update: {sql}");
+                        await alterCmd.ExecuteNonQueryAsync();
+                        System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Executed schema update: {sql}{Environment.NewLine}");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, $"Failed to execute schema update: {sql}");
+                        System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Failed schema update: {sql} - {ex.Message}{Environment.NewLine}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to verify or modify Users table columns");
+                System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Failed to verify/modify Users columns: {ex.Message}{Environment.NewLine}");
+            }
+
+            await connection.CloseAsync();
+        }
+        catch (Exception connEx)
+        {
+            logger.LogError(connEx, "Failed to open DB connection");
+            System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] DB connection error: {connEx.Message}{Environment.NewLine}");
+        }
+        
+        // Apply migrations
+        logger.LogInformation("Applying database migrations...");
+        await context.Database.MigrateAsync();
+        
+        logger.LogInformation("Database initialization completed successfully.");
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred while initializing the database");
-        throw;
+        throw; // Re-throw to stop the application if database initialization fails
     }
 }
-
-// Apply pending migrations on startup
-try
-{
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    
-    logger.LogInformation("Applying database migrations...");
-    await dbContext.Database.MigrateAsync();
-    logger.LogInformation("Database migration completed successfully.");
-}
-catch (Exception ex)
-{
-    // Get logger in the current scope
-    using var scope = app.Services.CreateScope();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "An error occurred while migrating the database.");
-}
-
-app.Run();

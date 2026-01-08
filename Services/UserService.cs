@@ -32,7 +32,8 @@ namespace RankUpAPI.Services
                     {
                         PhoneNumber = phoneNumber,
                         Name = $"User{phoneNumber}",
-                        Email = $"{phoneNumber}@rankup.com",
+                        // Do not auto-generate email; leave null so profile shows null until user updates it
+                        Email = null,
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -92,6 +93,65 @@ namespace RankUpAPI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error updating login info for user ID: {user?.Id}");
+                throw;
+            }
+        }
+
+        public async Task<User> UpdateUserProfileAsync(int userId, ProfileUpdateRequest profileUpdate)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    throw new KeyNotFoundException($"User with ID {userId} not found");
+                }
+
+                // Update only the fields that are provided in the request
+                if (!string.IsNullOrWhiteSpace(profileUpdate.Name))
+                    user.Name = profileUpdate.Name;
+
+                if (!string.IsNullOrWhiteSpace(profileUpdate.Email))
+                    user.Email = profileUpdate.Email;
+
+                if (!string.IsNullOrWhiteSpace(profileUpdate.Gender))
+                    user.Gender = profileUpdate.Gender;
+
+                if (profileUpdate.DateOfBirth.HasValue)
+                    user.DateOfBirth = profileUpdate.DateOfBirth.Value;
+
+                if (!string.IsNullOrWhiteSpace(profileUpdate.Qualification))
+                    user.Qualification = profileUpdate.Qualification;
+
+                if (!string.IsNullOrWhiteSpace(profileUpdate.LanguagePreference))
+                    user.LanguagePreference = profileUpdate.LanguagePreference;
+
+                if (!string.IsNullOrWhiteSpace(profileUpdate.PreferredExam))
+                    user.PreferredExam = profileUpdate.PreferredExam;
+
+                user.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Updated profile for user ID: {userId}");
+
+                return user;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating profile for user ID: {userId}");
+                throw;
+            }
+        }
+
+        public async Task<User?> GetUserByIdAsync(int userId)
+        {
+            try
+            {
+                return await _context.Users.FindAsync(userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting user with ID: {userId}");
                 throw;
             }
         }

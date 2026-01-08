@@ -6,5 +6,7 @@ namespace RankUpAPI.Services
     {
         Task<User> GetOrCreateUserAsync(string phoneNumber);
         Task UpdateUserLoginInfoAsync(User user);
+        Task<User> UpdateUserProfileAsync(int userId, ProfileUpdateRequest profileUpdate);
+        Task<User?> GetUserByIdAsync(int userId);
     }
 }

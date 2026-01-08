@@ -21,7 +21,8 @@ namespace RankUpAPI.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasIndex(u => u.Email).IsUnique();
-                entity.Property(u => u.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+                // Use SQL Server compatible default datetime
+                entity.Property(u => u.CreatedAt).HasDefaultValueSql("GETDATE()");
                 entity.Property(u => u.IsActive).HasDefaultValue(true);
             });
 

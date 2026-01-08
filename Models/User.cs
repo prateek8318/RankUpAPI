@@ -19,6 +19,15 @@ namespace RankUpAPI.Models
         [MaxLength(20)]
         public string? Gender { get; set; }
         
+        [Column(TypeName = "date")]
+        public DateTime? DateOfBirth { get; set; }
+        
+        [MaxLength(100)]
+        public string? Qualification { get; set; }
+        
+        [MaxLength(50)]
+        public string? LanguagePreference { get; set; }
+        
         [MaxLength(255)]
         public string? ProfilePhoto { get; set; }
         

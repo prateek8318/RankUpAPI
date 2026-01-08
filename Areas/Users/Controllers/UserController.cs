@@ -201,6 +201,13 @@ namespace RankUpAPI.Areas.Users.Controllers
                 if (!string.IsNullOrEmpty(model.PreferredExam)) 
                     user.PreferredExam = model.PreferredExam;
 
+                // Update email from the request if provided (do not auto-generate)
+                if (!string.IsNullOrEmpty(model.Email))
+                {
+                    user.Email = model.Email;
+                    _logger.LogInformation($"Updating email for user {id} to {model.Email}");
+                }
+
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Profile updated successfully");
                 
@@ -211,7 +218,8 @@ namespace RankUpAPI.Areas.Users.Controllers
                         Name = !string.IsNullOrEmpty(model.Name),
                         Gender = !string.IsNullOrEmpty(model.Gender),
                         ProfilePhoto = !string.IsNullOrEmpty(model.ProfilePhoto),
-                        PreferredExam = !string.IsNullOrEmpty(model.PreferredExam)
+                        PreferredExam = !string.IsNullOrEmpty(model.PreferredExam),
+                        Email = !string.IsNullOrEmpty(model.Email)
                     }
                 });
             }
@@ -238,5 +246,7 @@ namespace RankUpAPI.Areas.Users.Controllers
         public string? Gender { get; set; }
         public string? ProfilePhoto { get; set; }
         public string? PreferredExam { get; set; }
+        // Accept email in update request so GetProfile shows the updated email
+        public string? Email { get; set; }
     }
 }

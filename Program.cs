@@ -15,18 +15,11 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Reflection;
 
-// Ensure globalization invariant is disabled (if it was set in environment), to avoid CultureNotFoundException
-try
-{
-    Environment.SetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT", "false");
-}
-catch { }
-
-// Ensure invariant culture for threads (fallback)
-CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+// Set default culture
+var cultureInfo = new CultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
 // Create the web application builder
 var builder = WebApplication.CreateBuilder(args);
@@ -50,8 +43,16 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Register UserService
+// Register AutoMapper with our MappingProfile
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<RankUpAPI.Mappings.MappingProfile>();
+}, AppDomain.CurrentDomain.GetAssemblies());
+
+// Register Services
 builder.Services.AddScoped<IUserService, RankUpAPI.Services.UserService>();
+builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IQualificationService, RankUpAPI.Services.QualificationService>();
+builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IExamService, RankUpAPI.Services.ExamService>();
 
 // Add DbContext with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
@@ -71,8 +72,8 @@ builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =
                     maxRetryDelay: TimeSpan.FromSeconds(30),
                     errorNumbersToAdd: null);
                 sqlServerOptions.CommandTimeout(60);
-                // Use the executing assembly name for migrations to match runtime assembly
-                sqlServerOptions.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
+                // Use the assembly that contains the DbContext for migrations to avoid hard-coded project names
+                sqlServerOptions.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.GetName().Name);
             })
         .LogTo(message => 
         {
@@ -220,103 +221,9 @@ async Task InitializeDatabaseAsync(WebApplication app)
         
         using var context = services.GetRequiredService<ApplicationDbContext>();
         
-        // Try to connect
-        var canConnect = await context.Database.CanConnectAsync();
-        logger.LogInformation($"Database can connect: {canConnect}");
-
-        // Attempt to open a direct connection and log details
-        try
-        {
-            var connection = context.Database.GetDbConnection();
-            await connection.OpenAsync();
-
-            logger.LogInformation($"Connected to DB. DataSource: {connection.DataSource}, Database: {connection.Database}");
-            try
-            {
-                logger.LogInformation($"Server Version: {connection.ServerVersion}");
-            }
-            catch { /* ignore if provider doesn't support ServerVersion */ }
-
-            // List user tables
-            try
-            {
-                using var cmd = connection.CreateCommand();
-                cmd.CommandText = "SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_SCHEMA, TABLE_NAME;";
-                using var reader = await cmd.ExecuteReaderAsync();
-                logger.LogInformation("Database tables:");
-                System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Connected to DB: {connection.DataSource} | Database: {connection.Database}{Environment.NewLine}");
-                while (await reader.ReadAsync())
-                {
-                    var schema = reader.GetString(0);
-                    var name = reader.GetString(1);
-                    logger.LogInformation($"- {schema}.{name}");
-                    System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Table: {schema}.{name}{Environment.NewLine}");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to list tables from INFORMATION_SCHEMA.TABLES");
-                System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Failed to list tables: {ex.Message}{Environment.NewLine}");
-            }
-
-            // Ensure Users table has required columns (add missing columns for SQL Server)
-            try
-            {
-                using var colCmd = connection.CreateCommand();
-                colCmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND TABLE_CATALOG = DB_NAME();";
-                var existingCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                using (var colReader = await colCmd.ExecuteReaderAsync())
-                {
-                    while (await colReader.ReadAsync())
-                    {
-                        existingCols.Add(colReader.GetString(0));
-                    }
-                }
-
-                var alterCommands = new List<string>();
-                if (!existingCols.Contains("DateOfBirth"))
-                {
-                    alterCommands.Add("ALTER TABLE [Users] ADD [DateOfBirth] DATE NULL;");
-                }
-                if (!existingCols.Contains("LanguagePreference"))
-                {
-                    alterCommands.Add("ALTER TABLE [Users] ADD [LanguagePreference] VARCHAR(50) NULL;");
-                }
-                if (!existingCols.Contains("Qualification"))
-                {
-                    alterCommands.Add("ALTER TABLE [Users] ADD [Qualification] VARCHAR(100) NULL;");
-                }
-
-                foreach (var sql in alterCommands)
-                {
-                    try
-                    {
-                        using var alterCmd = connection.CreateCommand();
-                        alterCmd.CommandText = sql;
-                        logger.LogInformation($"Executing schema update: {sql}");
-                        await alterCmd.ExecuteNonQueryAsync();
-                        System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Executed schema update: {sql}{Environment.NewLine}");
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, $"Failed to execute schema update: {sql}");
-                        System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Failed schema update: {sql} - {ex.Message}{Environment.NewLine}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to verify or modify Users table columns");
-                System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Failed to verify/modify Users columns: {ex.Message}{Environment.NewLine}");
-            }
-
-            await connection.CloseAsync();
-        }
-        catch (Exception connEx)
-        {
-            logger.LogError(connEx, "Failed to open DB connection");
-            System.IO.File.AppendAllText("database_log.txt", $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] DB connection error: {connEx.Message}{Environment.NewLine}");
-        }
+        // Check if database exists
+        var databaseExists = await context.Database.CanConnectAsync();
+        logger.LogInformation($"Database exists: {databaseExists}");
         
         // Apply migrations
         logger.LogInformation("Applying database migrations...");

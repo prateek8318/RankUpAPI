@@ -121,6 +121,22 @@ namespace RankUpAPI.Areas.Users.Controllers
                 }
 
                 _logger.LogInformation("User found, returning profile data");
+
+                // Hide placeholder auto-generated emails (e.g., 9999999999@rankup.com)
+                string? displayEmail = user.Email;
+                try
+                {
+                    if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(user.PhoneNumber))
+                    {
+                        var placeholder = $"{user.PhoneNumber}@rankup.com";
+                        if (string.Equals(user.Email.Trim(), placeholder, StringComparison.OrdinalIgnoreCase))
+                        {
+                            displayEmail = null;
+                        }
+                    }
+                }
+                catch { /* ignore and fall back to raw email */ }
+
                 return Ok(new 
                 { 
                     Success = true, 
@@ -128,7 +144,7 @@ namespace RankUpAPI.Areas.Users.Controllers
                     {
                         user.Id,
                         user.Name,
-                        user.Email,
+                        Email = displayEmail,
                         user.PhoneNumber,
                         user.Gender,
                         user.ProfilePhoto,

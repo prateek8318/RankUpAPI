@@ -15,6 +15,7 @@ namespace RankUpAPI.Data
         public DbSet<Qualification> Qualifications { get; set; }
         public DbSet<Exam> Exams { get; set; }
         public DbSet<ExamQualification> ExamQualifications { get; set; }
+        public DbSet<HomeSectionItem> HomeSectionItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -73,6 +74,15 @@ namespace RankUpAPI.Data
                       .WithMany(q => q.ExamQualifications)
                       .HasForeignKey(eq => eq.QualificationId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure HomeSectionItem entity
+            modelBuilder.Entity<HomeSectionItem>(entity =>
+            {
+                entity.HasIndex(h => new { h.SectionType, h.ExamId, h.DisplayOrder });
+                entity.Property(h => h.IsVisible)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
             });
         }
     }

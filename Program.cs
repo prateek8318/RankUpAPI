@@ -36,6 +36,8 @@ builder.Services.AddControllers()
     // Handle JSON serialization
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    // Allow enums (like HomeSectionType) to be sent/received as strings: "MockTest"
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 // Add logging
@@ -53,6 +55,7 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddScoped<IUserService, RankUpAPI.Services.UserService>();
 builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IQualificationService, RankUpAPI.Services.QualificationService>();
 builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IExamService, RankUpAPI.Services.ExamService>();
+builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IHomeContentService, RankUpAPI.Services.HomeContentService>();
 
 // Add DbContext with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
@@ -195,6 +198,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Enable static files (for wwwroot/images, etc.)
+app.UseStaticFiles();
+
 app.UseRouting();
 
 // Enable CORS before other middleware

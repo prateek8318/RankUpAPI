@@ -1547,3 +1547,434 @@ en-us is an invalid culture identifier.
           FROM OPENJSON(@__examIds_0) WITH ([value] int '$') AS [e0]
       ) AND [e].[IsActive] = CAST(1 AS bit)
       ORDER BY [e].[Name]
+[2026-01-09 08:40:34.340] info: 1/9/2026 14:10:34.339 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (20ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 08:40:34.357] info: 1/9/2026 14:10:34.357 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 08:40:34.375] info: 1/9/2026 14:10:34.375 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 08:40:34.377] info: 1/9/2026 14:10:34.377 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 08:40:34.379] info: 1/9/2026 14:10:34.379 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 08:40:34.393] info: 1/9/2026 14:10:34.393 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 09:04:08.285] info: 1/9/2026 14:34:08.284 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:04:08.298] info: 1/9/2026 14:34:08.298 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:04:08.323] info: 1/9/2026 14:34:08.323 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (19ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:04:08.326] info: 1/9/2026 14:34:08.326 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:04:08.328] info: 1/9/2026 14:34:08.328 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:04:08.342] info: 1/9/2026 14:34:08.342 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 09:07:53.730] info: 1/9/2026 14:37:53.729 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:07:53.747] info: 1/9/2026 14:37:53.747 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:07:53.768] info: 1/9/2026 14:37:53.768 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:07:53.771] info: 1/9/2026 14:37:53.771 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:07:53.772] info: 1/9/2026 14:37:53.772 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:07:53.787] info: 1/9/2026 14:37:53.787 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 09:18:54.566] fail: 1/9/2026 14:48:54.566 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (19ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:19:01.344] fail: 1/9/2026 14:49:01.344 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:19:01.548] fail: 1/9/2026 14:49:01.548 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:19:19.261] fail: 1/9/2026 14:49:19.261 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:19:19.492] fail: 1/9/2026 14:49:19.492 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:25:05.819] info: 1/9/2026 14:55:05.819 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (20ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM [Exams] AS [e]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [e].[Id] = [e0].[ExamId]
+      WHERE [e].[IsActive] = CAST(1 AS bit)
+      ORDER BY [e].[Name], [e].[Id], [e0].[ExamId]
+[2026-01-09 09:27:31.706] info: 1/9/2026 14:57:31.706 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:27:31.720] info: 1/9/2026 14:57:31.720 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:27:31.741] info: 1/9/2026 14:57:31.741 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:27:31.744] info: 1/9/2026 14:57:31.744 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:27:31.746] info: 1/9/2026 14:57:31.746 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:27:31.761] info: 1/9/2026 14:57:31.760 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 09:27:41.716] info: 1/9/2026 14:57:41.715 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:27:41.730] info: 1/9/2026 14:57:41.730 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:27:41.751] info: 1/9/2026 14:57:41.751 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:27:41.754] info: 1/9/2026 14:57:41.754 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:27:41.755] info: 1/9/2026 14:57:41.755 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:27:41.770] info: 1/9/2026 14:57:41.770 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 09:27:47.650] fail: 1/9/2026 14:57:47.650 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (20ms) [Parameters=[@p0='mock_detail_1' (Size = 200), @p1='2026-01-09T09:27:47.4899886Z', @p2='1', @p3='19' (Nullable = true), @p4='https://www.figma.com/design/UhVS1Q3k1Fz1pwo4Gv184v/Rankup?node-id=226-1323&t=sS57bvXjZKglMtAE-4' (Size = 500), @p5='True', @p6='True', @p7='0%' (Size = 50), @p8='1', @p9='SSC CGL - 60 Min, 100 Ques' (Size = 250), @p10='New' (Size = 50), @p11='Full Length Mock #1' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:28:50.558] info: 1/9/2026 14:58:50.557 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:28:50.573] info: 1/9/2026 14:58:50.573 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:28:50.595] info: 1/9/2026 14:58:50.595 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:28:50.598] info: 1/9/2026 14:58:50.598 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:28:50.600] info: 1/9/2026 14:58:50.600 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:28:50.615] info: 1/9/2026 14:58:50.615 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 09:32:10.300] info: 1/9/2026 15:02:10.299 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (16ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:32:10.314] info: 1/9/2026 15:02:10.314 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:32:10.336] info: 1/9/2026 15:02:10.336 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:32:10.340] info: 1/9/2026 15:02:10.340 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:32:10.342] info: 1/9/2026 15:02:10.342 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:32:10.357] info: 1/9/2026 15:02:10.357 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 09:32:14.330] fail: 1/9/2026 15:02:14.330 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (12ms) [Parameters=[@p0='mock_detail_1' (Size = 200), @p1='2026-01-09T09:32:14.1580707Z', @p2='1', @p3='19' (Nullable = true), @p4='https://www.figma.com/design/UhVS1Q3k1Fz1pwo4Gv184v/Rankup?node-id=226-1323&t=sS57bvXjZKglMtAE-4' (Size = 500), @p5='True', @p6='True', @p7='0%' (Size = 50), @p8='1', @p9='SSC CGL - 60 Min, 100 Ques' (Size = 250), @p10='New' (Size = 50), @p11='Full Length Mock #1' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:32:36.858] fail: 1/9/2026 15:02:36.858 RelationalEventId.CommandError[20102] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Failed executing DbCommand (2ms) [Parameters=[@p0='mock_detail_1' (Size = 200), @p1='2026-01-09T09:32:36.7994018Z', @p2='1', @p3='19' (Nullable = true), @p4='https://www.figma.com/design/UhVS1Q3k1Fz1pwo4Gv184v/Rankup?node-id=226-1323&t=sS57bvXjZKglMtAE-4' (Size = 500), @p5='True', @p6='True', @p7='0%' (Size = 50), @p8='1', @p9='SSC CGL - 60 Min, 100 Ques' (Size = 250), @p10='New' (Size = 50), @p11='Full Length Mock #1' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:34:18.767] info: 1/9/2026 15:04:18.766 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:34:18.783] info: 1/9/2026 15:04:18.783 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:34:18.805] info: 1/9/2026 15:04:18.805 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:34:18.808] info: 1/9/2026 15:04:18.808 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 09:34:18.809] info: 1/9/2026 15:04:18.809 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 09:34:18.822] info: 1/9/2026 15:04:18.822 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 09:34:26.676] info: 1/9/2026 15:04:26.676 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (16ms) [Parameters=[@p0='mock_detail_1' (Size = 200), @p1='2026-01-09T09:34:26.5222579Z', @p2='1', @p3='19' (Nullable = true), @p4='https://www.figma.com/design/UhVS1Q3k1Fz1pwo4Gv184v/Rankup?node-id=226-1323&t=sS57bvXjZKglMtAE-4' (Size = 500), @p5='True', @p6='True', @p7='0%' (Size = 50), @p8='1', @p9='SSC CGL - 60 Min, 100 Ques' (Size = 250), @p10='New' (Size = 50), @p11='Full Length Mock #1' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:35:02.793] info: 1/9/2026 15:05:02.792 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (7ms) [Parameters=[@__sectionType_0='1'], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[SectionType] = @__sectionType_0 AND [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[DisplayOrder]
+[2026-01-09 09:35:37.391] info: 1/9/2026 15:05:37.391 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (11ms) [Parameters=[@__sectionType_0='1', @__examId_1='1' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[SectionType] = @__sectionType_0 AND [h].[IsVisible] = CAST(1 AS bit) AND ([h].[ExamId] = @__examId_1 OR [h].[ExamId] IS NULL)
+      ORDER BY [h].[DisplayOrder]
+[2026-01-09 09:35:52.107] info: 1/9/2026 15:05:52.107 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:36:06.535] info: 1/9/2026 15:06:06.535 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__examId_0='1' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit) AND ([h].[ExamId] = @__examId_0 OR [h].[ExamId] IS NULL)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:38:48.634] info: 1/9/2026 15:08:48.634 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@p0='test_series_tier1' (Size = 200), @p1='2026-01-09T09:38:48.6286459Z', @p2='1', @p3='19' (Nullable = true), @p4='https://www.figma.com/design/UhVS1Q3k1Fz1pwo4Gv184v/Rankup?node-id=190-959&t=sS57bvXjZKglMtAE-4' (Size = 500), @p5='True', @p6='True', @p7='3/15' (Size = 50), @p8='2', @p9='15 Full Length + Sectional Tests' (Size = 250), @p10='Ongoing' (Size = 50), @p11='Tier I Test Series' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:40:19.921] info: 1/9/2026 15:10:19.921 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@p0='practice_pyq_2023' (Size = 200), @p1='2026-01-09T09:40:19.9164180Z', @p2='1', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/pyq-2023.png' (Size = 500), @p5='True', @p6='True', @p7='5/25' (Size = 50), @p8='3', @p9='SSC CGL PYQ – 25 Sets' (Size = 250), @p10='PYQ' (Size = 50), @p11='Previous Year Questions 2023' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:47:17.516] info: 1/9/2026 15:17:17.516 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__sectionType_0='1'], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[SectionType] = @__sectionType_0 AND [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[DisplayOrder]
+[2026-01-09 09:47:31.355] info: 1/9/2026 15:17:31.355 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@__sectionType_0='1', @__examId_1='1' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[SectionType] = @__sectionType_0 AND [h].[IsVisible] = CAST(1 AS bit) AND ([h].[ExamId] = @__examId_1 OR [h].[ExamId] IS NULL)
+      ORDER BY [h].[DisplayOrder]
+[2026-01-09 09:47:38.775] info: 1/9/2026 15:17:38.775 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:49:59.647] info: 1/9/2026 15:19:59.647 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__id_0='1'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[Id] = @__id_0
+[2026-01-09 09:49:59.658] info: 1/9/2026 15:19:59.658 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@p0='1'], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      DELETE FROM [HomeSectionItems]
+      OUTPUT 1
+      WHERE [Id] = @p0;
+[2026-01-09 09:50:06.466] info: 1/9/2026 15:20:06.466 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[Id] = @__id_0
+[2026-01-09 09:50:06.469] info: 1/9/2026 15:20:06.469 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@p0='2'], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      DELETE FROM [HomeSectionItems]
+      OUTPUT 1
+      WHERE [Id] = @p0;
+[2026-01-09 09:50:11.452] info: 1/9/2026 15:20:11.452 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='3'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[Id] = @__id_0
+[2026-01-09 09:50:11.455] info: 1/9/2026 15:20:11.455 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@p0='3'], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      DELETE FROM [HomeSectionItems]
+      OUTPUT 1
+      WHERE [Id] = @p0;
+[2026-01-09 09:50:17.801] info: 1/9/2026 15:20:17.801 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (113ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 09:53:26.679] info: 1/9/2026 15:23:26.679 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (122ms) [Parameters=[@p0='mode_mock_test' (Size = 200), @p1='2026-01-09T09:53:26.5555965Z', @p2='1', @p3='19' (Nullable = true), @p4='' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='12', @p9='Full Length Papers' (Size = 250), @p10=NULL (Size = 50), @p11='Mock Test' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:53:37.715] info: 1/9/2026 15:23:37.715 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[@p0='mode_test_series' (Size = 200), @p1='2026-01-09T09:53:37.7066817Z', @p2='2', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/practice-test-series.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='12', @p9='Topic Wise Sets' (Size = 250), @p10=NULL (Size = 50), @p11='Test Series' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:53:45.848] info: 1/9/2026 15:23:45.848 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (122ms) [Parameters=[@p0='mode_practice' (Size = 200), @p1='2026-01-09T09:53:45.7251039Z', @p2='3', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/practice-daily.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='12', @p9='Daily Quizzes' (Size = 250), @p10=NULL (Size = 50), @p11='Practice' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:53:53.626] info: 1/9/2026 15:23:53.626 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@p0='mode_previous_year' (Size = 200), @p1='2026-01-09T09:53:53.6240512Z', @p2='4', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/practice-previous-year.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='12', @p9='Solved Papers' (Size = 250), @p10='PYQ' (Size = 50), @p11='Previous Yr' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:54:01.379] info: 1/9/2026 15:24:01.379 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (76ms) [Parameters=[@p0='continue_quants_test1' (Size = 200), @p1='2026-01-09T09:54:01.3019681Z', @p2='1', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/continue-quant.png' (Size = 500), @p5='True', @p6='True', @p7='66%' (Size = 50), @p8='4', @p9='Progress' (Size = 250), @p10=NULL (Size = 50), @p11='SSC CGL : Quants TEST 1' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:54:10.334] info: 1/9/2026 15:24:10.334 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (63ms) [Parameters=[@p0='daily_target_quant' (Size = 200), @p1='2026-01-09T09:54:10.2704090Z', @p2='1', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/daily-quant.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='10', @p9='25 Ques • 20 Min' (Size = 250), @p10=NULL (Size = 50), @p11='Quant Aptitude' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:54:18.568] info: 1/9/2026 15:24:18.568 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[@p0='daily_target_reasoning' (Size = 200), @p1='2026-01-09T09:54:18.5615814Z', @p2='2', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/daily-reasoning.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='10', @p9='20 Ques • 30 Min' (Size = 250), @p10=NULL (Size = 50), @p11='Reasoning' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:54:26.396] info: 1/9/2026 15:24:26.396 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@p0='reco_series_1' (Size = 200), @p1='2026-01-09T09:54:26.3949900Z', @p2='1', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/reco-series-1.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='11', @p9='10 Ques • 5 Min' (Size = 250), @p10='Best Seller' (Size = 50), @p11='Test Series Name' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:54:34.558] info: 1/9/2026 15:24:34.558 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@p0='exam_mode_mock5' (Size = 200), @p1='2026-01-09T09:54:34.5566123Z', @p2='1', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/exam-mode-mock5.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='13', @p9='SSC CGL • Includes 100Qs | 60 Mins' (Size = 250), @p10=NULL (Size = 50), @p11='Full Length Mock #5' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:54:43.221] info: 1/9/2026 15:24:43.221 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (7ms) [Parameters=[@p0='rapid_speed_test' (Size = 200), @p1='2026-01-09T09:54:43.2125272Z', @p2='1', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/rapid-speed.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='14', @p9='10 min rapid fire' (Size = 250), @p10=NULL (Size = 50), @p11='Speed Test' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:54:52.089] info: 1/9/2026 15:24:52.089 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[@p0='rapid_battle_mode' (Size = 200), @p1='2026-01-09T09:54:52.0791240Z', @p2='2', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/rapid-battle.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='14', @p9='1v1 in rapid fire' (Size = 250), @p10=NULL (Size = 50), @p11='Battle Mode' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:55:01.042] info: 1/9/2026 15:25:01.042 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@p0='free_fci_ag' (Size = 200), @p1='2026-01-09T09:55:01.0410754Z', @p2='1', @p3='19' (Nullable = true), @p4='https://your-cdn.com/images/free-fci-ag.png' (Size = 500), @p5='True', @p6='True', @p7=NULL (Size = 50), @p8='15', @p9='199 Questions • 120 Min' (Size = 250), @p10='Free' (Size = 50), @p11='FCI III AG' (Nullable = false) (Size = 150), @p12=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [HomeSectionItems] ([ActionKey], [CreatedAt], [DisplayOrder], [ExamId], [ImageUrl], [IsActive], [IsVisible], [ProgressText], [SectionType], [Subtitle], [Tag], [Title], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);
+[2026-01-09 09:55:45.793] info: 1/9/2026 15:25:45.793 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 10:06:41.115] info: 1/9/2026 15:36:41.115 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__dto_Id_0='15'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[Id] = @__dto_Id_0
+[2026-01-09 10:06:41.122] info: 1/9/2026 15:36:41.122 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@p1='15', @p0='http://localhost:5234/images/home-sections/mock-test-icon.png' (Size = 500)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [HomeSectionItems] SET [ImageUrl] = @p0
+      OUTPUT 1
+      WHERE [Id] = @p1;
+[2026-01-09 10:09:09.038] info: 1/9/2026 15:39:09.038 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]

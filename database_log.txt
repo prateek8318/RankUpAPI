@@ -1978,3 +1978,304 @@ en-us is an invalid culture identifier.
       FROM [HomeSectionItems] AS [h]
       WHERE [h].[IsVisible] = CAST(1 AS bit)
       ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 11:10:20.032] info: 1/9/2026 16:40:20.031 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 11:10:20.047] info: 1/9/2026 16:40:20.047 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 11:10:20.067] info: 1/9/2026 16:40:20.067 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 11:10:20.070] info: 1/9/2026 16:40:20.070 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 11:10:20.072] info: 1/9/2026 16:40:20.072 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 11:10:20.086] info: 1/9/2026 16:40:20.086 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 11:33:30.557] info: 1/9/2026 17:03:30.556 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 11:33:30.568] info: 1/9/2026 17:03:30.568 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 11:33:30.588] info: 1/9/2026 17:03:30.588 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 11:33:30.591] info: 1/9/2026 17:03:30.591 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 11:33:30.593] info: 1/9/2026 17:03:30.593 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 11:33:30.607] info: 1/9/2026 17:03:30.607 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 11:35:04.160] info: 1/9/2026 17:05:04.160 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [q].[Id], [q].[ChapterId], [q].[CorrectAnswer], [q].[CreatedAt], [q].[Difficulty], [q].[EstimatedTimeInSeconds], [q].[ExplanationEnglish], [q].[ExplanationHindi], [q].[IsActive], [q].[IsMcq], [q].[Marks], [q].[NegativeMarks], [q].[OptionAEnglish], [q].[OptionAHindi], [q].[OptionBEnglish], [q].[OptionBHindi], [q].[OptionCEnglish], [q].[OptionCHindi], [q].[OptionDEnglish], [q].[OptionDHindi], [q].[OptionImageAUrl], [q].[OptionImageBUrl], [q].[OptionImageCUrl], [q].[OptionImageDUrl], [q].[QuestionImageUrlEnglish], [q].[QuestionImageUrlHindi], [q].[QuestionTextEnglish], [q].[QuestionTextHindi], [q].[QuestionVideoUrlEnglish], [q].[QuestionVideoUrlHindi], [q].[SolutionImageUrlEnglish], [q].[SolutionImageUrlHindi], [q].[SolutionVideoUrlEnglish], [q].[SolutionVideoUrlHindi], [q].[Type], [q].[UpdatedAt], [c].[Id], [c].[CreatedAt], [c].[Description], [c].[IsActive], [c].[Name], [c].[SubjectId], [c].[UpdatedAt], [s].[Id], [s].[CreatedAt], [s].[Description], [s].[ExamId], [s].[IsActive], [s].[Name], [s].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [Questions] AS [q]
+      INNER JOIN [Chapters] AS [c] ON [q].[ChapterId] = [c].[Id]
+      INNER JOIN [Subjects] AS [s] ON [c].[SubjectId] = [s].[Id]
+      INNER JOIN [Exams] AS [e] ON [s].[ExamId] = [e].[Id]
+      WHERE [q].[IsActive] = CAST(1 AS bit)
+      ORDER BY [q].[CreatedAt]
+[2026-01-09 12:00:49.309] info: 1/9/2026 17:30:49.309 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [Exams] AS [e]
+[2026-01-09 12:00:49.537] info: 1/9/2026 17:30:49.537 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (36ms) [Parameters=[@__ToLower_0='anatomy' (Size = 100), @__8__locals1_defaultExam_Id_1='3'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [s].[Id], [s].[CreatedAt], [s].[Description], [s].[ExamId], [s].[IsActive], [s].[Name], [s].[UpdatedAt]
+      FROM [Subjects] AS [s]
+      WHERE LOWER([s].[Name]) = @__ToLower_0 AND [s].[ExamId] = @__8__locals1_defaultExam_Id_1
+[2026-01-09 12:00:49.749] info: 1/9/2026 17:30:49.749 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (69ms) [Parameters=[@p0='2026-01-09T12:00:49.5388547Z', @p1=NULL (Size = 500), @p2='3', @p3='True', @p4='ANATOMY' (Nullable = false) (Size = 100), @p5=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [Subjects] ([CreatedAt], [Description], [ExamId], [IsActive], [Name], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+[2026-01-09 12:00:49.789] info: 1/9/2026 17:30:49.789 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__subject_Id_0='1'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [c].[Id], [c].[CreatedAt], [c].[Description], [c].[IsActive], [c].[Name], [c].[SubjectId], [c].[UpdatedAt]
+      FROM [Chapters] AS [c]
+      WHERE [c].[SubjectId] = @__subject_Id_0 AND [c].[Name] = N'Default'
+[2026-01-09 12:00:49.817] info: 1/9/2026 17:30:49.817 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (7ms) [Parameters=[@p0='2026-01-09T12:00:49.7914526Z', @p1=NULL (Size = 500), @p2='True', @p3='Default' (Nullable = false) (Size = 100), @p4='1', @p5=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [Chapters] ([CreatedAt], [Description], [IsActive], [Name], [SubjectId], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+[2026-01-09 12:00:50.056] info: 1/9/2026 17:30:50.056 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (104ms) [Parameters=[@p0='1', @p1='B' (Nullable = false) (Size = 1), @p2='2026-01-09T12:00:49.8449887Z', @p3='2', @p4='120', @p5='<p><strong>Mesonephric Duct Remnants in Males </strong></p>' (Size = 2000), @p6='' (Size = 2000), @p7='True', @p8='True', @p9='1', @p10='0' (Precision = 18) (Scale = 2), @p11='Allantois' (Nullable = false) (Size = 500), @p12='' (Nullable = false) (Size = 500), @p13='Paramesonephric duct' (Nullable = false) (Size = 500), @p14='' (Nullable = false) (Size = 500), @p15='Mesonephric duct' (Nullable = false) (Size = 500), @p16='' (Nullable = false) (Size = 500), @p17='Cloaca' (Nullable = false) (Size = 500), @p18='' (Nullable = false) (Size = 500), @p19='' (Size = 500), @p20='' (Size = 500), @p21='' (Size = 500), @p22='' (Size = 500), @p23='' (Size = 500), @p24='' (Size = 500), @p25='Appendix of Testis develops from' (Nullable = false) (Size = 2000), @p26='' (Nullable = false) (Size = 2000), @p27='' (Size = 500), @p28='' (Size = 500), @p29='' (Size = 500), @p30='' (Size = 500), @p31='' (Size = 500), @p32='' (Size = 500), @p33='1', @p34=NULL (DbType = DateTime2), @p35='1', @p36='A' (Nullable = false) (Size = 1), @p37='2026-01-09T12:00:49.9087925Z', @p38='2', @p39='120', @p40='<p><strong>Remember:</strong></p>' (Size = 2000), @p41='' (Size = 2000), @p42='True', @p43='True', @p44='1', @p45='0' (Precision = 18) (Scale = 2), @p46='Splenoorenal ligament' (Nullable = false) (Size = 500), @p47='' (Nullable = false) (Size = 500), @p48='Gastrosplenic ligament' (Nullable = false) (Size = 500), @p49='' (Nullable = false) (Size = 500), @p50='Phrenico colic ligament' (Nullable = false) (Size = 500), @p51='' (Nullable = false) (Size = 500), @p52='Falciform ligament' (Nullable = false) (Size = 500), @p53='' (Nullable = false) (Size = 500), @p54='' (Size = 500), @p55='' (Size = 500), @p56='' (Size = 500), @p57='' (Size = 500), @p58='' (Size = 500), @p59='' (Size = 500), @p60='Tail of pancreas   is related with:' (Nullable = false) (Size = 2000), @p61='' (Nullable = false) (Size = 2000), @p62='' (Size = 500), @p63='' (Size = 500), @p64='' (Size = 500), @p65='' (Size = 500), @p66='' (Size = 500), @p67='' (Size = 500), @p68='1', @p69=NULL (DbType = DateTime2), @p70='1', @p71='B' (Nullable = false) (Size = 1), @p72='2026-01-09T12:00:49.9095170Z', @p73='2', @p74='120', @p75='<p><strong>Tensor Palati does NOT develop from the second pharyngeal arch But from Ist Arch.</strong></p>' (Size = 2000), @p76='' (Size = 2000), @p77='True', @p78='True', @p79='1', @p80='0' (Precision = 18) (Scale = 2), @p81='Posterior belly of digastrics' (Nullable = false) (Size = 500), @p82='' (Nullable = false) (Size = 500), @p83='Tensor Palati' (Nullable = false) (Size = 500), @p84='' (Nullable = false) (Size = 500), @p85='Stapedius' (Nullable = false) (Size = 500), @p86='' (Nullable = false) (Size = 500), @p87='Stylohyoid' (Nullable = false) (Size = 500), @p88='' (Nullable = false) (Size = 500), @p89='' (Size = 500), @p90='' (Size = 500), @p91='' (Size = 500), @p92='' (Size = 500), @p93='' (Size = 500), @p94='' (Size = 500), @p95='Which one of the following muscles does NOT develop from the second pharyngeal arch?' (Nullable = false) (Size = 2000), @p96='' (Nullable = false) (Size = 2000), @p97='' (Size = 500), @p98='' (Size = 500), @p99='' (Size = 500), @p100='' (Size = 500), @p101='' (Size = 500), @p102='' (Size = 500), @p103='1', @p104=NULL (DbType = DateTime2), @p105='1', @p106='A' (Nullable = false) (Size = 1), @p107='2026-01-09T12:00:49.9097365Z', @p108='2', @p109='120', @p110='<p><strong>The Decidua &nbsp;&nbsp;</strong>refers to the gravid endometrium, the functional layer of the endometrium . The three regions of the decidua are named according to their relation to the implantation site <strong>. The decidua basalis is the part of the decidua deep to the conceptus that forms the maternal part of the placenta</strong>.<strong> The fetal part of the placenta is formed by the villous chorion</strong>. The chorionic villi that arise from it project into the intervillous space containing maternal blood.<strong> The &nbsp;&nbsp;Chorion Frondosum </strong>refers to &nbsp;Part of the Fetal Origin of Placenta.</p>' (Size = 2000), @p111='' (Size = 2000), @p112='True', @p113='True', @p114='1', @p115='0' (Precision = 18) (Scale = 2), @p116='Decidua basalis and Chorion Frondosum' (Nullable = false) (Size = 500), @p117='' (Nullable = false) (Size = 500), @p118='Decidua capsularis  and chorion laevae' (Nullable = false) (Size = 500), @p119='' (Nullable = false) (Size = 500), @p120='Decidua parietalis and Chorion Frondosum' (Nullable = false) (Size = 500), @p121='' (Nullable = false) (Size = 500), @p122='Decidua basalis and Chorion laevae' (Nullable = false) (Size = 500), @p123='' (Nullable = false) (Size = 500), @p124='' (Size = 500), @p125='' (Size = 500), @p126='' (Size = 500), @p127='' (Size = 500), @p128='' (Size = 500), @p129='' (Size = 500), @p130='Placenta is formed by' (Nullable = false) (Size = 2000), @p131='' (Nullable = false) (Size = 2000), @p132='' (Size = 500), @p133='' (Size = 500), @p134='' (Size = 500), @p135='' (Size = 500), @p136='' (Size = 500), @p137='' (Size = 500), @p138='1', @p139=NULL (DbType = DateTime2), @p140='1', @p141='C' (Nullable = false) (Size = 1), @p142='2026-01-09T12:00:49.9099277Z', @p143='2', @p144='120', @p145='<p><strong>Uterine artery is a &nbsp;branch &nbsp;of Internal iliac artery in females</strong></p>' (Size = 2000), @p146='' (Size = 2000), @p147='True', @p148='True', @p149='1', @p150='0' (Precision = 18) (Scale = 2), @p151='Aorta' (Nullable = false) (Size = 500), @p152='' (Nullable = false) (Size = 500), @p153='External iliac artery' (Nullable = false) (Size = 500), @p154='' (Nullable = false) (Size = 500), @p155='Internal iliac artery' (Nullable = false) (Size = 500), @p156='' (Nullable = false) (Size = 500), @p157='Inferior epigastric artery' (Nullable = false) (Size = 500), @p158='' (Nullable = false) (Size = 500), @p159='' (Size = 500), @p160='' (Size = 500), @p161='' (Size = 500), @p162='' (Size = 500), @p163='' (Size = 500), @p164='' (Size = 500), @p165='Uterine Artery is a branch of:' (Nullable = false) (Size = 2000), @p166='' (Nullable = false) (Size = 2000), @p167='' (Size = 500), @p168='' (Size = 500), @p169='' (Size = 500), @p170='' (Size = 500), @p171='' (Size = 500), @p172='' (Size = 500), @p173='1', @p174=NULL (DbType = DateTime2), @p175='1', @p176='D' (Nullable = false) (Size = 1), @p177='2026-01-09T12:00:49.9101619Z', @p178='2', @p179='120', @p180='<p><strong>&nbsp;Important Subcutaneous muscles &nbsp;are :</strong></p>' (Size = 2000), @p181='' (Size = 2000), @p182='True', @p183='True', @p184='1', @p185='0' (Precision = 18) (Scale = 2), @p186='Sternocleidomastoid' (Nullable = false) (Size = 500), @p187='' (Nullable = false) (Size = 500), @p188='Mylohyoid' (Nullable = false) (Size = 500), @p189='' (Nullable = false) (Size = 500), @p190='Palmaris longus' (Nullable = false) (Size = 500), @p191='' (Nullable = false) (Size = 500), @p192='Palmaris brevis' (Nullable = false) (Size = 500), @p193='' (Nullable = false) (Size = 500), @p194='' (Size = 500), @p195='' (Size = 500), @p196='' (Size = 500), @p197='' (Size = 500), @p198='' (Size = 500), @p199='' (Size = 500), @p200='Subcutaneous muscle is' (Nullable = false) (Size = 2000), @p201='' (Nullable = false) (Size = 2000), @p202='' (Size = 500), @p203='' (Size = 500), @p204='' (Size = 500), @p205='' (Size = 500), @p206='' (Size = 500), @p207='' (Size = 500), @p208='1', @p209=NULL (DbType = DateTime2), @p210='1', @p211='D' (Nullable = false) (Size = 1), @p212='2026-01-09T12:00:49.9103240Z', @p213='2', @p214='120', @p215='<p><strong>It </strong>is an &nbsp;&nbsp;arterial circle formed at the base of brain by interconnections between the main arteries supplying brain.</p>' (Size = 2000), @p216='' (Size = 2000), @p217='True', @p218='True', @p219='1', @p220='0' (Precision = 18) (Scale = 2), @p221='Anterior cerebral artery' (Nullable = false) (Size = 500), @p222='' (Nullable = false) (Size = 500), @p223='Middle cerebral artery' (Nullable = false) (Size = 500), @p224='' (Nullable = false) (Size = 500), @p225='Posterior communicating artery' (Nullable = false) (Size = 500), @p226='' (Nullable = false) (Size = 500), @p227='Posterior cerebellar artery' (Nullable = false) (Size = 500), @p228='' (Nullable = false) (Size = 500), @p229='' (Size = 500), @p230='' (Size = 500), @p231='' (Size = 500), @p232='' (Size = 500), @p233='' (Size = 500), @p234='' (Size = 500), @p235='Circle of Willis is not formed by:' (Nullable = false) (Size = 2000), @p236='' (Nullable = false) (Size = 2000), @p237='' (Size = 500), @p238='' (Size = 500), @p239='' (Size = 500), @p240='' (Size = 500), @p241='' (Size = 500), @p242='' (Size = 500), @p243='1', @p244=NULL (DbType = DateTime2), @p245='1', @p246='D' (Nullable = false) (Size = 1), @p247='2026-01-09T12:00:49.9104819Z', @p248='2', @p249='120', @p250='<p><strong>ilio inguinal nerve &nbsp;is not one of the Contents of Spermatic cord.</strong></p>' (Size = 2000), @p251='' (Size = 2000), @p252='True', @p253='True', @p254='1', @p255='0' (Precision = 18) (Scale = 2), @p256='Ductus deferens' (Nullable = false) (Size = 500), @p257='' (Nullable = false) (Size = 500), @p258='Pampaniform plexus' (Nullable = false) (Size = 500), @p259='' (Nullable = false) (Size = 500), @p260='Genital branch of genitofemoral nerve' (Nullable = false) (Size = 500), @p261='' (Nullable = false) (Size = 500), @p262='Ilioinguinal nerve' (Nullable = false) (Size = 500), @p263='' (Nullable = false) (Size = 500), @p264='' (Size = 500), @p265='' (Size = 500), @p266='' (Size = 500), @p267='' (Size = 500), @p268='' (Size = 500), @p269='' (Size = 500), @p270='The contents of the spermatic cord include the following, except:' (Nullable = false) (Size = 2000), @p271='' (Nullable = false) (Size = 2000), @p272='' (Size = 500), @p273='' (Size = 500), @p274='' (Size = 500), @p275='' (Size = 500), @p276='' (Size = 500), @p277='' (Size = 500), @p278='1', @p279=NULL (DbType = DateTime2), @p280='1', @p281='C' (Nullable = false) (Size = 1), @p282='2026-01-09T12:00:49.9106303Z', @p283='2', @p284='120', @p285='<p><strong>Remember the Definitions</strong></p>' (Size = 2000), @p286='' (Size = 2000), @p287='True', @p288='True', @p289='1', @p290='0' (Precision = 18) (Scale = 2), @p291='Synergists' (Nullable = false) (Size = 500), @p292='' (Nullable = false) (Size = 500), @p293='Fixators' (Nullable = false) (Size = 500), @p294='' (Nullable = false) (Size = 500), @p295='Prime movers' (Nullable = false) (Size = 500), @p296='' (Nullable = false) (Size = 500), @p297='Antagonists' (Nullable = false) (Size = 500), @p298='' (Nullable = false) (Size = 500), @p299='' (Size = 500), @p300='' (Size = 500), @p301='' (Size = 500), @p302='' (Size = 500), @p303='' (Size = 500), @p304='' (Size = 500), @p305='The muscles consistently active in initiating and maintaining a movement are called:' (Nullable = false) (Size = 2000), @p306='' (Nullable = false) (Size = 2000), @p307='' (Size = 500), @p308='' (Size = 500), @p309='' (Size = 500), @p310='' (Size = 500), @p311='' (Size = 500), @p312='' (Size = 500), @p313='1', @p314=NULL (DbType = DateTime2), @p315='1', @p316='A' (Nullable = false) (Size = 1), @p317='2026-01-09T12:00:49.9107580Z', @p318='2', @p319='120', @p320='<p><strong>The Sweat Glands</strong></p>' (Size = 2000), @p321='' (Size = 2000), @p322='True', @p323='True', @p324='1', @p325='0' (Precision = 18) (Scale = 2), @p326='Mammary glands' (Nullable = false) (Size = 500), @p327='' (Nullable = false) (Size = 500), @p328='Salivary glands' (Nullable = false) (Size = 500), @p329='' (Nullable = false) (Size = 500), @p330='Sebaceous glands' (Nullable = false) (Size = 500), @p331='' (Nullable = false) (Size = 500), @p332='Sweat glands' (Nullable = false) (Size = 500), @p333='' (Nullable = false) (Size = 500), @p334='' (Size = 500), @p335='' (Size = 500), @p336='' (Size = 500), @p337='' (Size = 500), @p338='' (Size = 500), @p339='' (Size = 500), @p340='The following glands contain the myoepithelial cells, except:' (Nullable = false) (Size = 2000), @p341='' (Nullable = false) (Size = 2000), @p342='' (Size = 500), @p343='' (Size = 500), @p344='' (Size = 500), @p345='' (Size = 500), @p346='' (Size = 500), @p347='' (Size = 500), @p348='1', @p349=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      MERGE [Questions] USING (
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27, @p28, @p29, @p30, @p31, @p32, @p33, @p34, 0),
+      (@p35, @p36, @p37, @p38, @p39, @p40, @p41, @p42, @p43, @p44, @p45, @p46, @p47, @p48, @p49, @p50, @p51, @p52, @p53, @p54, @p55, @p56, @p57, @p58, @p59, @p60, @p61, @p62, @p63, @p64, @p65, @p66, @p67, @p68, @p69, 1),
+      (@p70, @p71, @p72, @p73, @p74, @p75, @p76, @p77, @p78, @p79, @p80, @p81, @p82, @p83, @p84, @p85, @p86, @p87, @p88, @p89, @p90, @p91, @p92, @p93, @p94, @p95, @p96, @p97, @p98, @p99, @p100, @p101, @p102, @p103, @p104, 2),
+      (@p105, @p106, @p107, @p108, @p109, @p110, @p111, @p112, @p113, @p114, @p115, @p116, @p117, @p118, @p119, @p120, @p121, @p122, @p123, @p124, @p125, @p126, @p127, @p128, @p129, @p130, @p131, @p132, @p133, @p134, @p135, @p136, @p137, @p138, @p139, 3),
+      (@p140, @p141, @p142, @p143, @p144, @p145, @p146, @p147, @p148, @p149, @p150, @p151, @p152, @p153, @p154, @p155, @p156, @p157, @p158, @p159, @p160, @p161, @p162, @p163, @p164, @p165, @p166, @p167, @p168, @p169, @p170, @p171, @p172, @p173, @p174, 4),
+      (@p175, @p176, @p177, @p178, @p179, @p180, @p181, @p182, @p183, @p184, @p185, @p186, @p187, @p188, @p189, @p190, @p191, @p192, @p193, @p194, @p195, @p196, @p197, @p198, @p199, @p200, @p201, @p202, @p203, @p204, @p205, @p206, @p207, @p208, @p209, 5),
+      (@p210, @p211, @p212, @p213, @p214, @p215, @p216, @p217, @p218, @p219, @p220, @p221, @p222, @p223, @p224, @p225, @p226, @p227, @p228, @p229, @p230, @p231, @p232, @p233, @p234, @p235, @p236, @p237, @p238, @p239, @p240, @p241, @p242, @p243, @p244, 6),
+      (@p245, @p246, @p247, @p248, @p249, @p250, @p251, @p252, @p253, @p254, @p255, @p256, @p257, @p258, @p259, @p260, @p261, @p262, @p263, @p264, @p265, @p266, @p267, @p268, @p269, @p270, @p271, @p272, @p273, @p274, @p275, @p276, @p277, @p278, @p279, 7),
+      (@p280, @p281, @p282, @p283, @p284, @p285, @p286, @p287, @p288, @p289, @p290, @p291, @p292, @p293, @p294, @p295, @p296, @p297, @p298, @p299, @p300, @p301, @p302, @p303, @p304, @p305, @p306, @p307, @p308, @p309, @p310, @p311, @p312, @p313, @p314, 8),
+      (@p315, @p316, @p317, @p318, @p319, @p320, @p321, @p322, @p323, @p324, @p325, @p326, @p327, @p328, @p329, @p330, @p331, @p332, @p333, @p334, @p335, @p336, @p337, @p338, @p339, @p340, @p341, @p342, @p343, @p344, @p345, @p346, @p347, @p348, @p349, 9)) AS i ([ChapterId], [CorrectAnswer], [CreatedAt], [Difficulty], [EstimatedTimeInSeconds], [ExplanationEnglish], [ExplanationHindi], [IsActive], [IsMcq], [Marks], [NegativeMarks], [OptionAEnglish], [OptionAHindi], [OptionBEnglish], [OptionBHindi], [OptionCEnglish], [OptionCHindi], [OptionDEnglish], [OptionDHindi], [OptionImageAUrl], [OptionImageBUrl], [OptionImageCUrl], [OptionImageDUrl], [QuestionImageUrlEnglish], [QuestionImageUrlHindi], [QuestionTextEnglish], [QuestionTextHindi], [QuestionVideoUrlEnglish], [QuestionVideoUrlHindi], [SolutionImageUrlEnglish], [SolutionImageUrlHindi], [SolutionVideoUrlEnglish], [SolutionVideoUrlHindi], [Type], [UpdatedAt], _Position) ON 1=0
+      WHEN NOT MATCHED THEN
+      INSERT ([ChapterId], [CorrectAnswer], [CreatedAt], [Difficulty], [EstimatedTimeInSeconds], [ExplanationEnglish], [ExplanationHindi], [IsActive], [IsMcq], [Marks], [NegativeMarks], [OptionAEnglish], [OptionAHindi], [OptionBEnglish], [OptionBHindi], [OptionCEnglish], [OptionCHindi], [OptionDEnglish], [OptionDHindi], [OptionImageAUrl], [OptionImageBUrl], [OptionImageCUrl], [OptionImageDUrl], [QuestionImageUrlEnglish], [QuestionImageUrlHindi], [QuestionTextEnglish], [QuestionTextHindi], [QuestionVideoUrlEnglish], [QuestionVideoUrlHindi], [SolutionImageUrlEnglish], [SolutionImageUrlHindi], [SolutionVideoUrlEnglish], [SolutionVideoUrlHindi], [Type], [UpdatedAt])
+      VALUES (i.[ChapterId], i.[CorrectAnswer], i.[CreatedAt], i.[Difficulty], i.[EstimatedTimeInSeconds], i.[ExplanationEnglish], i.[ExplanationHindi], i.[IsActive], i.[IsMcq], i.[Marks], i.[NegativeMarks], i.[OptionAEnglish], i.[OptionAHindi], i.[OptionBEnglish], i.[OptionBHindi], i.[OptionCEnglish], i.[OptionCHindi], i.[OptionDEnglish], i.[OptionDHindi], i.[OptionImageAUrl], i.[OptionImageBUrl], i.[OptionImageCUrl], i.[OptionImageDUrl], i.[QuestionImageUrlEnglish], i.[QuestionImageUrlHindi], i.[QuestionTextEnglish], i.[QuestionTextHindi], i.[QuestionVideoUrlEnglish], i.[QuestionVideoUrlHindi], i.[SolutionImageUrlEnglish], i.[SolutionImageUrlHindi], i.[SolutionVideoUrlEnglish], i.[SolutionVideoUrlHindi], i.[Type], i.[UpdatedAt])
+      OUTPUT INSERTED.[Id], i._Position;
+[2026-01-09 12:01:33.925] info: 1/9/2026 17:31:33.925 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (25ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [q].[Id], [q].[ChapterId], [q].[CorrectAnswer], [q].[CreatedAt], [q].[Difficulty], [q].[EstimatedTimeInSeconds], [q].[ExplanationEnglish], [q].[ExplanationHindi], [q].[IsActive], [q].[IsMcq], [q].[Marks], [q].[NegativeMarks], [q].[OptionAEnglish], [q].[OptionAHindi], [q].[OptionBEnglish], [q].[OptionBHindi], [q].[OptionCEnglish], [q].[OptionCHindi], [q].[OptionDEnglish], [q].[OptionDHindi], [q].[OptionImageAUrl], [q].[OptionImageBUrl], [q].[OptionImageCUrl], [q].[OptionImageDUrl], [q].[QuestionImageUrlEnglish], [q].[QuestionImageUrlHindi], [q].[QuestionTextEnglish], [q].[QuestionTextHindi], [q].[QuestionVideoUrlEnglish], [q].[QuestionVideoUrlHindi], [q].[SolutionImageUrlEnglish], [q].[SolutionImageUrlHindi], [q].[SolutionVideoUrlEnglish], [q].[SolutionVideoUrlHindi], [q].[Type], [q].[UpdatedAt], [c].[Id], [c].[CreatedAt], [c].[Description], [c].[IsActive], [c].[Name], [c].[SubjectId], [c].[UpdatedAt], [s].[Id], [s].[CreatedAt], [s].[Description], [s].[ExamId], [s].[IsActive], [s].[Name], [s].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [Questions] AS [q]
+      INNER JOIN [Chapters] AS [c] ON [q].[ChapterId] = [c].[Id]
+      INNER JOIN [Subjects] AS [s] ON [c].[SubjectId] = [s].[Id]
+      INNER JOIN [Exams] AS [e] ON [s].[ExamId] = [e].[Id]
+      WHERE [q].[IsActive] = CAST(1 AS bit)
+      ORDER BY [q].[CreatedAt]
+[2026-01-09 12:02:17.781] info: 1/9/2026 17:32:17.781 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[IsActive] = CAST(1 AS bit)
+      ORDER BY [t].[DisplayOrder], [t].[Name]
+[2026-01-09 12:03:11.094] info: 1/9/2026 17:33:11.094 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[ExamId], [s].[IsActive], [s].[Name], [s].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt], [c].[Id], [c].[CreatedAt], [c].[Description], [c].[IsActive], [c].[Name], [c].[SubjectId], [c].[UpdatedAt]
+      FROM [Subjects] AS [s]
+      INNER JOIN [Exams] AS [e] ON [s].[ExamId] = [e].[Id]
+      LEFT JOIN [Chapters] AS [c] ON [s].[Id] = [c].[SubjectId]
+      WHERE [s].[IsActive] = CAST(1 AS bit)
+      ORDER BY [s].[Name], [s].[Id], [e].[Id]
+[2026-01-09 12:03:46.120] info: 1/9/2026 17:33:46.120 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@__id_0='1'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[ExamId], [t].[IsActive], [t].[Name], [t].[UpdatedAt], [t].[Id0], [t].[CreatedAt0], [t].[Description0], [t].[DurationInMinutes], [t].[IsActive0], [t].[Name0], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt0], [c].[Id], [c].[CreatedAt], [c].[Description], [c].[IsActive], [c].[Name], [c].[SubjectId], [c].[UpdatedAt]
+      FROM (
+          SELECT TOP(1) [s].[Id], [s].[CreatedAt], [s].[Description], [s].[ExamId], [s].[IsActive], [s].[Name], [s].[UpdatedAt], [e].[Id] AS [Id0], [e].[CreatedAt] AS [CreatedAt0], [e].[Description] AS [Description0], [e].[DurationInMinutes], [e].[IsActive] AS [IsActive0], [e].[Name] AS [Name0], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt] AS [UpdatedAt0]
+          FROM [Subjects] AS [s]
+          INNER JOIN [Exams] AS [e] ON [s].[ExamId] = [e].[Id]
+          WHERE [s].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [Chapters] AS [c] ON [t].[Id] = [c].[SubjectId]
+      ORDER BY [t].[Id], [t].[Id0]
+[2026-01-09 12:04:06.518] info: 1/9/2026 17:34:06.518 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (7ms) [Parameters=[@p0='2026-01-09T12:04:06.5096408Z', @p1='Mathematics subject' (Size = 500), @p2='2', @p3='True', @p4='Mathematics' (Nullable = false) (Size = 100), @p5=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [Subjects] ([CreatedAt], [Description], [ExamId], [IsActive], [Name], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+[2026-01-09 12:04:38.021] info: 1/9/2026 17:34:38.021 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@p0='2026-01-09T12:04:38.0193687Z', @p1='Mathematics subject' (Size = 500), @p2='2', @p3='True', @p4='Mathematics' (Nullable = false) (Size = 100), @p5=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [Subjects] ([CreatedAt], [Description], [ExamId], [IsActive], [Name], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+[2026-01-09 12:04:49.514] info: 1/9/2026 17:34:49.514 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@p0='2026-01-09T12:04:49.5099134Z', @p1='Mathematics subject' (Size = 500), @p2='19', @p3='True', @p4='Mathematics' (Nullable = false) (Size = 100), @p5=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [Subjects] ([CreatedAt], [Description], [ExamId], [IsActive], [Name], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+[2026-01-09 12:04:49.520] info: 1/9/2026 17:34:49.520 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@__id_0='4'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[ExamId], [t].[IsActive], [t].[Name], [t].[UpdatedAt], [t].[Id0], [t].[CreatedAt0], [t].[Description0], [t].[DurationInMinutes], [t].[IsActive0], [t].[Name0], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt0], [c].[Id], [c].[CreatedAt], [c].[Description], [c].[IsActive], [c].[Name], [c].[SubjectId], [c].[UpdatedAt]
+      FROM (
+          SELECT TOP(1) [s].[Id], [s].[CreatedAt], [s].[Description], [s].[ExamId], [s].[IsActive], [s].[Name], [s].[UpdatedAt], [e].[Id] AS [Id0], [e].[CreatedAt] AS [CreatedAt0], [e].[Description] AS [Description0], [e].[DurationInMinutes], [e].[IsActive] AS [IsActive0], [e].[Name] AS [Name0], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt] AS [UpdatedAt0]
+          FROM [Subjects] AS [s]
+          INNER JOIN [Exams] AS [e] ON [s].[ExamId] = [e].[Id]
+          WHERE [s].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [Chapters] AS [c] ON [t].[Id] = [c].[SubjectId]
+      ORDER BY [t].[Id], [t].[Id0]
+[2026-01-09 12:08:59.478] info: 1/9/2026 17:38:59.478 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[IsActive] = CAST(1 AS bit)
+      ORDER BY [t].[DisplayOrder], [t].[Name]
+[2026-01-09 12:10:26.625] info: 1/9/2026 17:40:26.625 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[@p0='2026-01-09T12:10:26.5980764Z', @p1='First test series' (Size = 500), @p2='1', @p3='60', @p4='1', @p5='Read all instructions carefully' (Size = 2000), @p6='सभी निर्देश ध्यान से पढ़ें' (Size = 2000), @p7='True', @p8='False', @p9='Railway Group D Test Series 01' (Nullable = false) (Size = 100), @p10='35', @p11='100', @p12='0', @p13=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [TestSeries] ([CreatedAt], [Description], [DisplayOrder], [DurationInMinutes], [ExamId], [InstructionsEnglish], [InstructionsHindi], [IsActive], [IsLocked], [Name], [PassingMarks], [TotalMarks], [TotalQuestions], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13);
+[2026-01-09 12:11:01.955] info: 1/9/2026 17:41:01.955 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM [Exams] AS [e]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [e].[Id] = [e0].[ExamId]
+      WHERE [e].[IsActive] = CAST(1 AS bit)
+      ORDER BY [e].[Name], [e].[Id], [e0].[ExamId]
+[2026-01-09 12:11:28.927] info: 1/9/2026 17:41:28.927 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@p0='2026-01-09T12:11:28.9214470Z', @p1='First test series' (Size = 500), @p2='1', @p3='60', @p4='8', @p5='Read all instructions carefully' (Size = 2000), @p6='सभी निर्देश ध्यान से पढ़ें' (Size = 2000), @p7='True', @p8='False', @p9='Railway Group D Test Series 01' (Nullable = false) (Size = 100), @p10='35', @p11='100', @p12='0', @p13=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [TestSeries] ([CreatedAt], [Description], [DisplayOrder], [DurationInMinutes], [ExamId], [InstructionsEnglish], [InstructionsHindi], [IsActive], [IsLocked], [Name], [PassingMarks], [TotalMarks], [TotalQuestions], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13);
+[2026-01-09 12:11:28.946] info: 1/9/2026 17:41:28.946 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[@__id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[Id] = @__id_0
+[2026-01-09 12:11:28.974] info: 1/9/2026 17:41:28.974 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__id_0
+[2026-01-09 12:11:50.884] info: 1/9/2026 17:41:50.884 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (5ms) [Parameters=[@p0='2026-01-09T12:11:50.8788698Z', @p1='First test series' (Size = 500), @p2='2', @p3='60', @p4='8', @p5='Read all instructions carefully' (Size = 2000), @p6='सभी निर्देश ध्यान से पढ़ें' (Size = 2000), @p7='True', @p8='False', @p9='Railway Group D Test Series 01' (Nullable = false) (Size = 100), @p10='35', @p11='100', @p12='0', @p13=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [TestSeries] ([CreatedAt], [Description], [DisplayOrder], [DurationInMinutes], [ExamId], [InstructionsEnglish], [InstructionsHindi], [IsActive], [IsLocked], [Name], [PassingMarks], [TotalMarks], [TotalQuestions], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13);
+[2026-01-09 12:11:50.890] info: 1/9/2026 17:41:50.890 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__id_0='3'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[Id] = @__id_0
+[2026-01-09 12:11:50.894] info: 1/9/2026 17:41:50.894 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__id_0='3'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__id_0
+[2026-01-09 12:12:04.009] info: 1/9/2026 17:42:04.009 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[@p0='2026-01-09T12:12:04.0029496Z', @p1='First test series' (Size = 500), @p2='3', @p3='60', @p4='8', @p5='Read all instructions carefully' (Size = 2000), @p6='सभी निर्देश ध्यान से पढ़ें' (Size = 2000), @p7='True', @p8='True', @p9='Railway Group D Test Series 01' (Nullable = false) (Size = 100), @p10='35', @p11='100', @p12='0', @p13=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [TestSeries] ([CreatedAt], [Description], [DisplayOrder], [DurationInMinutes], [ExamId], [InstructionsEnglish], [InstructionsHindi], [IsActive], [IsLocked], [Name], [PassingMarks], [TotalMarks], [TotalQuestions], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13);
+[2026-01-09 12:12:04.011] info: 1/9/2026 17:42:04.011 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='4'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[Id] = @__id_0
+[2026-01-09 12:12:04.014] info: 1/9/2026 17:42:04.014 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='4'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__id_0
+[2026-01-09 12:12:17.706] info: 1/9/2026 17:42:17.705 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[@p0='2026-01-09T12:12:17.6989426Z', @p1='First test series' (Size = 500), @p2='4', @p3='60', @p4='8', @p5='Read all instructions carefully' (Size = 2000), @p6='सभी निर्देश ध्यान से पढ़ें' (Size = 2000), @p7='True', @p8='True', @p9='Railway Group D Test Series 01' (Nullable = false) (Size = 100), @p10='35', @p11='100', @p12='0', @p13=NULL (DbType = DateTime2)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      INSERT INTO [TestSeries] ([CreatedAt], [Description], [DisplayOrder], [DurationInMinutes], [ExamId], [InstructionsEnglish], [InstructionsHindi], [IsActive], [IsLocked], [Name], [PassingMarks], [TotalMarks], [TotalQuestions], [UpdatedAt])
+      OUTPUT INSERTED.[Id]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13);
+[2026-01-09 12:12:17.708] info: 1/9/2026 17:42:17.708 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='5'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[Id] = @__id_0
+[2026-01-09 12:12:17.710] info: 1/9/2026 17:42:17.710 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='5'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__id_0
+[2026-01-09 12:12:22.393] info: 1/9/2026 17:42:22.393 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[IsActive] = CAST(1 AS bit)
+      ORDER BY [t].[DisplayOrder], [t].[Name]
+[2026-01-09 12:14:30.439] info: 1/9/2026 17:44:30.439 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__p_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      WHERE [t].[Id] = @__p_0
+[2026-01-09 12:14:30.448] info: 1/9/2026 17:44:30.448 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@p8='2', @p0='Updated description' (Size = 500), @p1='90', @p2='It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using' (Size = 2000), @p3='अपडेटेड निर्देश' (Size = 2000), @p4='Railway Group D Test Series 01 Updated' (Nullable = false) (Size = 100), @p5='40', @p6='120', @p7='2026-01-09T12:14:30.4406384Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [TestSeries] SET [Description] = @p0, [DurationInMinutes] = @p1, [InstructionsEnglish] = @p2, [InstructionsHindi] = @p3, [Name] = @p4, [PassingMarks] = @p5, [TotalMarks] = @p6, [UpdatedAt] = @p7
+      OUTPUT 1
+      WHERE [Id] = @p8;
+[2026-01-09 12:14:30.455] info: 1/9/2026 17:44:30.455 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[Id] = @__id_0
+[2026-01-09 12:14:30.459] info: 1/9/2026 17:44:30.459 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__id_0
+[2026-01-09 12:14:37.318] info: 1/9/2026 17:44:37.318 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[IsActive] = CAST(1 AS bit)
+      ORDER BY [t].[DisplayOrder], [t].[Name]
+[2026-01-09 12:15:08.285] info: 1/9/2026 17:45:08.285 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[@__id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [q].[Id], [q].[ChapterId], [q].[CorrectAnswer], [q].[CreatedAt], [q].[Difficulty], [q].[EstimatedTimeInSeconds], [q].[ExplanationEnglish], [q].[ExplanationHindi], [q].[IsActive], [q].[IsMcq], [q].[Marks], [q].[NegativeMarks], [q].[OptionAEnglish], [q].[OptionAHindi], [q].[OptionBEnglish], [q].[OptionBHindi], [q].[OptionCEnglish], [q].[OptionCHindi], [q].[OptionDEnglish], [q].[OptionDHindi], [q].[OptionImageAUrl], [q].[OptionImageBUrl], [q].[OptionImageCUrl], [q].[OptionImageDUrl], [q].[QuestionImageUrlEnglish], [q].[QuestionImageUrlHindi], [q].[QuestionTextEnglish], [q].[QuestionTextHindi], [q].[QuestionVideoUrlEnglish], [q].[QuestionVideoUrlHindi], [q].[SolutionImageUrlEnglish], [q].[SolutionImageUrlHindi], [q].[SolutionVideoUrlEnglish], [q].[SolutionVideoUrlHindi], [q].[Type], [q].[UpdatedAt], [c].[Id], [c].[CreatedAt], [c].[Description], [c].[IsActive], [c].[Name], [c].[SubjectId], [c].[UpdatedAt], [s].[Id], [s].[CreatedAt], [s].[Description], [s].[ExamId], [s].[IsActive], [s].[Name], [s].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [Questions] AS [q]
+      INNER JOIN [Chapters] AS [c] ON [q].[ChapterId] = [c].[Id]
+      INNER JOIN [Subjects] AS [s] ON [c].[SubjectId] = [s].[Id]
+      INNER JOIN [Exams] AS [e] ON [s].[ExamId] = [e].[Id]
+      WHERE [q].[Id] = @__id_0

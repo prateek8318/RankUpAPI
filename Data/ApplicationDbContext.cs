@@ -16,6 +16,13 @@ namespace RankUpAPI.Data
         public DbSet<Exam> Exams { get; set; }
         public DbSet<ExamQualification> ExamQualifications { get; set; }
         public DbSet<HomeSectionItem> HomeSectionItems { get; set; }
+        
+        // Test Series Hierarchy
+        public DbSet<Subject> Subjects { get; set; }
+        public DbSet<Chapter> Chapters { get; set; }
+        public DbSet<TestSeries> TestSeries { get; set; }
+        public DbSet<Question> Questions { get; set; }
+        public DbSet<TestSeriesQuestion> TestSeriesQuestions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -83,6 +90,79 @@ namespace RankUpAPI.Data
                 entity.Property(h => h.IsVisible)
                       .HasDefaultValue(true)
                       .ValueGeneratedNever();
+            });
+
+            // Configure Subject entity
+            modelBuilder.Entity<Subject>(entity =>
+            {
+                entity.HasOne(s => s.Exam)
+                      .WithMany()
+                      .HasForeignKey(s => s.ExamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(s => s.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                entity.Property(s => s.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure Chapter entity
+            modelBuilder.Entity<Chapter>(entity =>
+            {
+                entity.HasOne(c => c.Subject)
+                      .WithMany(s => s.Chapters)
+                      .HasForeignKey(c => c.SubjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(c => c.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                entity.Property(c => c.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure TestSeries entity
+            modelBuilder.Entity<TestSeries>(entity =>
+            {
+                entity.HasOne(ts => ts.Exam)
+                      .WithMany()
+                      .HasForeignKey(ts => ts.ExamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(ts => ts.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                entity.Property(ts => ts.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure Question entity
+            modelBuilder.Entity<Question>(entity =>
+            {
+                entity.HasOne(q => q.Chapter)
+                      .WithMany(c => c.Questions)
+                      .HasForeignKey(q => q.ChapterId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(q => q.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                entity.Property(q => q.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure TestSeriesQuestion join entity
+            modelBuilder.Entity<TestSeriesQuestion>(entity =>
+            {
+                entity.HasKey(tsq => new { tsq.TestSeriesId, tsq.QuestionId });
+
+                entity.HasOne(tsq => tsq.TestSeries)
+                      .WithMany(ts => ts.TestSeriesQuestions)
+                      .HasForeignKey(tsq => tsq.TestSeriesId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(tsq => tsq.Question)
+                      .WithMany(q => q.TestSeriesQuestions)
+                      .HasForeignKey(tsq => tsq.QuestionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(tsq => tsq.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                entity.Property(tsq => tsq.CreatedAt).HasDefaultValueSql("GETDATE()");
             });
         }
     }

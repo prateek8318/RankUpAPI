@@ -56,6 +56,10 @@ builder.Services.AddScoped<IUserService, RankUpAPI.Services.UserService>();
 builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IQualificationService, RankUpAPI.Services.QualificationService>();
 builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IExamService, RankUpAPI.Services.ExamService>();
 builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IHomeContentService, RankUpAPI.Services.HomeContentService>();
+builder.Services.AddScoped<RankUpAPI.Services.Interfaces.ISubjectService, RankUpAPI.Services.SubjectService>();
+builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IChapterService, RankUpAPI.Services.ChapterService>();
+builder.Services.AddScoped<RankUpAPI.Services.Interfaces.ITestSeriesService, RankUpAPI.Services.TestSeriesService>();
+builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IQuestionService, RankUpAPI.Services.QuestionService>();
 
 // Add DbContext with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using RankUpAPI.Models;
 using RankUpAPI.Services;
-using System.Collections.Concurrent;
+using RankUpAPI.Core.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -19,17 +19,18 @@ namespace RankUpAPI.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly IUserService _userService;
+        private readonly IOtpService _otpService;
         private readonly ILogger<AuthController> _logger;
-        
-        // In-memory storage for OTPs (in production, use a distributed cache like Redis)
-        private static readonly ConcurrentDictionary<string, string> OtpStore = new();
-        private const string DefaultOtp = "1234"; // Default OTP
-        private const int OtpExpirationMinutes = 5; // OTP expiration time in minutes
 
-        public AuthController(IConfiguration configuration, IUserService userService, ILogger<AuthController> logger)
+        public AuthController(
+            IConfiguration configuration, 
+            IUserService userService, 
+            IOtpService otpService,
+            ILogger<AuthController> logger)
         {
             _configuration = configuration;
             _userService = userService;
+            _otpService = otpService;
             _logger = logger;
         }
 
@@ -46,15 +47,14 @@ namespace RankUpAPI.Controllers
                 });
             }
 
-          
-            var otp = DefaultOtp; // In production, generate a random OTP
+            // Generate OTP using service (reads from configuration)
+            var otp = _otpService.GenerateOtp();
             
             // Store OTP with expiration
-            var otpKey = $"otp_{request.MobileNumber}";
-            OtpStore[otpKey] = otp;
+            _otpService.StoreOtp(request.MobileNumber, otp);
             
             // In a real app, you would send the OTP via SMS here
-            Console.WriteLine($"OTP for {request.MobileNumber}: {otp}");
+            _logger.LogInformation($"OTP for {request.MobileNumber}: {otp}");
 
             return Ok(new AuthResponse 
             { 
@@ -75,28 +75,18 @@ namespace RankUpAPI.Controllers
                 });
             }
 
-            var otpKey = $"otp_{request.MobileNumber}";
-            
-            if (!OtpStore.TryGetValue(otpKey, out var storedOtp))
+            // Validate OTP using service
+            if (!_otpService.ValidateOtp(request.MobileNumber, request.Otp))
             {
                 return BadRequest(new AuthResponse 
                 { 
                     Success = false, 
-                    Message = "OTP not found or expired. Please request a new OTP." 
-                });
-            }
-
-            if (storedOtp != request.Otp)
-            {
-                return BadRequest(new AuthResponse 
-                { 
-                    Success = false, 
-                    Message = "Invalid OTP" 
+                    Message = "Invalid or expired OTP. Please request a new OTP." 
                 });
             }
 
             // OTP is valid, remove it from store
-            OtpStore.TryRemove(otpKey, out _);
+            _otpService.RemoveOtp(request.MobileNumber);
 
             // Get or create user in database
             var user = await _userService.GetOrCreateUserAsync(request.MobileNumber);

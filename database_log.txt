@@ -2279,3 +2279,604 @@ en-us is an invalid culture identifier.
       INNER JOIN [Subjects] AS [s] ON [c].[SubjectId] = [s].[Id]
       INNER JOIN [Exams] AS [e] ON [s].[ExamId] = [e].[Id]
       WHERE [q].[Id] = @__id_0
+[2026-01-09 12:50:19.660] info: 1/9/2026 18:20:19.659 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (19ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 12:50:19.673] info: 1/9/2026 18:20:19.673 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 12:50:19.690] info: 1/9/2026 18:20:19.690 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 12:50:19.693] info: 1/9/2026 18:20:19.693 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 12:50:19.694] info: 1/9/2026 18:20:19.694 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-09 12:50:19.706] info: 1/9/2026 18:20:19.706 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-09 12:50:35.893] info: 1/9/2026 18:20:35.893 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 12:50:40.392] info: 1/9/2026 18:20:40.392 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-09 12:50:40.630] info: 1/9/2026 18:20:40.630 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (19ms) [Parameters=[@__phoneNumber_0='9999999999' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-09 12:50:40.784] info: 1/9/2026 18:20:40.784 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@p3='5', @p0='True', @p1='2026-01-09T12:50:40.7068448Z' (Nullable = true), @p2='2026-01-09T12:50:40.7388488Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [IsPhoneVerified] = @p0, [LastLoginAt] = @p1, [UpdatedAt] = @p2
+      OUTPUT 1
+      WHERE [Id] = @p3;
+[2026-01-09 12:50:56.380] info: 1/9/2026 18:20:56.380 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='5' (Size = 4000)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE CONVERT(varchar(11), [u].[Id]) = @__userId_0
+[2026-01-09 12:51:05.218] info: 1/9/2026 18:21:05.218 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-09 12:52:12.269] info: 1/9/2026 18:22:12.269 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[IsActive] = CAST(1 AS bit)
+      ORDER BY [t].[DisplayOrder], [t].[Name]
+[2026-01-09 12:52:12.324] info: 1/9/2026 18:22:12.324 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__ts_Id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__ts_Id_0
+[2026-01-09 12:52:12.328] info: 1/9/2026 18:22:12.328 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__ts_Id_0='3'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__ts_Id_0
+[2026-01-09 12:52:12.330] info: 1/9/2026 18:22:12.330 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__ts_Id_0='4'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__ts_Id_0
+[2026-01-09 12:52:12.332] info: 1/9/2026 18:22:12.331 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__ts_Id_0='5'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__ts_Id_0
+[2026-01-09 12:52:35.584] info: 1/9/2026 18:22:35.584 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@__id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DisplayOrder], [t].[DurationInMinutes], [t].[ExamId], [t].[InstructionsEnglish], [t].[InstructionsHindi], [t].[IsActive], [t].[IsLocked], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[TotalQuestions], [t].[UpdatedAt], [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [TestSeries] AS [t]
+      INNER JOIN [Exams] AS [e] ON [t].[ExamId] = [e].[Id]
+      WHERE [t].[Id] = @__id_0
+[2026-01-09 12:52:35.590] info: 1/9/2026 18:22:35.590 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__id_0='2'], CommandType='Text', CommandTimeout='60']
+      SELECT COUNT(*)
+      FROM [TestSeriesQuestions] AS [t]
+      WHERE [t].[TestSeriesId] = @__id_0
+[2026-01-12 09:44:46.330] info: 1/12/2026 15:14:46.329 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (18ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-12 09:44:46.348] info: 1/12/2026 15:14:46.348 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-12 09:44:46.369] info: 1/12/2026 15:14:46.369 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-12 09:44:46.373] info: 1/12/2026 15:14:46.373 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-12 09:44:46.374] info: 1/12/2026 15:14:46.374 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-12 09:44:46.392] info: 1/12/2026 15:14:46.392 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-12 10:24:18.924] info: 1/12/2026 15:54:18.924 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-12 10:24:23.927] info: 1/12/2026 15:54:23.927 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-12 10:24:24.392] info: 1/12/2026 15:54:24.392 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (226ms) [Parameters=[@__phoneNumber_0='9999999999' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-12 10:24:24.543] info: 1/12/2026 15:54:24.543 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (8ms) [Parameters=[@p3='5', @p0='True', @p1='2026-01-12T10:24:24.4719558Z' (Nullable = true), @p2='2026-01-12T10:24:24.4931479Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [IsPhoneVerified] = @p0, [LastLoginAt] = @p1, [UpdatedAt] = @p2
+      OUTPUT 1
+      WHERE [Id] = @p3;
+[2026-01-12 10:24:40.212] info: 1/12/2026 15:54:40.212 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-12 10:24:52.709] info: 1/12/2026 15:54:52.709 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='5' (Size = 4000)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE CONVERT(varchar(11), [u].[Id]) = @__userId_0
+[2026-01-12 10:25:09.817] info: 1/12/2026 15:55:09.817 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='5' (Size = 4000)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE CONVERT(varchar(11), [u].[Id]) = @__userId_0
+[2026-01-12 13:01:15.363] info: 1/12/2026 18:31:15.363 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-12 13:01:15.376] info: 1/12/2026 18:31:15.376 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-12 13:01:15.394] info: 1/12/2026 18:31:15.394 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (15ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-12 13:01:15.396] info: 1/12/2026 18:31:15.396 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-12 13:01:15.397] info: 1/12/2026 18:31:15.397 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-12 13:01:15.410] info: 1/12/2026 18:31:15.410 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-13 05:41:34.680] info: 1/13/2026 11:11:34.679 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 05:41:34.693] info: 1/13/2026 11:11:34.693 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 05:41:34.713] info: 1/13/2026 11:11:34.713 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 05:41:34.715] info: 1/13/2026 11:11:34.715 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 05:41:34.716] info: 1/13/2026 11:11:34.716 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 05:41:34.728] info: 1/13/2026 11:11:34.728 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-13 05:42:09.980] info: 1/13/2026 11:12:09.980 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 05:42:15.027] info: 1/13/2026 11:12:15.027 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 05:42:15.262] info: 1/13/2026 11:12:15.262 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (15ms) [Parameters=[@__phoneNumber_0='8888888888' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-13 05:42:15.434] info: 1/13/2026 11:12:15.434 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@p3='4', @p0='True', @p1='2026-01-13T05:42:15.3625687Z' (Nullable = true), @p2='2026-01-13T05:42:15.3911973Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [IsPhoneVerified] = @p0, [LastLoginAt] = @p1, [UpdatedAt] = @p2
+      OUTPUT 1
+      WHERE [Id] = @p3;
+[2026-01-13 06:06:57.940] info: 1/13/2026 11:36:57.939 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (12ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:06:57.954] info: 1/13/2026 11:36:57.954 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:06:57.972] info: 1/13/2026 11:36:57.972 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 06:06:57.975] info: 1/13/2026 11:36:57.975 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:06:57.976] info: 1/13/2026 11:36:57.976 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 06:06:57.990] info: 1/13/2026 11:36:57.990 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-13 06:07:26.932] info: 1/13/2026 11:37:26.932 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:07:31.341] info: 1/13/2026 11:37:31.341 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:07:31.586] info: 1/13/2026 11:37:31.586 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (16ms) [Parameters=[@__phoneNumber_0='8888888888' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-13 06:07:31.750] info: 1/13/2026 11:37:31.750 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (13ms) [Parameters=[@p17='4', @p0='2026-01-07T10:37:52.5277742', @p1=NULL (DbType = Date), @p2='8888888888@rankup.com' (Size = 100), @p3='Male' (Size = 20), @p4='True', @p5='True', @p6=NULL (Size = 50), @p7='2026-01-13T06:07:31.6707933Z' (Nullable = true), @p8='John Doe' (Size = 100), @p9=NULL (Size = 255), @p10='8888888888' (Nullable = false) (Size = 15), @p11='UPSC' (Size = 100), @p12=NULL (Size = 255), @p13=NULL (Size = 100), @p14=NULL (Size = 4000), @p15=NULL (DbType = DateTime2), @p16='2026-01-13T06:07:31.6712672Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [CreatedAt] = @p0, [DateOfBirth] = @p1, [Email] = @p2, [Gender] = @p3, [IsActive] = @p4, [IsPhoneVerified] = @p5, [LanguagePreference] = @p6, [LastLoginAt] = @p7, [Name] = @p8, [PasswordHash] = @p9, [PhoneNumber] = @p10, [PreferredExam] = @p11, [ProfilePhoto] = @p12, [Qualification] = @p13, [RefreshToken] = @p14, [RefreshTokenExpiryTime] = @p15, [UpdatedAt] = @p16
+      OUTPUT 1
+      WHERE [Id] = @p17;
+[2026-01-13 06:07:44.784] info: 1/13/2026 11:37:44.784 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__userId_0='4' (Size = 4000)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE CONVERT(varchar(11), [u].[Id]) = @__userId_0
+[2026-01-13 06:08:02.702] info: 1/13/2026 11:38:02.702 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-13 06:08:17.821] info: 1/13/2026 11:38:17.821 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[@__examId_0='1' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit) AND ([h].[ExamId] = @__examId_0 OR [h].[ExamId] IS NULL)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-13 06:08:27.961] info: 1/13/2026 11:38:27.961 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[@__examId_0='17' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit) AND ([h].[ExamId] = @__examId_0 OR [h].[ExamId] IS NULL)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-13 06:08:33.705] info: 1/13/2026 11:38:33.705 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__examId_0='19' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit) AND ([h].[ExamId] = @__examId_0 OR [h].[ExamId] IS NULL)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-13 06:39:55.014] info: 1/13/2026 12:09:55.014 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (14ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:39:55.025] info: 1/13/2026 12:09:55.025 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:39:55.041] info: 1/13/2026 12:09:55.041 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 06:39:55.044] info: 1/13/2026 12:09:55.044 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:39:55.045] info: 1/13/2026 12:09:55.045 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 06:39:55.055] info: 1/13/2026 12:09:55.055 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-13 06:40:03.777] info: 1/13/2026 12:10:03.777 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:40:08.126] info: 1/13/2026 12:10:08.126 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 06:40:08.344] info: 1/13/2026 12:10:08.344 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (13ms) [Parameters=[@__phoneNumber_0='8888888888' (Size = 15)], CommandType='Text', CommandTimeout='60']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[DateOfBirth], [u].[Email], [u].[Gender], [u].[IsActive], [u].[IsPhoneVerified], [u].[LanguagePreference], [u].[LastLoginAt], [u].[Name], [u].[PasswordHash], [u].[PhoneNumber], [u].[PreferredExam], [u].[ProfilePhoto], [u].[Qualification], [u].[RefreshToken], [u].[RefreshTokenExpiryTime], [u].[UpdatedAt]
+      FROM [Users] AS [u]
+      WHERE [u].[PhoneNumber] = @__phoneNumber_0
+[2026-01-13 06:40:08.505] info: 1/13/2026 12:10:08.505 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (7ms) [Parameters=[@p17='4', @p0='2026-01-07T10:37:52.5277742', @p1=NULL (DbType = Date), @p2='8888888888@rankup.com' (Size = 100), @p3='Male' (Size = 20), @p4='True', @p5='True', @p6=NULL (Size = 50), @p7='2026-01-13T06:40:08.4327167Z' (Nullable = true), @p8='John Doe' (Size = 100), @p9=NULL (Size = 255), @p10='8888888888' (Nullable = false) (Size = 15), @p11='UPSC' (Size = 100), @p12=NULL (Size = 255), @p13=NULL (Size = 100), @p14=NULL (Size = 4000), @p15=NULL (DbType = DateTime2), @p16='2026-01-13T06:40:08.4331816Z' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [CreatedAt] = @p0, [DateOfBirth] = @p1, [Email] = @p2, [Gender] = @p3, [IsActive] = @p4, [IsPhoneVerified] = @p5, [LanguagePreference] = @p6, [LastLoginAt] = @p7, [Name] = @p8, [PasswordHash] = @p9, [PhoneNumber] = @p10, [PreferredExam] = @p11, [ProfilePhoto] = @p12, [Qualification] = @p13, [RefreshToken] = @p14, [RefreshTokenExpiryTime] = @p15, [UpdatedAt] = @p16
+      OUTPUT 1
+      WHERE [Id] = @p17;
+[2026-01-13 06:41:08.805] info: 1/13/2026 12:11:08.805 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+      FROM [Exams] AS [e]
+      WHERE [e].[IsActive] = CAST(1 AS bit)
+[2026-01-13 06:41:08.887] info: 1/13/2026 12:11:08.887 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (5ms) [Parameters=[@__id_0='24'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.912] info: 1/13/2026 12:11:08.912 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='3'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.914] info: 1/13/2026 12:11:08.914 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='26'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.916] info: 1/13/2026 12:11:08.916 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='31'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.918] info: 1/13/2026 12:11:08.918 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='15'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.919] info: 1/13/2026 12:11:08.919 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='29'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.921] info: 1/13/2026 12:11:08.921 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__id_0='12'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.922] info: 1/13/2026 12:11:08.922 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__id_0='27'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.924] info: 1/13/2026 12:11:08.924 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__id_0='22'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.925] info: 1/13/2026 12:11:08.925 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='30'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.976] info: 1/13/2026 12:11:08.976 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='17'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:08.978] info: 1/13/2026 12:11:08.978 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__id_0='16'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:09.835] info: 1/13/2026 12:11:09.835 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='10'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:09.836] info: 1/13/2026 12:11:09.836 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__id_0='28'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:09.837] info: 1/13/2026 12:11:09.837 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__id_0='8'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:10.630] info: 1/13/2026 12:11:10.630 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='14'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:10.632] info: 1/13/2026 12:11:10.632 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='25'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:11.458] info: 1/13/2026 12:11:11.458 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='21'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:11.460] info: 1/13/2026 12:11:11.460 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='13'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:11.462] info: 1/13/2026 12:11:11.462 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__id_0='9'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:12.240] info: 1/13/2026 12:11:12.240 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='7'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:12.242] info: 1/13/2026 12:11:12.242 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='18'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:12.244] info: 1/13/2026 12:11:12.244 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[@__id_0='23'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:13.078] info: 1/13/2026 12:11:13.078 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='11'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:13.081] info: 1/13/2026 12:11:13.081 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='19'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 06:41:13.908] info: 1/13/2026 12:11:13.908 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[@__id_0='20'], CommandType='Text', CommandTimeout='60']
+      SELECT [t].[Id], [t].[CreatedAt], [t].[Description], [t].[DurationInMinutes], [t].[IsActive], [t].[Name], [t].[PassingMarks], [t].[TotalMarks], [t].[UpdatedAt], [e0].[ExamId], [e0].[QualificationId]
+      FROM (
+          SELECT TOP(1) [e].[Id], [e].[CreatedAt], [e].[Description], [e].[DurationInMinutes], [e].[IsActive], [e].[Name], [e].[PassingMarks], [e].[TotalMarks], [e].[UpdatedAt]
+          FROM [Exams] AS [e]
+          WHERE [e].[Id] = @__id_0
+      ) AS [t]
+      LEFT JOIN [ExamQualifications] AS [e0] ON [t].[Id] = [e0].[ExamId]
+      ORDER BY [t].[Id], [e0].[ExamId]
+[2026-01-13 07:09:57.219] info: 1/13/2026 12:39:57.218 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 07:09:57.229] info: 1/13/2026 12:39:57.229 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 07:09:57.246] info: 1/13/2026 12:39:57.246 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (13ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 07:09:57.249] info: 1/13/2026 12:39:57.248 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 07:09:57.249] info: 1/13/2026 12:39:57.249 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 07:09:57.261] info: 1/13/2026 12:39:57.261 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+[2026-01-13 07:10:05.172] info: 1/13/2026 12:40:05.172 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (14ms) [Parameters=[@__examId_0='19' (Nullable = true)], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit) AND ([h].[ExamId] = @__examId_0 OR [h].[ExamId] IS NULL)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-13 07:10:10.579] info: 1/13/2026 12:40:10.579 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [h].[Id], [h].[ActionKey], [h].[CreatedAt], [h].[DisplayOrder], [h].[ExamId], [h].[ImageUrl], [h].[IsActive], [h].[IsVisible], [h].[ProgressText], [h].[SectionType], [h].[Subtitle], [h].[Tag], [h].[Title], [h].[UpdatedAt]
+      FROM [HomeSectionItems] AS [h]
+      WHERE [h].[IsVisible] = CAST(1 AS bit)
+      ORDER BY [h].[SectionType], [h].[DisplayOrder]

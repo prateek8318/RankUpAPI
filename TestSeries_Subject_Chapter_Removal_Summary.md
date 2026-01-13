@@ -19,8 +19,8 @@
   "description": "First test series",
   "examId": 1,
   "durationInMinutes": 60,
-  "totalMarks": 100,        // ❌ हटा दिया
-  "passingMarks": 35,       // ❌ हटा दिया
+  "totalMarks": 100,      
+  "passingMarks": 35,       
   "instructionsEnglish": "Read all instructions carefully",
   "instructionsHindi": "सभी निर्देश ध्यान से पढ़ें",
   "displayOrder": 1,

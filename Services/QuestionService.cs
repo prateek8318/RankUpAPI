@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RankUpAPI.Data;
 using RankUpAPI.DTOs;
 using RankUpAPI.Models;
+using RankUpAPI.Repositories.Interfaces;
 using RankUpAPI.Services.Interfaces;
 using System.Globalization;
 using System.Text;
@@ -11,12 +12,20 @@ namespace RankUpAPI.Services
 {
     public class QuestionService : IQuestionService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IQuestionRepository _questionRepository;
+        private readonly ITestSeriesQuestionRepository _testSeriesQuestionRepository;
+        private readonly ISubjectRepository _subjectRepository;
+        private readonly IChapterRepository _chapterRepository;
+        private readonly IExamRepository _examRepository;
         private readonly IMapper _mapper;
 
-        public QuestionService(ApplicationDbContext context, IMapper mapper)
+        public QuestionService(IQuestionRepository questionRepository, ITestSeriesQuestionRepository testSeriesQuestionRepository, ISubjectRepository subjectRepository, IChapterRepository chapterRepository, IExamRepository examRepository, IMapper mapper)
         {
-            _context = context;
+            _questionRepository = questionRepository;
+            _testSeriesQuestionRepository = testSeriesQuestionRepository;
+            _subjectRepository = subjectRepository;
+            _chapterRepository = chapterRepository;
+            _examRepository = examRepository;
             _mapper = mapper;
         }
 
@@ -26,48 +35,37 @@ namespace RankUpAPI.Services
             question.CreatedAt = DateTime.UtcNow;
             question.IsActive = true;
 
-            _context.Questions.Add(question);
-            await _context.SaveChangesAsync();
+            await _questionRepository.AddAsync(question);
+            await _questionRepository.SaveChangesAsync();
 
             return await GetQuestionByIdAsync(question.Id) ?? throw new Exception("Failed to retrieve created question");
         }
 
         public async Task<bool> DeleteQuestionAsync(int id)
         {
-            var question = await _context.Questions
-                .Include(q => q.TestSeriesQuestions)
-                .FirstOrDefaultAsync(q => q.Id == id);
+            var question = await _questionRepository.GetByIdWithDetailsAsync(id);
             
             if (question == null)
                 return false;
 
             // Remove all test series question relationships
-            _context.TestSeriesQuestions.RemoveRange(question.TestSeriesQuestions);
-            _context.Questions.Remove(question);
-            await _context.SaveChangesAsync();
+            var testSeriesQuestions = await _testSeriesQuestionRepository.GetByQuestionIdAsync(id);
+            await _testSeriesQuestionRepository.DeleteRangeAsync(testSeriesQuestions);
+            await _questionRepository.DeleteAsync(question);
+            await _questionRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<QuestionDto>> GetAllQuestionsAsync()
         {
-            var questions = await _context.Questions
-                .Include(q => q.Chapter)
-                    .ThenInclude(c => c.Subject)
-                        .ThenInclude(s => s.Exam)
-                .Where(q => q.IsActive)
-                .OrderBy(q => q.CreatedAt)
-                .ToListAsync();
+            var questions = await _questionRepository.GetActiveAsync();
 
             return questions.Select(q => MapToDto(q));
         }
 
         public async Task<QuestionDto?> GetQuestionByIdAsync(int id)
         {
-            var question = await _context.Questions
-                .Include(q => q.Chapter)
-                    .ThenInclude(c => c.Subject)
-                        .ThenInclude(s => s.Exam)
-                .FirstOrDefaultAsync(q => q.Id == id);
+            var question = await _questionRepository.GetByIdWithDetailsAsync(id);
 
             if (question == null)
                 return null;
@@ -77,65 +75,49 @@ namespace RankUpAPI.Services
 
         public async Task<IEnumerable<QuestionDto>> GetQuestionsByChapterIdAsync(int chapterId)
         {
-            var questions = await _context.Questions
-                .Include(q => q.Chapter)
-                    .ThenInclude(c => c.Subject)
-                        .ThenInclude(s => s.Exam)
-                .Where(q => q.ChapterId == chapterId && q.IsActive)
-                .OrderBy(q => q.CreatedAt)
-                .ToListAsync();
+            var questions = await _questionRepository.GetByChapterIdAsync(chapterId);
 
             return questions.Select(q => MapToDto(q));
         }
 
         public async Task<IEnumerable<QuestionDto>> GetQuestionsBySubjectIdAsync(int subjectId)
         {
-            var questions = await _context.Questions
-                .Include(q => q.Chapter)
-                    .ThenInclude(c => c.Subject)
-                        .ThenInclude(s => s.Exam)
-                .Where(q => q.Chapter.SubjectId == subjectId && q.IsActive)
-                .OrderBy(q => q.CreatedAt)
-                .ToListAsync();
+            var questions = await _questionRepository.GetBySubjectIdAsync(subjectId);
 
             return questions.Select(q => MapToDto(q));
         }
 
         public async Task<IEnumerable<QuestionDto>> GetQuestionsByExamIdAsync(int examId)
         {
-            var questions = await _context.Questions
-                .Include(q => q.Chapter)
-                    .ThenInclude(c => c.Subject)
-                        .ThenInclude(s => s.Exam)
-                .Where(q => q.Chapter.Subject.ExamId == examId && q.IsActive)
-                .OrderBy(q => q.CreatedAt)
-                .ToListAsync();
+            var questions = await _questionRepository.GetByExamIdAsync(examId);
 
             return questions.Select(q => MapToDto(q));
         }
 
         public async Task<bool> ToggleQuestionStatusAsync(int id, bool isActive)
         {
-            var question = await _context.Questions.FindAsync(id);
+            var question = await _questionRepository.GetByIdAsync(id);
             if (question == null)
                 return false;
 
             question.IsActive = isActive;
             question.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await _questionRepository.UpdateAsync(question);
+            await _questionRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<QuestionDto?> UpdateQuestionAsync(int id, UpdateQuestionDto updateDto)
         {
-            var question = await _context.Questions.FindAsync(id);
+            var question = await _questionRepository.GetByIdAsync(id);
             if (question == null)
                 return null;
 
             _mapper.Map(updateDto, question);
             question.UpdatedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            await _questionRepository.UpdateAsync(question);
+            await _questionRepository.SaveChangesAsync();
             return await GetQuestionByIdAsync(id);
         }
 
@@ -184,7 +166,7 @@ namespace RankUpAPI.Services
                 // Process data rows
                 // First, we need to handle Subject Name to Chapter mapping
                 // Get or create a default exam for subjects (you may need to adjust this)
-                var defaultExam = await _context.Exams.FirstOrDefaultAsync();
+                var defaultExam = (await _examRepository.GetActiveAsync()).FirstOrDefault();
                 if (defaultExam == null)
                 {
                     result.Errors.Add("No exam found in database. Please create an exam first.");
@@ -240,8 +222,8 @@ namespace RankUpAPI.Services
                         if (!subjectChapterMap.TryGetValue(subjectName, out chapterId))
                         {
                             // Find or create subject
-                            var subject = await _context.Subjects
-                                .FirstOrDefaultAsync(s => s.Name.ToLower() == subjectName.ToLower() && s.ExamId == defaultExam.Id);
+                            var subjects = await _subjectRepository.GetByExamIdAsync(defaultExam.Id);
+                            var subject = subjects.FirstOrDefault(s => s.Name.ToLower() == subjectName.ToLower());
                             
                             if (subject == null)
                             {
@@ -252,13 +234,13 @@ namespace RankUpAPI.Services
                                     CreatedAt = DateTime.UtcNow,
                                     IsActive = true
                                 };
-                                _context.Subjects.Add(subject);
-                                await _context.SaveChangesAsync();
+                                await _subjectRepository.AddAsync(subject);
+                                await _subjectRepository.SaveChangesAsync();
                             }
 
                             // Find or create a default chapter for this subject
-                            var chapter = await _context.Chapters
-                                .FirstOrDefaultAsync(c => c.SubjectId == subject.Id && c.Name == "Default");
+                            var chapters = await _chapterRepository.GetBySubjectIdAsync(subject.Id);
+                            var chapter = chapters.FirstOrDefault(c => c.Name == "Default");
                             
                             if (chapter == null)
                             {
@@ -269,8 +251,8 @@ namespace RankUpAPI.Services
                                     CreatedAt = DateTime.UtcNow,
                                     IsActive = true
                                 };
-                                _context.Chapters.Add(chapter);
-                                await _context.SaveChangesAsync();
+                                await _chapterRepository.AddAsync(chapter);
+                                await _chapterRepository.SaveChangesAsync();
                             }
 
                             chapterId = chapter.Id;
@@ -296,7 +278,7 @@ namespace RankUpAPI.Services
                             question.CreatedAt = DateTime.UtcNow;
                             question.IsActive = true;
 
-                            _context.Questions.Add(question);
+                            await _questionRepository.AddAsync(question);
                             result.SuccessCount++;
                         }
                         else
@@ -312,7 +294,7 @@ namespace RankUpAPI.Services
                     }
                 }
 
-                await _context.SaveChangesAsync();
+                await _questionRepository.SaveChangesAsync();
                 result.Errors = errors;
             }
             catch (Exception ex)

@@ -3,18 +3,23 @@ using Microsoft.EntityFrameworkCore;
 using RankUpAPI.Data;
 using RankUpAPI.DTOs;
 using RankUpAPI.Models;
+using RankUpAPI.Repositories.Interfaces;
 using RankUpAPI.Services.Interfaces;
 
 namespace RankUpAPI.Services
 {
     public class TestSeriesService : ITestSeriesService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ITestSeriesRepository _testSeriesRepository;
+        private readonly ITestSeriesQuestionRepository _testSeriesQuestionRepository;
+        private readonly IQuestionRepository _questionRepository;
         private readonly IMapper _mapper;
 
-        public TestSeriesService(ApplicationDbContext context, IMapper mapper)
+        public TestSeriesService(ITestSeriesRepository testSeriesRepository, ITestSeriesQuestionRepository testSeriesQuestionRepository, IQuestionRepository questionRepository, IMapper mapper)
         {
-            _context = context;
+            _testSeriesRepository = testSeriesRepository;
+            _testSeriesQuestionRepository = testSeriesQuestionRepository;
+            _questionRepository = questionRepository;
             _mapper = mapper;
         }
 
@@ -27,42 +32,34 @@ namespace RankUpAPI.Services
             testSeries.TotalMarks = 0; // Will be calculated from questions (1 question = 1 mark)
             testSeries.PassingMarks = 0; // Can be set later if needed
 
-            _context.TestSeries.Add(testSeries);
-            await _context.SaveChangesAsync();
+            await _testSeriesRepository.AddAsync(testSeries);
+            await _testSeriesRepository.SaveChangesAsync();
 
             return await GetTestSeriesByIdAsync(testSeries.Id) ?? throw new Exception("Failed to retrieve created test series");
         }
 
         public async Task<bool> DeleteTestSeriesAsync(int id)
         {
-            var testSeries = await _context.TestSeries
-                .Include(ts => ts.TestSeriesQuestions)
-                .FirstOrDefaultAsync(ts => ts.Id == id);
+            var testSeries = await _testSeriesRepository.GetByIdWithDetailsAsync(id);
             
             if (testSeries == null)
                 return false;
 
             // Remove all test series questions
-            _context.TestSeriesQuestions.RemoveRange(testSeries.TestSeriesQuestions);
-            _context.TestSeries.Remove(testSeries);
-            await _context.SaveChangesAsync();
+            await _testSeriesQuestionRepository.DeleteByTestSeriesIdAsync(id);
+            await _testSeriesRepository.DeleteAsync(testSeries);
+            await _testSeriesRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<TestSeriesDto>> GetAllTestSeriesAsync()
         {
-            var testSeries = await _context.TestSeries
-                .Include(ts => ts.Exam)
-                .Where(ts => ts.IsActive)
-                .OrderBy(ts => ts.DisplayOrder)
-                .ThenBy(ts => ts.Name)
-                .ToListAsync();
+            var testSeries = await _testSeriesRepository.GetActiveAsync();
 
             var result = new List<TestSeriesDto>();
             foreach (var ts in testSeries)
             {
-                var questionCount = await _context.TestSeriesQuestions
-                    .CountAsync(tsq => tsq.TestSeriesId == ts.Id);
+                var questionCount = await _testSeriesQuestionRepository.GetQuestionCountByTestSeriesIdAsync(ts.Id);
 
                 result.Add(new TestSeriesDto
                 {
@@ -89,16 +86,13 @@ namespace RankUpAPI.Services
 
         public async Task<TestSeriesDto?> GetTestSeriesByIdAsync(int id)
         {
-            var testSeries = await _context.TestSeries
-                .Include(ts => ts.Exam)
-                .FirstOrDefaultAsync(ts => ts.Id == id);
+            var testSeries = await _testSeriesRepository.GetByIdWithDetailsAsync(id);
 
             if (testSeries == null)
                 return null;
 
             // Get total questions count
-            var questionCount = await _context.TestSeriesQuestions
-                .CountAsync(tsq => tsq.TestSeriesId == id);
+            var questionCount = await _testSeriesQuestionRepository.GetQuestionCountByTestSeriesIdAsync(id);
 
             // TotalMarks = TotalQuestions (1 question = 1 mark)
             return new TestSeriesDto
@@ -124,18 +118,12 @@ namespace RankUpAPI.Services
 
         public async Task<IEnumerable<TestSeriesDto>> GetTestSeriesByExamIdAsync(int examId)
         {
-            var testSeries = await _context.TestSeries
-                .Include(ts => ts.Exam)
-                .Where(ts => ts.ExamId == examId && ts.IsActive)
-                .OrderBy(ts => ts.DisplayOrder)
-                .ThenBy(ts => ts.Name)
-                .ToListAsync();
+            var testSeries = await _testSeriesRepository.GetByExamIdAsync(examId);
 
             var result = new List<TestSeriesDto>();
             foreach (var ts in testSeries)
             {
-                var questionCount = await _context.TestSeriesQuestions
-                    .CountAsync(tsq => tsq.TestSeriesId == ts.Id);
+                var questionCount = await _testSeriesQuestionRepository.GetQuestionCountByTestSeriesIdAsync(ts.Id);
 
                 result.Add(new TestSeriesDto
                 {
@@ -163,19 +151,20 @@ namespace RankUpAPI.Services
 
         public async Task<bool> ToggleTestSeriesStatusAsync(int id, bool isActive)
         {
-            var testSeries = await _context.TestSeries.FindAsync(id);
+            var testSeries = await _testSeriesRepository.GetByIdAsync(id);
             if (testSeries == null)
                 return false;
 
             testSeries.IsActive = isActive;
             testSeries.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await _testSeriesRepository.UpdateAsync(testSeries);
+            await _testSeriesRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<TestSeriesDto?> UpdateTestSeriesAsync(int id, UpdateTestSeriesDto updateDto)
         {
-            var testSeries = await _context.TestSeries.FindAsync(id);
+            var testSeries = await _testSeriesRepository.GetByIdAsync(id);
             if (testSeries == null)
                 return null;
 
@@ -190,21 +179,20 @@ namespace RankUpAPI.Services
             testSeries.IsActive = updateDto.IsActive;
             testSeries.UpdatedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            await _testSeriesRepository.UpdateAsync(testSeries);
+            await _testSeriesRepository.SaveChangesAsync();
             return await GetTestSeriesByIdAsync(id);
         }
 
         public async Task<bool> AddQuestionsToTestSeriesAsync(AddQuestionsToTestSeriesDto dto)
         {
-            var testSeries = await _context.TestSeries.FindAsync(dto.TestSeriesId);
+            var testSeries = await _testSeriesRepository.GetByIdAsync(dto.TestSeriesId);
             if (testSeries == null)
                 return false;
 
             // Get existing question IDs for this test series
-            var existingQuestionIds = await _context.TestSeriesQuestions
-                .Where(tsq => tsq.TestSeriesId == dto.TestSeriesId)
-                .Select(tsq => tsq.QuestionId)
-                .ToListAsync();
+            var existingQuestions = await _testSeriesQuestionRepository.GetByTestSeriesIdAsync(dto.TestSeriesId);
+            var existingQuestionIds = existingQuestions.Select(tsq => tsq.QuestionId).ToList();
 
             // Filter out questions that already exist
             var newQuestionIds = dto.QuestionIds.Except(existingQuestionIds).ToList();
@@ -217,20 +205,17 @@ namespace RankUpAPI.Services
             }
 
             // Get the maximum order number
-            var maxOrder = await _context.TestSeriesQuestions
-                .Where(tsq => tsq.TestSeriesId == dto.TestSeriesId)
-                .Select(tsq => tsq.QuestionOrder)
-                .DefaultIfEmpty(0)
-                .MaxAsync();
+            var maxOrder = await _testSeriesQuestionRepository.GetMaxOrderByTestSeriesIdAsync(dto.TestSeriesId);
 
             // Add new questions (each question = 1 mark)
+            var testSeriesQuestions = new List<TestSeriesQuestion>();
             foreach (var questionId in newQuestionIds)
             {
-                var question = await _context.Questions.FindAsync(questionId);
+                var question = await _questionRepository.GetByIdAsync(questionId);
                 if (question != null)
                 {
                     maxOrder++;
-                    _context.TestSeriesQuestions.Add(new TestSeriesQuestion
+                    testSeriesQuestions.Add(new TestSeriesQuestion
                     {
                         TestSeriesId = dto.TestSeriesId,
                         QuestionId = questionId,
@@ -242,35 +227,39 @@ namespace RankUpAPI.Services
                 }
             }
 
+            if (testSeriesQuestions.Any())
+            {
+                await _testSeriesQuestionRepository.AddRangeAsync(testSeriesQuestions);
+            }
+
             // Update total questions count (TotalMarks will be calculated automatically)
-            var totalQuestions = await _context.TestSeriesQuestions
-                .CountAsync(tsq => tsq.TestSeriesId == dto.TestSeriesId);
+            var totalQuestions = await _testSeriesQuestionRepository.GetQuestionCountByTestSeriesIdAsync(dto.TestSeriesId);
             testSeries.TotalQuestions = totalQuestions;
 
-            await _context.SaveChangesAsync();
+            await _testSeriesRepository.UpdateAsync(testSeries);
+            await _testSeriesRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> RemoveQuestionFromTestSeriesAsync(int testSeriesId, int questionId)
         {
-            var testSeriesQuestion = await _context.TestSeriesQuestions
-                .FirstOrDefaultAsync(tsq => tsq.TestSeriesId == testSeriesId && tsq.QuestionId == questionId);
+            var testSeriesQuestion = await _testSeriesQuestionRepository.GetByTestSeriesAndQuestionIdAsync(testSeriesId, questionId);
 
             if (testSeriesQuestion == null)
                 return false;
 
-            _context.TestSeriesQuestions.Remove(testSeriesQuestion);
+            await _testSeriesQuestionRepository.DeleteAsync(testSeriesQuestion);
 
             // Update total questions count (TotalMarks will be calculated automatically)
-            var testSeries = await _context.TestSeries.FindAsync(testSeriesId);
+            var testSeries = await _testSeriesRepository.GetByIdAsync(testSeriesId);
             if (testSeries != null)
             {
-                var totalQuestions = await _context.TestSeriesQuestions
-                    .CountAsync(tsq => tsq.TestSeriesId == testSeriesId);
+                var totalQuestions = await _testSeriesQuestionRepository.GetQuestionCountByTestSeriesIdAsync(testSeriesId);
                 testSeries.TotalQuestions = totalQuestions;
+                await _testSeriesRepository.UpdateAsync(testSeries);
             }
 
-            await _context.SaveChangesAsync();
+            await _testSeriesRepository.SaveChangesAsync();
             return true;
         }
     }

@@ -3,18 +3,19 @@ using Microsoft.EntityFrameworkCore;
 using RankUpAPI.Data;
 using RankUpAPI.DTOs;
 using RankUpAPI.Models;
+using RankUpAPI.Repositories.Interfaces;
 using RankUpAPI.Services.Interfaces;
 
 namespace RankUpAPI.Services
 {
     public class SubjectService : ISubjectService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ISubjectRepository _subjectRepository;
         private readonly IMapper _mapper;
 
-        public SubjectService(ApplicationDbContext context, IMapper mapper)
+        public SubjectService(ISubjectRepository subjectRepository, IMapper mapper)
         {
-            _context = context;
+            _subjectRepository = subjectRepository;
             _mapper = mapper;
         }
 
@@ -24,33 +25,28 @@ namespace RankUpAPI.Services
             subject.CreatedAt = DateTime.UtcNow;
             subject.IsActive = true;
 
-            _context.Subjects.Add(subject);
-            await _context.SaveChangesAsync();
+            await _subjectRepository.AddAsync(subject);
+            await _subjectRepository.SaveChangesAsync();
 
             return await GetSubjectByIdAsync(subject.Id) ?? throw new Exception("Failed to retrieve created subject");
         }
 
         public async Task<bool> DeleteSubjectAsync(int id)
         {
-            var subject = await _context.Subjects.FindAsync(id);
+            var subject = await _subjectRepository.GetByIdAsync(id);
             if (subject == null)
                 return false;
 
-            _context.Subjects.Remove(subject);
-            await _context.SaveChangesAsync();
+            await _subjectRepository.DeleteAsync(subject);
+            await _subjectRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<SubjectDto>> GetAllSubjectsAsync()
         {
-            var subjects = await _context.Subjects
-                .Include(s => s.Exam)
-                .Include(s => s.Chapters)
-                .Where(s => s.IsActive)
-                .OrderBy(s => s.Name)
-                .ToListAsync();
+            var subjects = await _subjectRepository.GetActiveAsync();
 
-            return subjects.Select(s => new SubjectDto
+            return subjects.OrderBy(s => s.Name).Select(s => new SubjectDto
             {
                 Id = s.Id,
                 Name = s.Name,
@@ -66,10 +62,7 @@ namespace RankUpAPI.Services
 
         public async Task<SubjectDto?> GetSubjectByIdAsync(int id)
         {
-            var subject = await _context.Subjects
-                .Include(s => s.Exam)
-                .Include(s => s.Chapters)
-                .FirstOrDefaultAsync(s => s.Id == id);
+            var subject = await _subjectRepository.GetByIdWithDetailsAsync(id);
 
             if (subject == null)
                 return null;
@@ -90,14 +83,9 @@ namespace RankUpAPI.Services
 
         public async Task<IEnumerable<SubjectDto>> GetSubjectsByExamIdAsync(int examId)
         {
-            var subjects = await _context.Subjects
-                .Include(s => s.Exam)
-                .Include(s => s.Chapters)
-                .Where(s => s.ExamId == examId && s.IsActive)
-                .OrderBy(s => s.Name)
-                .ToListAsync();
+            var subjects = await _subjectRepository.GetByExamIdAsync(examId);
 
-            return subjects.Select(s => new SubjectDto
+            return subjects.OrderBy(s => s.Name).Select(s => new SubjectDto
             {
                 Id = s.Id,
                 Name = s.Name,
@@ -113,19 +101,20 @@ namespace RankUpAPI.Services
 
         public async Task<bool> ToggleSubjectStatusAsync(int id, bool isActive)
         {
-            var subject = await _context.Subjects.FindAsync(id);
+            var subject = await _subjectRepository.GetByIdAsync(id);
             if (subject == null)
                 return false;
 
             subject.IsActive = isActive;
             subject.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await _subjectRepository.UpdateAsync(subject);
+            await _subjectRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<SubjectDto?> UpdateSubjectAsync(int id, UpdateSubjectDto updateDto)
         {
-            var subject = await _context.Subjects.FindAsync(id);
+            var subject = await _subjectRepository.GetByIdAsync(id);
             if (subject == null)
                 return null;
 
@@ -134,7 +123,8 @@ namespace RankUpAPI.Services
             subject.IsActive = updateDto.IsActive;
             subject.UpdatedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            await _subjectRepository.UpdateAsync(subject);
+            await _subjectRepository.SaveChangesAsync();
             return await GetSubjectByIdAsync(id);
         }
     }

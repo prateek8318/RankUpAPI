@@ -3,18 +3,23 @@ using Microsoft.EntityFrameworkCore;
 using RankUpAPI.Data;
 using RankUpAPI.DTOs;
 using RankUpAPI.Models;
+using RankUpAPI.Repositories.Interfaces;
 using RankUpAPI.Services.Interfaces;
 
 namespace RankUpAPI.Services
 {
     public class ExamService : IExamService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IExamRepository _examRepository;
+        private readonly IQualificationRepository _qualificationRepository;
+        private readonly IExamQualificationRepository _examQualificationRepository;
         private readonly IMapper _mapper;
 
-        public ExamService(ApplicationDbContext context, IMapper mapper)
+        public ExamService(IExamRepository examRepository, IQualificationRepository qualificationRepository, IExamQualificationRepository examQualificationRepository, IMapper mapper)
         {
-            _context = context;
+            _examRepository = examRepository;
+            _qualificationRepository = qualificationRepository;
+            _examQualificationRepository = examQualificationRepository;
             _mapper = mapper;
         }
 
@@ -25,25 +30,30 @@ namespace RankUpAPI.Services
             exam.IsActive = true;
 
             // Add the exam first to get the ID
-            _context.Exams.Add(exam);
-            await _context.SaveChangesAsync();
+            await _examRepository.AddAsync(exam);
+            await _examRepository.SaveChangesAsync();
 
             // Now handle the many-to-many relationships
             if (createDto.QualificationIds?.Any() == true)
             {
+                var examQualifications = new List<ExamQualification>();
                 foreach (var qualificationId in createDto.QualificationIds)
                 {
-                    var qualification = await _context.Qualifications.FindAsync(qualificationId);
+                    var qualification = await _qualificationRepository.GetByIdAsync(qualificationId);
                     if (qualification != null)
                     {
-                        exam.ExamQualifications.Add(new ExamQualification
+                        examQualifications.Add(new ExamQualification
                         {
                             ExamId = exam.Id,
                             QualificationId = qualificationId
                         });
                     }
                 }
-                await _context.SaveChangesAsync();
+                if (examQualifications.Any())
+                {
+                    await _examQualificationRepository.AddRangeAsync(examQualifications);
+                    await _examQualificationRepository.SaveChangesAsync();
+                }
             }
 
             var result = _mapper.Map<ExamDto>(exam);
@@ -53,32 +63,28 @@ namespace RankUpAPI.Services
 
         public async Task<bool> DeleteExamAsync(int id)
         {
-            var exam = await _context.Exams.FindAsync(id);
+            var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
                 return false;
 
             // Remove related exam qualifications
-            var examQualifications = _context.ExamQualifications.Where(eq => eq.ExamId == id);
-            _context.ExamQualifications.RemoveRange(examQualifications);
+            await _examQualificationRepository.DeleteByExamIdAsync(id);
 
-            _context.Exams.Remove(exam);
-            await _context.SaveChangesAsync();
+            await _examRepository.DeleteAsync(exam);
+            await _examRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<ExamDto>> GetAllExamsAsync()
         {
-            var exams = await _context.Exams
-                .Include(e => e.ExamQualifications)
-                .Where(e => e.IsActive)
-                .OrderBy(e => e.Name)
-                .ToListAsync();
+            var exams = await _examRepository.GetActiveAsync();
 
             var examDtos = new List<ExamDto>();
-            foreach (var exam in exams)
+            foreach (var exam in exams.OrderBy(e => e.Name))
             {
-                var examDto = _mapper.Map<ExamDto>(exam);
-                examDto.QualificationIds = exam.ExamQualifications.Select(eq => eq.QualificationId).ToList();
+                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
+                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
+                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
                 examDtos.Add(examDto);
             }
 
@@ -87,9 +93,7 @@ namespace RankUpAPI.Services
 
         public async Task<ExamDto?> GetExamByIdAsync(int id)
         {
-            var exam = await _context.Exams
-                .Include(e => e.ExamQualifications)
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var exam = await _examRepository.GetByIdWithQualificationsAsync(id);
                 
             if (exam == null)
                 return null;
@@ -101,32 +105,26 @@ namespace RankUpAPI.Services
 
         public async Task<bool> ToggleExamStatusAsync(int id, bool isActive)
         {
-            var exam = await _context.Exams.FindAsync(id);
+            var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
                 return false;
 
             exam.IsActive = isActive;
-            await _context.SaveChangesAsync();
+            await _examRepository.UpdateAsync(exam);
+            await _examRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<ExamDto>> GetExamsByQualificationAsync(int qualificationId)
         {
-            var examIds = await _context.ExamQualifications
-                .Where(eq => eq.QualificationId == qualificationId)
-                .Select(eq => eq.ExamId)
-                .ToListAsync();
-
-            var exams = await _context.Exams
-                .Where(e => examIds.Contains(e.Id) && e.IsActive)
-                .OrderBy(e => e.Name)
-                .ToListAsync();
+            var exams = await _examRepository.GetByQualificationIdAsync(qualificationId);
 
             var examDtos = new List<ExamDto>();
-            foreach (var exam in exams)
+            foreach (var exam in exams.OrderBy(e => e.Name))
             {
-                var examDto = _mapper.Map<ExamDto>(exam);
-                examDto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
+                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
+                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
                 examDtos.Add(examDto);
             }
 
@@ -134,45 +132,48 @@ namespace RankUpAPI.Services
         }
 
         public async Task<ExamDto?> UpdateExamAsync(int id, UpdateExamDto updateDto)
-{
-    var exam = await _context.Exams
-        .Include(e => e.ExamQualifications)
-        .FirstOrDefaultAsync(e => e.Id == id);
-    if (exam == null)
-        return null;
-    // Update exam properties
-    _mapper.Map(updateDto, exam);
-    // Update many-to-many relationships
-    if (updateDto.QualificationIds != null)
-    {
-        // Remove existing relationships not in the new list
-        var existingQualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-        var qualificationsToRemove = exam.ExamQualifications?
-            .Where(eq => !updateDto.QualificationIds.Contains(eq.QualificationId))
-            .ToList() ?? new List<ExamQualification>();
-        foreach (var eq in qualificationsToRemove)
         {
-            exam.ExamQualifications?.Remove(eq);
-        }
-        // Add new relationships
-        foreach (var qualificationId in updateDto.QualificationIds.Except(existingQualificationIds))
-        {
-            var qualification = await _context.Qualifications.FindAsync(qualificationId);
-            if (qualification != null)
+            var exam = await _examRepository.GetByIdWithQualificationsAsync(id);
+            if (exam == null)
+                return null;
+            // Update exam properties
+            _mapper.Map(updateDto, exam);
+            // Update exam properties
+            await _examRepository.UpdateAsync(exam);
+            
+            // Update many-to-many relationships
+            if (updateDto.QualificationIds != null)
             {
-                exam.ExamQualifications ??= new List<ExamQualification>();
-                exam.ExamQualifications.Add(new ExamQualification
+                // Remove existing relationships not in the new list
+                var existingQualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                var qualificationsToRemove = exam.ExamQualifications?
+                    .Where(eq => !updateDto.QualificationIds.Contains(eq.QualificationId))
+                    .ToList() ?? new List<ExamQualification>();
+                foreach (var eq in qualificationsToRemove)
                 {
-                    ExamId = exam.Id,
-                    QualificationId = qualificationId
-                });
+                    await _examQualificationRepository.DeleteAsync(eq);
+                }
+                // Add new relationships
+                foreach (var qualificationId in updateDto.QualificationIds.Except(existingQualificationIds))
+                {
+                    var qualification = await _qualificationRepository.GetByIdAsync(qualificationId);
+                    if (qualification != null)
+                    {
+                        await _examQualificationRepository.AddAsync(new ExamQualification
+                        {
+                            ExamId = exam.Id,
+                            QualificationId = qualificationId
+                        });
+                    }
+                }
+                // Save changes for ExamQualification updates
+                await _examQualificationRepository.SaveChangesAsync();
             }
+            await _examRepository.SaveChangesAsync();
+            var result = _mapper.Map<ExamDto>(exam);
+            var updatedExam = await _examRepository.GetByIdWithQualificationsAsync(id);
+            result.QualificationIds = updatedExam?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+            return result;
         }
-    }
-    await _context.SaveChangesAsync();
-    var result = _mapper.Map<ExamDto>(exam);
-    result.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-    return result;
-}
     }
 }

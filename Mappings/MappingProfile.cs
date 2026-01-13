@@ -1,5 +1,11 @@
 using AutoMapper;
 using RankUpAPI.DTOs;
+using RankUpAPI.Areas.Admin.Exam.DTOs;
+using RankUpAPI.Areas.Admin.Qualification.DTOs;
+using RankUpAPI.Areas.Admin.Subject.DTOs;
+using RankUpAPI.Areas.Admin.Chapter.DTOs;
+using RankUpAPI.Areas.Admin.TestSeries.DTOs;
+using RankUpAPI.Areas.Admin.Question.DTOs;
 using RankUpAPI.Models;
 
 namespace RankUpAPI.Mappings
@@ -8,33 +14,40 @@ namespace RankUpAPI.Mappings
     {
         public MappingProfile()
         {
-            // Qualification Mappings
-            CreateMap<CreateQualificationDto, Qualification>();
-            CreateMap<UpdateQualificationDto, Qualification>();
-            CreateMap<Qualification, QualificationDto>();
+            // Qualification Mappings (Admin)
+            CreateMap<RankUpAPI.Areas.Admin.Qualification.DTOs.CreateQualificationDto, Qualification>();
+            CreateMap<RankUpAPI.Areas.Admin.Qualification.DTOs.UpdateQualificationDto, Qualification>();
+            CreateMap<Qualification, RankUpAPI.Areas.Admin.Qualification.DTOs.QualificationDto>();
 
-            // Exam Mappings
-            CreateMap<CreateExamDto, Exam>();
-            CreateMap<UpdateExamDto, Exam>();
-            CreateMap<Exam, ExamDto>()
+            // Exam Mappings (using new namespace)
+            CreateMap<RankUpAPI.Areas.Admin.Exam.DTOs.CreateExamDto, Exam>();
+            CreateMap<RankUpAPI.Areas.Admin.Exam.DTOs.UpdateExamDto, Exam>();
+            CreateMap<Exam, RankUpAPI.Areas.Admin.Exam.DTOs.ExamDto>()
+                .ForMember(dest => dest.QualificationIds, 
+                          opt => opt.MapFrom(src => src.ExamQualifications.Select(eq => eq.QualificationId).ToList()));
+            
+            // Legacy Exam Mappings (for backward compatibility)
+            CreateMap<RankUpAPI.DTOs.CreateExamDto, Exam>();
+            CreateMap<RankUpAPI.DTOs.UpdateExamDto, Exam>();
+            CreateMap<Exam, RankUpAPI.DTOs.ExamDto>()
                 .ForMember(dest => dest.QualificationIds, 
                           opt => opt.MapFrom(src => src.ExamQualifications.Select(eq => eq.QualificationId).ToList()));
 
-            // Subject Mappings
-            CreateMap<CreateSubjectDto, Subject>();
-            CreateMap<UpdateSubjectDto, Subject>();
+            // Subject Mappings (Admin)
+            CreateMap<RankUpAPI.Areas.Admin.Subject.DTOs.CreateSubjectDto, Subject>();
+            CreateMap<RankUpAPI.Areas.Admin.Subject.DTOs.UpdateSubjectDto, Subject>();
 
-            // Chapter Mappings
-            CreateMap<CreateChapterDto, Chapter>();
-            CreateMap<UpdateChapterDto, Chapter>();
+            // Chapter Mappings (Admin)
+            CreateMap<RankUpAPI.Areas.Admin.Chapter.DTOs.CreateChapterDto, Chapter>();
+            CreateMap<RankUpAPI.Areas.Admin.Chapter.DTOs.UpdateChapterDto, Chapter>();
 
-            // TestSeries Mappings
-            CreateMap<CreateTestSeriesDto, TestSeries>();
-            CreateMap<UpdateTestSeriesDto, TestSeries>();
+            // TestSeries Mappings (Admin)
+            CreateMap<RankUpAPI.Areas.Admin.TestSeries.DTOs.CreateTestSeriesDto, TestSeries>();
+            CreateMap<RankUpAPI.Areas.Admin.TestSeries.DTOs.UpdateTestSeriesDto, TestSeries>();
 
-            // Question Mappings
-            CreateMap<CreateQuestionDto, Question>();
-            CreateMap<UpdateQuestionDto, Question>();
+            // Question Mappings (Admin)
+            CreateMap<RankUpAPI.Areas.Admin.Question.DTOs.CreateQuestionDto, Question>();
+            CreateMap<RankUpAPI.Areas.Admin.Question.DTOs.UpdateQuestionDto, Question>();
         }
     }
 }

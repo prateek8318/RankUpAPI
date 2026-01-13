@@ -8,8 +8,13 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RankUpAPI.Areas.Admin.Services.Implementations;
 using RankUpAPI.Areas.Admin.Services.Interfaces;
+using RankUpAPI.Core.Configuration;
+using RankUpAPI.Core.Services.Interfaces;
+using RankUpAPI.Core.Services.Implementations;
 using RankUpAPI.Data;
 using RankUpAPI.Services;
+using RankUpAPI.Repositories.Interfaces;
+using RankUpAPI.Repositories.Implementations;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -51,15 +56,40 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<RankUpAPI.Mappings.MappingProfile>();
 }, AppDomain.CurrentDomain.GetAssemblies());
 
-// Register Services
+// Configure OTP Settings
+builder.Services.Configure<OtpSettings>(
+    builder.Configuration.GetSection(OtpSettings.SectionName));
+
+// Register Core Services
+builder.Services.AddScoped<IOtpService, OtpService>();
+
+// Register Repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IQualificationRepository, QualificationRepository>();
+builder.Services.AddScoped<IExamRepository, ExamRepository>();
+builder.Services.AddScoped<IExamQualificationRepository, ExamQualificationRepository>();
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<IChapterRepository, ChapterRepository>();
+builder.Services.AddScoped<ITestSeriesRepository, TestSeriesRepository>();
+builder.Services.AddScoped<ITestSeriesQuestionRepository, TestSeriesQuestionRepository>();
+builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<IHomeSectionItemRepository, HomeSectionItemRepository>();
+
+// Register Business Services
 builder.Services.AddScoped<IUserService, RankUpAPI.Services.UserService>();
-builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IQualificationService, RankUpAPI.Services.QualificationService>();
-builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IExamService, RankUpAPI.Services.ExamService>();
-builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IHomeContentService, RankUpAPI.Services.HomeContentService>();
-builder.Services.AddScoped<RankUpAPI.Services.Interfaces.ISubjectService, RankUpAPI.Services.SubjectService>();
-builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IChapterService, RankUpAPI.Services.ChapterService>();
-builder.Services.AddScoped<RankUpAPI.Services.Interfaces.ITestSeriesService, RankUpAPI.Services.TestSeriesService>();
-builder.Services.AddScoped<RankUpAPI.Services.Interfaces.IQuestionService, RankUpAPI.Services.QuestionService>();
+
+// Register Admin Area Services (Entity-based structure)
+builder.Services.AddScoped<RankUpAPI.Areas.Admin.Exam.Services.Interfaces.IExamService, RankUpAPI.Areas.Admin.Exam.Services.Implementations.ExamService>();
+builder.Services.AddScoped<RankUpAPI.Areas.Admin.Qualification.Services.Interfaces.IQualificationService, RankUpAPI.Areas.Admin.Qualification.Services.Implementations.QualificationService>();
+builder.Services.AddScoped<RankUpAPI.Areas.Admin.Subject.Services.Interfaces.ISubjectService, RankUpAPI.Areas.Admin.Subject.Services.Implementations.SubjectService>();
+builder.Services.AddScoped<RankUpAPI.Areas.Admin.Chapter.Services.Interfaces.IChapterService, RankUpAPI.Areas.Admin.Chapter.Services.Implementations.ChapterService>();
+builder.Services.AddScoped<RankUpAPI.Areas.Admin.Question.Services.Interfaces.IQuestionService, RankUpAPI.Areas.Admin.Question.Services.Implementations.QuestionService>();
+builder.Services.AddScoped<RankUpAPI.Areas.Admin.TestSeries.Services.Interfaces.ITestSeriesService, RankUpAPI.Areas.Admin.TestSeries.Services.Implementations.TestSeriesService>();
+builder.Services.AddScoped<RankUpAPI.Areas.Admin.HomeContent.Services.Interfaces.IHomeContentService, RankUpAPI.Areas.Admin.HomeContent.Services.Implementations.HomeContentService>();
+
+// Register User Area Services
+builder.Services.AddScoped<RankUpAPI.Areas.Users.HomeContent.Services.Interfaces.IHomeContentService, RankUpAPI.Areas.Users.HomeContent.Services.Implementations.HomeContentService>();
 
 // Add DbContext with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>

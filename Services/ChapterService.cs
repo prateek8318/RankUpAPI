@@ -3,18 +3,19 @@ using Microsoft.EntityFrameworkCore;
 using RankUpAPI.Data;
 using RankUpAPI.DTOs;
 using RankUpAPI.Models;
+using RankUpAPI.Repositories.Interfaces;
 using RankUpAPI.Services.Interfaces;
 
 namespace RankUpAPI.Services
 {
     public class ChapterService : IChapterService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IChapterRepository _chapterRepository;
         private readonly IMapper _mapper;
 
-        public ChapterService(ApplicationDbContext context, IMapper mapper)
+        public ChapterService(IChapterRepository chapterRepository, IMapper mapper)
         {
-            _context = context;
+            _chapterRepository = chapterRepository;
             _mapper = mapper;
         }
 
@@ -24,34 +25,28 @@ namespace RankUpAPI.Services
             chapter.CreatedAt = DateTime.UtcNow;
             chapter.IsActive = true;
 
-            _context.Chapters.Add(chapter);
-            await _context.SaveChangesAsync();
+            await _chapterRepository.AddAsync(chapter);
+            await _chapterRepository.SaveChangesAsync();
 
             return await GetChapterByIdAsync(chapter.Id) ?? throw new Exception("Failed to retrieve created chapter");
         }
 
         public async Task<bool> DeleteChapterAsync(int id)
         {
-            var chapter = await _context.Chapters.FindAsync(id);
+            var chapter = await _chapterRepository.GetByIdAsync(id);
             if (chapter == null)
                 return false;
 
-            _context.Chapters.Remove(chapter);
-            await _context.SaveChangesAsync();
+            await _chapterRepository.DeleteAsync(chapter);
+            await _chapterRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<ChapterDto>> GetAllChaptersAsync()
         {
-            var chapters = await _context.Chapters
-                .Include(c => c.Subject)
-                    .ThenInclude(s => s.Exam)
-                .Include(c => c.Questions)
-                .Where(c => c.IsActive)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            var chapters = await _chapterRepository.GetActiveAsync();
 
-            return chapters.Select(c => new ChapterDto
+            return chapters.OrderBy(c => c.Name).Select(c => new ChapterDto
             {
                 Id = c.Id,
                 Name = c.Name,
@@ -69,11 +64,7 @@ namespace RankUpAPI.Services
 
         public async Task<ChapterDto?> GetChapterByIdAsync(int id)
         {
-            var chapter = await _context.Chapters
-                .Include(c => c.Subject)
-                    .ThenInclude(s => s.Exam)
-                .Include(c => c.Questions)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var chapter = await _chapterRepository.GetByIdWithDetailsAsync(id);
 
             if (chapter == null)
                 return null;
@@ -96,15 +87,9 @@ namespace RankUpAPI.Services
 
         public async Task<IEnumerable<ChapterDto>> GetChaptersBySubjectIdAsync(int subjectId)
         {
-            var chapters = await _context.Chapters
-                .Include(c => c.Subject)
-                    .ThenInclude(s => s.Exam)
-                .Include(c => c.Questions)
-                .Where(c => c.SubjectId == subjectId && c.IsActive)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            var chapters = await _chapterRepository.GetBySubjectIdAsync(subjectId);
 
-            return chapters.Select(c => new ChapterDto
+            return chapters.OrderBy(c => c.Name).Select(c => new ChapterDto
             {
                 Id = c.Id,
                 Name = c.Name,
@@ -122,19 +107,20 @@ namespace RankUpAPI.Services
 
         public async Task<bool> ToggleChapterStatusAsync(int id, bool isActive)
         {
-            var chapter = await _context.Chapters.FindAsync(id);
+            var chapter = await _chapterRepository.GetByIdAsync(id);
             if (chapter == null)
                 return false;
 
             chapter.IsActive = isActive;
             chapter.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await _chapterRepository.UpdateAsync(chapter);
+            await _chapterRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<ChapterDto?> UpdateChapterAsync(int id, UpdateChapterDto updateDto)
         {
-            var chapter = await _context.Chapters.FindAsync(id);
+            var chapter = await _chapterRepository.GetByIdAsync(id);
             if (chapter == null)
                 return null;
 
@@ -143,7 +129,8 @@ namespace RankUpAPI.Services
             chapter.IsActive = updateDto.IsActive;
             chapter.UpdatedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            await _chapterRepository.UpdateAsync(chapter);
+            await _chapterRepository.SaveChangesAsync();
             return await GetChapterByIdAsync(id);
         }
     }

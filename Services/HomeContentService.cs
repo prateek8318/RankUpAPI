@@ -2,17 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using RankUpAPI.Data;
 using RankUpAPI.DTOs;
 using RankUpAPI.Models;
+using RankUpAPI.Repositories.Interfaces;
 using RankUpAPI.Services.Interfaces;
 
 namespace RankUpAPI.Services
 {
     public class HomeContentService : IHomeContentService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IHomeSectionItemRepository _homeSectionItemRepository;
 
-        public HomeContentService(ApplicationDbContext context)
+        public HomeContentService(IHomeSectionItemRepository homeSectionItemRepository)
         {
-            _context = context;
+            _homeSectionItemRepository = homeSectionItemRepository;
         }
 
         public async Task<HomeSectionItemDto> CreateAsync(HomeSectionItemCreateDto dto, CancellationToken cancellationToken = default)
@@ -31,16 +32,15 @@ namespace RankUpAPI.Services
                 IsVisible = dto.IsVisible
             };
 
-            _context.HomeSectionItems.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _homeSectionItemRepository.AddAsync(entity);
+            await _homeSectionItemRepository.SaveChangesAsync();
 
             return MapToDto(entity);
         }
 
         public async Task<HomeSectionItemDto?> UpdateAsync(HomeSectionItemUpdateDto dto, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.HomeSectionItems
-                .FirstOrDefaultAsync(x => x.Id == dto.Id, cancellationToken);
+            var entity = await _homeSectionItemRepository.GetByIdAsync(dto.Id);
 
             if (entity == null)
             {
@@ -58,60 +58,37 @@ namespace RankUpAPI.Services
             entity.DisplayOrder = dto.DisplayOrder;
             entity.IsVisible = dto.IsVisible;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await _homeSectionItemRepository.UpdateAsync(entity);
+            await _homeSectionItemRepository.SaveChangesAsync();
 
             return MapToDto(entity);
         }
 
         public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
-            var entity = await _context.HomeSectionItems
-                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            var entity = await _homeSectionItemRepository.GetByIdAsync(id);
 
             if (entity == null)
             {
                 return false;
             }
 
-            _context.HomeSectionItems.Remove(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _homeSectionItemRepository.DeleteAsync(entity);
+            await _homeSectionItemRepository.SaveChangesAsync();
 
             return true;
         }
 
         public async Task<IList<HomeSectionItemDto>> GetBySectionAsync(HomeSectionType sectionType, int? examId, CancellationToken cancellationToken = default)
         {
-            var query = _context.HomeSectionItems
-                .AsNoTracking()
-                .Where(x => x.SectionType == sectionType && x.IsVisible);
-
-            if (examId.HasValue)
-            {
-                query = query.Where(x => x.ExamId == examId || x.ExamId == null);
-            }
-
-            var items = await query
-                .OrderBy(x => x.DisplayOrder)
-                .ToListAsync(cancellationToken);
+            var items = await _homeSectionItemRepository.GetBySectionTypeAsync(sectionType, examId);
 
             return items.Select(MapToDto).ToList();
         }
 
         public async Task<HomeContentResponseDto> GetHomeContentAsync(int? examId, CancellationToken cancellationToken = default)
         {
-            var query = _context.HomeSectionItems
-                .AsNoTracking()
-                .Where(x => x.IsVisible);
-
-            if (examId.HasValue)
-            {
-                query = query.Where(x => x.ExamId == examId || x.ExamId == null);
-            }
-
-            var items = await query
-                .OrderBy(x => x.SectionType)
-                .ThenBy(x => x.DisplayOrder)
-                .ToListAsync(cancellationToken);
+            var items = await _homeSectionItemRepository.GetVisibleAsync(examId);
 
             var grouped = new HomeContentResponseDto
             {

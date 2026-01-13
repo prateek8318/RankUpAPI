@@ -1,0 +1,45 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace UserService.Domain.Entities
+{
+    public class User : BaseEntity
+    {
+        [MaxLength(100)]
+        public string? Name { get; set; }
+        
+        [EmailAddress, MaxLength(100)]
+        public string? Email { get; set; }
+        
+        [MaxLength(255)]
+        public string? PasswordHash { get; set; }
+        
+        [Required, MaxLength(15)]
+        public string PhoneNumber { get; set; } = string.Empty;
+        
+        [MaxLength(20)]
+        public string? Gender { get; set; }
+        
+        [Column(TypeName = "date")]
+        public DateTime? DateOfBirth { get; set; }
+        
+        [MaxLength(100)]
+        public string? Qualification { get; set; }
+        
+        [MaxLength(50)]
+        public string? LanguagePreference { get; set; }
+        
+        [MaxLength(255)]
+        public string? ProfilePhoto { get; set; }
+        
+        [MaxLength(100)]
+        public string? PreferredExam { get; set; }
+        
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+        
+        public DateTime? LastLoginAt { get; set; }
+        
+        public bool IsPhoneVerified { get; set; } = false;
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "QuizService.API": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:56918;http://localhost:56921"
+    }
+  }
+}

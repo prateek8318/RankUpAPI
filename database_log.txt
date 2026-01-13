@@ -2880,3 +2880,23 @@ en-us is an invalid culture identifier.
       FROM [HomeSectionItems] AS [h]
       WHERE [h].[IsVisible] = CAST(1 AS bit)
       ORDER BY [h].[SectionType], [h].[DisplayOrder]
+[2026-01-13 08:39:33.087] info: 1/13/2026 14:09:33.086 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (20ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 08:39:33.104] info: 1/13/2026 14:09:33.104 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 08:39:33.125] info: 1/13/2026 14:09:33.125 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 08:39:33.128] info: 1/13/2026 14:09:33.128 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT 1
+[2026-01-13 08:39:33.130] info: 1/13/2026 14:09:33.130 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+[2026-01-13 08:39:33.145] info: 1/13/2026 14:09:33.144 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command) 
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];

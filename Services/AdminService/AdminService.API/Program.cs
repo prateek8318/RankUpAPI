@@ -40,6 +40,16 @@ builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+// HTTP Client for ExamService  
+builder.Services.AddHttpClient<IExamServiceClient, ExamServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:ExamService:BaseUrl"] ?? "https://localhost:5003");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// Add AuthService
+builder.Services.AddScoped<AuthService>();
+
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
 

@@ -28,9 +28,9 @@ namespace QuizService.Infrastructure.Data
             // Configure Subject
             modelBuilder.Entity<Subject>(entity =>
             {
-                entity.HasOne(s => s.Chapters)
-                      .WithOne()
-                      .HasForeignKey<Chapter>(c => c.SubjectId)
+                entity.HasMany(s => s.Chapters)
+                      .WithOne(c => c.Subject)
+                      .HasForeignKey(c => c.SubjectId)
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.Property(s => s.IsActive).HasDefaultValue(true).ValueGeneratedNever();

@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using ExamService.Application.DTOs;
 
 namespace AdminService.Application.Clients
@@ -70,6 +72,89 @@ namespace AdminService.Application.Clients
             {
                 _logger.LogError(ex, "Error calling ExamService for all exams");
                 return null;
+            }
+        }
+
+        public async Task<ExamDto?> CreateExamAsync(object createDto)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(createDto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.PostAsync("/api/admin/exams", content));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<ExamDto>();
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling ExamService to create exam");
+                return null;
+            }
+        }
+
+        public async Task<ExamDto?> UpdateExamAsync(int id, object updateDto)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(updateDto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.PutAsync($"/api/admin/exams/{id}", content));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<ExamDto>();
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error calling ExamService to update exam {id}");
+                return null;
+            }
+        }
+
+        public async Task<bool> DeleteExamAsync(int id)
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.DeleteAsync($"/api/admin/exams/{id}"));
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error calling ExamService to delete exam {id}");
+                return false;
+            }
+        }
+
+        public async Task<bool> EnableDisableExamAsync(int id, bool isActive)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(isActive);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.PatchAsync($"/api/admin/exams/{id}/enable-disable", content));
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error calling ExamService to enable/disable exam {id}");
+                return false;
             }
         }
     }

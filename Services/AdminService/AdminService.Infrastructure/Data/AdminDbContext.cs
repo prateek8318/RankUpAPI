@@ -17,6 +17,9 @@ namespace AdminService.Infrastructure.Data
         public DbSet<AdminRole> AdminRoles { get; set; }
         public DbSet<AdminSession> AdminSessions { get; set; }
         public DbSet<AdminActivityLog> AdminActivityLogs { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<ExportLog> ExportLogs { get; set; }
+        public DbSet<DashboardCache> DashboardCaches { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -106,6 +109,66 @@ namespace AdminService.Infrastructure.Data
 
                 entity.HasIndex(l => new { l.AdminId, l.CreatedAt });
                 entity.Property(l => l.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure AuditLog entity
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.ServiceName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Endpoint).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.HttpMethod).HasMaxLength(50);
+                entity.Property(e => e.RequestPayload).HasMaxLength(2000);
+                entity.Property(e => e.ResponsePayload).HasMaxLength(2000);
+                entity.Property(e => e.IpAddress).HasMaxLength(50);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+
+                entity.HasOne(e => e.Admin)
+                      .WithMany()
+                      .HasForeignKey(e => e.AdminId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.AdminId, e.CreatedAt });
+                entity.HasIndex(e => e.ServiceName);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure ExportLog entity
+            modelBuilder.Entity<ExportLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ExportType).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.FilePath).HasMaxLength(500);
+                entity.Property(e => e.FileName).HasMaxLength(200);
+                entity.Property(e => e.Format).HasMaxLength(50);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+                entity.Property(e => e.FilterCriteria).HasMaxLength(2000);
+
+                entity.HasOne(e => e.Admin)
+                      .WithMany()
+                      .HasForeignKey(e => e.AdminId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.AdminId);
+                entity.HasIndex(e => e.ExportType);
+                entity.HasIndex(e => e.Status);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure DashboardCache entity
+            modelBuilder.Entity<DashboardCache>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CacheKey).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.CacheData).IsRequired();
+                entity.Property(e => e.CacheType).HasMaxLength(50);
+
+                entity.HasIndex(e => e.CacheKey).IsUnique();
+                entity.HasIndex(e => e.CacheType);
+                entity.HasIndex(e => e.ExpiresAt);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
             });
         }
     }

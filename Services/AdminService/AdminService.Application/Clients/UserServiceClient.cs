@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using UserService.Application.DTOs;
 
 namespace AdminService.Application.Clients
@@ -69,6 +71,130 @@ namespace AdminService.Application.Clients
             {
                 _logger.LogError(ex, $"Error calling UserService for email {email}");
                 return null;
+            }
+        }
+
+        public async Task<IEnumerable<UserDto>?> GetAllUsersAsync(int page = 1, int pageSize = 50)
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.GetAsync($"/api/admin/users?page={page}&pageSize={pageSize}"));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<IEnumerable<UserDto>>();
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling UserService for all users");
+                return null;
+            }
+        }
+
+        public async Task<UserDto?> UpdateUserAsync(int id, object updateDto)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(updateDto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.PutAsync($"/api/admin/users/{id}", content));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<UserDto>();
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error calling UserService to update user {id}");
+                return null;
+            }
+        }
+
+        public async Task<bool> DeleteUserAsync(int id)
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.DeleteAsync($"/api/admin/users/{id}"));
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error calling UserService to delete user {id}");
+                return false;
+            }
+        }
+
+        public async Task<bool> EnableDisableUserAsync(int id, bool isActive)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(isActive);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.PatchAsync($"/api/admin/users/{id}/enable-disable", content));
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error calling UserService to enable/disable user {id}");
+                return false;
+            }
+        }
+
+        public async Task<int> GetTotalUsersCountAsync()
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.GetAsync("/api/admin/users/count"));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<Dictionary<string, int>>();
+                    return result?.GetValueOrDefault("totalUsers", 0) ?? 0;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling UserService for total users count");
+                return 0;
+            }
+        }
+
+        public async Task<int> GetDailyActiveUsersCountAsync()
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.GetAsync("/api/admin/users/daily-active-count"));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<Dictionary<string, int>>();
+                    return result?.GetValueOrDefault("dailyActiveUsers", 0) ?? 0;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling UserService for daily active users count");
+                return 0;
             }
         }
     }

@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SubscriptionService.Application.Interfaces;
 using SubscriptionService.Application.Mappings;
-using SubscriptionApplicationService = SubscriptionService.Application.Services.SubscriptionService;
+using SubscriptionService.Application.Services;
+using SubscriptionService.Domain.Interfaces;
 using SubscriptionService.Infrastructure.Data;
 using SubscriptionService.Infrastructure.Repositories;
+using SubscriptionService.Infrastructure.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,7 +19,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
 
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 builder.Services.AddDbContext<SubscriptionDbContext>(options =>
 {
@@ -30,8 +32,26 @@ builder.Services.AddDbContext<SubscriptionDbContext>(options =>
     });
 });
 
-builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
-builder.Services.AddScoped<SubscriptionApplicationService>();
+// Register repositories
+builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
+builder.Services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
+builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IDemoAccessLogRepository, DemoAccessLogRepository>();
+
+// Register domain services
+builder.Services.AddScoped<IRazorpayService, RazorpayService>();
+builder.Services.AddScoped<ISubscriptionValidationService, SubscriptionService.Domain.Services.SubscriptionValidationService>();
+
+// Register application services
+builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
+builder.Services.AddScoped<IUserSubscriptionService, UserSubscriptionService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<ISubscriptionValidationAppService, SubscriptionValidationAppService>();
+
+// Register HttpClient for Razorpay
+builder.Services.AddHttpClient<IRazorpayService, RazorpayService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);

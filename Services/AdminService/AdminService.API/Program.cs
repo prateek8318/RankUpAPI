@@ -3,6 +3,8 @@ using AdminService.Application.Services;
 using AdminService.Application.Clients;
 using AdminService.Infrastructure.Data;
 using AdminService.Infrastructure.Repositories;
+using AdminService.Domain.Interfaces;
+using AdminService.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -28,10 +30,18 @@ builder.Services.AddDbContext<AdminDbContext>(options =>
     });
 });
 
+// Repositories
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IExportLogRepository, ExportLogRepository>();
+
+// Application Services
 builder.Services.AddScoped<IAdminService, AdminService.Application.Services.AdminService>();
+builder.Services.AddScoped<IDashboardAggregationService, DashboardAggregationService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IExportService, ExportService>();
 
 // HTTP Client for UserService
 builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>
@@ -44,6 +54,41 @@ builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>
 builder.Services.AddHttpClient<IExamServiceClient, ExamServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:ExamService:BaseUrl"] ?? "https://localhost:5003");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// HTTP Client for SubscriptionService
+builder.Services.AddHttpClient<ISubscriptionServiceClient, SubscriptionServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:SubscriptionService:BaseUrl"] ?? "https://localhost:5004");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// HTTP Client for QuizService
+builder.Services.AddHttpClient<IQuizServiceClient, QuizServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:QuizService:BaseUrl"] ?? "https://localhost:5005");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// HTTP Client for QuestionService
+builder.Services.AddHttpClient<IQuestionServiceClient, QuestionServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:QuestionService:BaseUrl"] ?? "https://localhost:5006");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// HTTP Client for HomeDashboardService
+builder.Services.AddHttpClient<IHomeDashboardServiceClient, HomeDashboardServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:HomeDashboardService:BaseUrl"] ?? "https://localhost:56927");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// HTTP Client for AnalyticsService
+builder.Services.AddHttpClient<IAnalyticsServiceClient, AnalyticsServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:AnalyticsService:BaseUrl"] ?? "https://localhost:5007");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
@@ -99,6 +144,10 @@ app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Add custom service authentication middleware
+// app.UseMiddleware<ServiceAuthMiddleware>();
+
 app.MapControllers();
 
 try

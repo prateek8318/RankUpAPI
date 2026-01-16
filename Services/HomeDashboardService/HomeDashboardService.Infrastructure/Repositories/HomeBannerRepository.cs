@@ -5,13 +5,13 @@ using HomeDashboardService.Infrastructure.Data;
 
 namespace HomeDashboardService.Infrastructure.Repositories
 {
-    public class DashboardBannerRepository : GenericRepository<DashboardBanner>, IDashboardBannerRepository
+    public class HomeBannerRepository : GenericRepository<HomeBanner>, IHomeBannerRepository
     {
-        public DashboardBannerRepository(HomeDashboardDbContext context) : base(context)
+        public HomeBannerRepository(HomeDashboardDbContext context) : base(context)
         {
         }
 
-        public async Task<IEnumerable<DashboardBanner>> GetActiveBannersAsync()
+        public async Task<IEnumerable<HomeBanner>> GetActiveBannersAsync()
         {
             var now = DateTime.UtcNow;
             return await _dbSet

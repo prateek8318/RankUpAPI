@@ -44,18 +44,30 @@ namespace UserService.API.Controllers
                 });
             }
 
+            // Validate country code
+            if (string.IsNullOrWhiteSpace(request.CountryCode) || !IsValidCountryCode(request.CountryCode))
+            {
+                return BadRequest(new AuthResponse
+                {
+                    Success = false,
+                    Message = "Please provide a valid country code (e.g., +91, +1, +44)"
+                });
+            }
+
             // Use default OTP from configuration
             var useRandomOtp = _configuration.GetValue<bool>("OtpSettings:UseRandomOtp", false);
             var defaultOtp = _configuration.GetValue<string>("OtpSettings:DefaultOtp", "1234");
             var otp = useRandomOtp ? _otpService.GenerateOtp() : defaultOtp;
             
-            _otpService.StoreOtp(request.MobileNumber, otp);
-            _logger.LogInformation($"OTP for {request.MobileNumber}: {otp}");
+            // Store OTP with full phone number (country code + mobile number)
+            var fullPhoneNumber = $"{request.CountryCode}{request.MobileNumber}";
+            _otpService.StoreOtp(fullPhoneNumber, otp);
+            _logger.LogInformation($"OTP for {fullPhoneNumber}: {otp}");
 
             return Ok(new AuthResponse
             {
                 Success = true,
-                Message = $"OTP sent to {request.MobileNumber}"
+                Message = $"OTP sent to {fullPhoneNumber}"
             });
         }
 
@@ -70,19 +82,28 @@ namespace UserService.API.Controllers
                     return BadRequest(new { success = false, message = "Mobile number and OTP are required" });
                 }
 
-                if (!_otpService.ValidateOtp(request.MobileNumber, request.Otp))
+                // Validate country code
+                if (string.IsNullOrWhiteSpace(request.CountryCode) || !IsValidCountryCode(request.CountryCode))
+                {
+                    return BadRequest(new { success = false, message = "Please provide a valid country code (e.g., +91, +1, +44)" });
+                }
+
+                // Use full phone number for OTP validation
+                var fullPhoneNumber = $"{request.CountryCode}{request.MobileNumber}";
+
+                if (!_otpService.ValidateOtp(fullPhoneNumber, request.Otp))
                 {
                     return BadRequest(new { success = false, message = "Invalid or expired OTP" });
                 }
 
-                var userDto = await _userService.GetOrCreateUserAsync(request.MobileNumber);
+                var userDto = await _userService.GetOrCreateUserAsync(request.MobileNumber, request.CountryCode);
                 if (userDto == null)
                 {
                     return StatusCode(500, new { success = false, message = "Failed to process your request" });
                 }
 
                 await _userService.UpdateUserLoginInfoAsync(userDto.Id);
-                _otpService.RemoveOtp(request.MobileNumber);
+                _otpService.RemoveOtp(fullPhoneNumber);
 
                 var token = GenerateJwtToken(userDto.Id.ToString(), userDto.PhoneNumber);
 
@@ -127,10 +148,17 @@ namespace UserService.API.Controllers
             }
         }
 
+
         private static bool IsValidMobileNumber(string mobileNumber)
         {
             return !string.IsNullOrWhiteSpace(mobileNumber) &&
                    Regex.IsMatch(mobileNumber, "^[0-9]{10}$");
+        }
+
+        private static bool IsValidCountryCode(string countryCode)
+        {
+            return !string.IsNullOrWhiteSpace(countryCode) &&
+                   Regex.IsMatch(countryCode, @"^\+[0-9]{1,3}$");
         }
 
         private string GenerateJwtToken(string userId, string mobileNumber)

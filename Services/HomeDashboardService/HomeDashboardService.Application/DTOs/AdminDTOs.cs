@@ -360,4 +360,457 @@ namespace HomeDashboardService.Application.DTOs
         public int ProcessedByUserId { get; set; }
         public DateTime CreatedAt { get; set; }
     }
+
+    // Admin DTOs for Home Page Management
+    public class CreateHomeBannerDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsPromoted { get; set; } = false;
+    }
+
+    public class UpdateHomeBannerDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsPromoted { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreateOfferBannerDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        [MaxLength(100)]
+        public string? DiscountCode { get; set; }
+
+        public decimal? DiscountPercentage { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+    }
+
+    public class UpdateOfferBannerDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        [MaxLength(100)]
+        public string? DiscountCode { get; set; }
+
+        public decimal? DiscountPercentage { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreatePracticeModeDto
+    {
+        [Required]
+        [MaxLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? IconUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        public PracticeModeType Type { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public bool IsFeatured { get; set; } = false;
+    }
+
+    public class UpdatePracticeModeDto
+    {
+        [Required]
+        [MaxLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? IconUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        public PracticeModeType Type { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public bool IsFeatured { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreateRapidFireTestDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [Required]
+        public int QuizId { get; set; }
+
+        public int DurationSeconds { get; set; } = 60;
+
+        public int TotalQuestions { get; set; } = 10;
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsFeatured { get; set; } = false;
+    }
+
+    public class UpdateRapidFireTestDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [Required]
+        public int QuizId { get; set; }
+
+        public int DurationSeconds { get; set; } = 60;
+
+        public int TotalQuestions { get; set; } = 10;
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsFeatured { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreateFreeTestDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? ThumbnailUrl { get; set; }
+
+        [Required]
+        public int QuizId { get; set; }
+
+        [Required]
+        public int ExamId { get; set; }
+
+        public int DurationMinutes { get; set; } = 60;
+
+        public int TotalQuestions { get; set; } = 0;
+
+        public int TotalMarks { get; set; } = 100;
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsFeatured { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+    }
+
+    public class UpdateFreeTestDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? ThumbnailUrl { get; set; }
+
+        [Required]
+        public int QuizId { get; set; }
+
+        [Required]
+        public int ExamId { get; set; }
+
+        public int DurationMinutes { get; set; } = 60;
+
+        public int TotalQuestions { get; set; } = 0;
+
+        public int TotalMarks { get; set; } = 100;
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsFeatured { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreateMotivationMessageDto
+    {
+        [Required]
+        [MaxLength(500)]
+        public string Message { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string? Author { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        public MessageType Type { get; set; } = MessageType.Daily;
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsGreeting { get; set; } = false;
+    }
+
+    public class UpdateMotivationMessageDto
+    {
+        [Required]
+        [MaxLength(500)]
+        public string Message { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string? Author { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        public MessageType Type { get; set; } = MessageType.Daily;
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsGreeting { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreateSubscriptionBannerDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        [MaxLength(100)]
+        public string? CtaText { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool ShowToSubscribedUsers { get; set; } = false;
+
+        public bool ShowToNonSubscribedUsers { get; set; } = true;
+    }
+
+    public class UpdateSubscriptionBannerDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LinkUrl { get; set; }
+
+        [MaxLength(100)]
+        public string? CtaText { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool ShowToSubscribedUsers { get; set; } = false;
+
+        public bool ShowToNonSubscribedUsers { get; set; } = true;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class TrendingTestDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public int QuizId { get; set; }
+        public string QuizTitle { get; set; } = string.Empty;
+        public int ExamId { get; set; }
+        public string ExamName { get; set; } = string.Empty;
+        public int DurationMinutes { get; set; }
+        public int TotalQuestions { get; set; }
+        public int TotalMarks { get; set; }
+        public bool IsFeatured { get; set; }
+        public int AttemptCount { get; set; }
+        public int TotalAttempts { get; set; }
+        public decimal AverageScore { get; set; }
+        public string Type { get; set; } = string.Empty;
+    }
+
+    public class UpdateTrendingTestDto
+    {
+        [MaxLength(200)]
+        public string? Title { get; set; }
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        public int? QuizId { get; set; }
+
+        public int? ExamId { get; set; }
+
+        public int? DurationMinutes { get; set; }
+
+        public int? TotalQuestions { get; set; }
+
+        public int? TotalMarks { get; set; }
+
+        public bool? IsFeatured { get; set; }
+
+        public int? AttemptCount { get; set; }
+
+        public decimal? AverageScore { get; set; }
+    }
 }

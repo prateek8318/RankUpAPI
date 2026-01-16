@@ -17,6 +17,9 @@ namespace UserService.Domain.Entities
         [Required, MaxLength(15)]
         public string PhoneNumber { get; set; } = string.Empty;
         
+        [MaxLength(10)]
+        public string? CountryCode { get; set; } = "+91";
+        
         [MaxLength(20)]
         public string? Gender { get; set; }
         
@@ -34,6 +37,14 @@ namespace UserService.Domain.Entities
         
         [MaxLength(100)]
         public string? PreferredExam { get; set; }
+        
+        public int? StateId { get; set; }
+        
+        public int? LanguageId { get; set; }
+        
+        public int? QualificationId { get; set; }
+        
+        public int? ExamId { get; set; }
         
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }

@@ -37,6 +37,21 @@ start "SubscriptionService" cmd /k "cd /d Services\SubscriptionService\Subscript
 
 timeout /t 3 /nobreak >nul
 
+echo Starting HomeDashboardService...
+start "HomeDashboardService" cmd /k "cd /d Services\HomeDashboardService\HomeDashboardService.API && dotnet run"
+
+timeout /t 3 /nobreak >nul
+
+echo Starting MasterService...
+start "MasterService" cmd /k "cd /d Services\MasterService\MasterService.API && dotnet run"
+
+timeout /t 3 /nobreak >nul
+
+echo Starting QualificationService...
+start "QualificationService" cmd /k "cd /d Services\QualificationService\QualificationService.API && dotnet run"
+
+timeout /t 3 /nobreak >nul
+
 echo All services started! Check individual windows for status.
 echo.
 echo Service URLs:
@@ -47,5 +62,8 @@ echo QuestionService: http://localhost:56922/swagger
 echo QuizService: http://localhost:56921/swagger
 echo PaymentService: http://localhost:56920/swagger
 echo SubscriptionService: http://localhost:56926/swagger
+echo HomeDashboardService: http://localhost:56928/swagger
+echo MasterService: http://localhost:5009/swagger
+echo QualificationService: http://localhost:5011/swagger
 echo.
 pause

@@ -46,7 +46,7 @@ builder.Services.AddScoped<IExportService, ExportService>();
 // HTTP Client for UserService
 builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["Services:UserService:BaseUrl"] ?? "https://localhost:5002");
+    client.BaseAddress = new Uri(builder.Configuration["Services:UserService:BaseUrl"] ?? "http://localhost:5002");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
@@ -89,6 +89,20 @@ builder.Services.AddHttpClient<IHomeDashboardServiceClient, HomeDashboardService
 builder.Services.AddHttpClient<IAnalyticsServiceClient, AnalyticsServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:AnalyticsService:BaseUrl"] ?? "https://localhost:5007");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// HTTP Client for MasterService
+builder.Services.AddHttpClient<IMasterServiceClient, MasterServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:MasterService:BaseUrl"] ?? "http://localhost:5009");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// HTTP Client for QualificationService
+builder.Services.AddHttpClient<IQualificationServiceClient, QualificationServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:QualificationService:BaseUrl"] ?? "https://localhost:5010");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
@@ -145,11 +159,12 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Add custom service authentication middleware
+// Add custom service authentication middleware (temporarily disabled for testing)
 // app.UseMiddleware<ServiceAuthMiddleware>();
 
 app.MapControllers();
 
+// Database initialization
 try
 {
     using var scope = app.Services.CreateScope();

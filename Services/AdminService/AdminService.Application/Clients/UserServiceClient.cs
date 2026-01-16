@@ -1,11 +1,16 @@
 using AdminService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Polly;
 using Polly.Retry;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using UserService.Application.DTOs;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Collections.Generic;
 
 namespace AdminService.Application.Clients
 {
@@ -14,11 +19,13 @@ namespace AdminService.Application.Clients
         private readonly HttpClient _httpClient;
         private readonly ILogger<UserServiceClient> _logger;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
+        private readonly IConfiguration _configuration;
 
-        public UserServiceClient(HttpClient httpClient, ILogger<UserServiceClient> logger)
+        public UserServiceClient(HttpClient httpClient, ILogger<UserServiceClient> logger, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _logger = logger;
+            _configuration = configuration;
             
             _retryPolicy = Policy
                 .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
@@ -78,6 +85,10 @@ namespace AdminService.Application.Clients
         {
             try
             {
+                // Add service-to-service authentication
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", GetServiceToken());
+                
                 var response = await _retryPolicy.ExecuteAsync(async () =>
                     await _httpClient.GetAsync($"/api/admin/users?page={page}&pageSize={pageSize}"));
 
@@ -158,6 +169,10 @@ namespace AdminService.Application.Clients
         {
             try
             {
+                // Add service-to-service authentication
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", GetServiceToken());
+                
                 var response = await _retryPolicy.ExecuteAsync(async () =>
                     await _httpClient.GetAsync("/api/admin/users/count"));
 
@@ -180,6 +195,10 @@ namespace AdminService.Application.Clients
         {
             try
             {
+                // Add service-to-service authentication
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", GetServiceToken());
+                
                 var response = await _retryPolicy.ExecuteAsync(async () =>
                     await _httpClient.GetAsync("/api/admin/users/daily-active-count"));
 
@@ -193,9 +212,35 @@ namespace AdminService.Application.Clients
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calling UserService for daily active users count");
+                _logger.LogError(ex, "Error getting daily active users count");
                 return 0;
             }
+        }
+
+        private string GetServiceToken()
+        {
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, "admin-service"),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Role, "Service"),
+                new Claim("ServiceName", "AdminService")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(60),
+                signingCredentials: new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256Signature)
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

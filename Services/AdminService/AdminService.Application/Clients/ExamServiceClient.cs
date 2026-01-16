@@ -83,7 +83,7 @@ namespace AdminService.Application.Clients
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await _retryPolicy.ExecuteAsync(async () =>
-                    await _httpClient.PostAsync("/api/admin/exams", content));
+                    await _httpClient.PostAsync("/api/exams", content));
 
                 if (response.IsSuccessStatusCode)
                 {

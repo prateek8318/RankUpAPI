@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using HomeDashboardService.Application.DTOs;
 using HomeDashboardService.Application.Interfaces;
 
@@ -10,7 +11,7 @@ namespace HomeDashboardService.API.Controllers
     /// </summary>
     [Route("api/user/[controller]")]
     [ApiController]
-    [Authorize]
+    // [Authorize]
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;
@@ -144,32 +145,6 @@ namespace HomeDashboardService.API.Controllers
         }
 
         /// <summary>
-        /// Get subscription banner information
-        /// </summary>
-        /// <returns>Subscription banner details</returns>
-        [HttpGet("subscription-banner")]
-        public async Task<ActionResult<SubscriptionBannerDto>> GetSubscriptionBanner()
-        {
-            try
-            {
-                var userId = GetUserIdFromToken();
-                if (userId == 0)
-                    return Unauthorized("Invalid user token");
-
-                var result = await _dashboardService.GetSubscriptionBannerAsync(userId);
-                if (result == null)
-                    return NotFound("No active subscription found");
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving subscription banner");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        /// <summary>
         /// Get leaderboard for a quiz
         /// </summary>
         /// <param name="quizId">Quiz ID</param>
@@ -234,47 +209,84 @@ namespace HomeDashboardService.API.Controllers
             }
         }
 
+
         /// <summary>
-        /// Get active dashboard banners
+        /// Get notifications count
         /// </summary>
-        /// <returns>List of active banners</returns>
-        [HttpGet("banners")]
-        public async Task<ActionResult<List<DashboardBannerDto>>> GetBanners()
+        /// <returns>Unread notifications count</returns>
+        [HttpGet("notifications/count")]
+        public async Task<ActionResult<int>> GetNotificationsCount()
         {
             try
             {
-                var result = await _dashboardService.GetBannersAsync();
+                var userId = GetUserIdFromToken();
+                if (userId == 0)
+                    return Unauthorized("Invalid user token");
+
+                var result = await _dashboardService.GetNotificationsCountAsync(userId);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving banners");
+                _logger.LogError(ex, "Error retrieving notification count");
                 return StatusCode(500, "Internal server error");
             }
         }
 
         /// <summary>
-        /// Get active offer banners
+        /// Get leaderboard preview
         /// </summary>
-        /// <returns>List of active offer banners</returns>
-        [HttpGet("offer-banners")]
-        public async Task<ActionResult<List<OfferBannerDto>>> GetOfferBanners()
+        /// <param name="limit">Number of entries to retrieve (default: 10)</param>
+        /// <returns>Leaderboard preview</returns>
+        [HttpGet("leaderboard-preview")]
+        public async Task<ActionResult<List<LeaderboardPreviewDto>>> GetLeaderboardPreview([FromQuery] int limit = 10)
         {
             try
             {
-                var result = await _dashboardService.GetOfferBannersAsync();
+                var result = await _dashboardService.GetLeaderboardPreviewAsync(limit);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving offer banners");
+                _logger.LogError(ex, "Error retrieving leaderboard preview");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get subscription banner
+        /// </summary>
+        /// <returns>Subscription banner</returns>
+        [HttpGet("subscription-banner")]
+        public async Task<ActionResult<SubscriptionBannerConfigDto>> GetSubscriptionBanner()
+        {
+            try
+            {
+                var userId = GetUserIdFromToken();
+                if (userId == 0)
+                    return Unauthorized("Invalid user token");
+
+                var result = await _dashboardService.GetSubscriptionBannerAsync(userId);
+                if (result == null)
+                    return NotFound("No subscription banner found");
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving subscription banner");
                 return StatusCode(500, "Internal server error");
             }
         }
 
         private int GetUserIdFromToken()
         {
-            var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("sub");
+            // Try multiple claim names that JWT might use for NameIdentifier
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) 
+                             ?? User.FindFirst("nameid") 
+                             ?? User.FindFirst("sub") 
+                             ?? User.FindFirst("UserId");
+            
             if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
             {
                 return userId;

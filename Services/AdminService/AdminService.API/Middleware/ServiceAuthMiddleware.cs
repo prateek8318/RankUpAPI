@@ -10,13 +10,11 @@ namespace AdminService.API.Middleware
     public class ServiceAuthMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly AuthService _authService;
         private readonly IConfiguration _configuration;
 
-        public ServiceAuthMiddleware(RequestDelegate next, AuthService authService, IConfiguration configuration)
+        public ServiceAuthMiddleware(RequestDelegate next, IConfiguration configuration)
         {
             _next = next;
-            _authService = authService;
             _configuration = configuration;
         }
 
@@ -24,11 +22,15 @@ namespace AdminService.API.Middleware
         {
             // Skip authentication for login endpoints
             if (context.Request.Path.StartsWithSegments("/api/auth") || 
+                context.Request.Path.StartsWithSegments("/api/admin/auth") ||
                 context.Request.Path.StartsWithSegments("/swagger"))
             {
                 await _next(context);
                 return;
             }
+
+            // Get AuthService from service provider
+            var authService = context.RequestServices.GetRequiredService<AuthService>();
 
             // Check for Authorization header
             if (!context.Request.Headers.ContainsKey("Authorization"))
@@ -46,7 +48,7 @@ namespace AdminService.API.Middleware
                 var token = authHeader.Substring("Bearer ".Length).Trim();
                 
                 // Validate user token
-                if (await _authService.ValidateUserTokenAsync(token))
+                if (await authService.ValidateUserTokenAsync(token))
                 {
                     // Add user info to context for further use
                     context.Items["UserToken"] = token;
@@ -62,7 +64,7 @@ namespace AdminService.API.Middleware
             {
                 // Check for service token (internal communication)
                 var serviceToken = authHeader;
-                if (_authService.ValidateServiceToken(serviceToken, "AdminService"))
+                if (authService.ValidateServiceToken(serviceToken, "AdminService"))
                 {
                     context.Items["ServiceToken"] = serviceToken;
                     await _next(context);

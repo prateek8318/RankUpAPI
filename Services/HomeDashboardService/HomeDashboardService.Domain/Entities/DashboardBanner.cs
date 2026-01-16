@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace HomeDashboardService.Domain.Entities
 {
-    public class DashboardBanner : BaseEntity
+    public class HomeBanner : BaseEntity
     {
         [Required]
         [MaxLength(200)]

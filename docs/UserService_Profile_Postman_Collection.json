@@ -1,0 +1,615 @@
+{
+	"info": {
+		"_postman_id": "user-service-profile-patch",
+		"name": "UserService Profile Patch API",
+		"description": "Postman collection for UserService profile update endpoints with JSON and form-data support including image upload",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Send OTP",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Success response\", function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.true;",
+							"    pm.expect(responseJson.message).to.include(\"OTP sent\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"mobileNumber\": \"1234567890\",\n    \"countryCode\": \"+91\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5002/api/users/auth/send-otp",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5002",
+					"path": [
+						"api",
+						"users",
+						"auth",
+						"send-otp"
+					]
+				}
+			}
+		},
+		{
+			"name": "🔑 Verify OTP & Get Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Login successful\", function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.true;",
+							"    pm.expect(responseJson.message).to.include(\"Login successful\");",
+							"    pm.expect(responseJson.token).to.be.a('string');",
+							"    ",
+							"    // Store token for subsequent requests",
+							"    if (responseJson.token) {",
+							"        pm.collectionVariables.set('authToken', responseJson.token);",
+							"        pm.collectionVariables.set('userId', responseJson.userId);",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"mobileNumber\": \"1234567890\",\n    \"countryCode\": \"+91\",\n    \"otp\": \"1234\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5002/api/users/auth/verify-otp",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5002",
+					"path": [
+						"api",
+						"users",
+						"auth",
+						"verify-otp"
+					]
+				}
+			}
+		},
+		{
+			"name": "👤 Get User Profile",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Check if token exists",
+							"if (!pm.collectionVariables.get('authToken')) {",
+							"    console.log('Please run \"Verify OTP & Get Token\" first to get authentication token');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Profile data returned\", function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson).to.have.property('id');",
+							"    pm.expect(responseJson).to.have.property('phoneNumber');",
+							"    pm.expect(responseJson).to.have.property('countryCode');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5002/api/users/auth/profile/{{userId}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5002",
+					"path": [
+						"api",
+						"users",
+						"auth",
+						"profile",
+						"{{userId}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "📝 Update Profile (JSON)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Check if token exists",
+							"if (!pm.collectionVariables.get('authToken')) {",
+							"    console.log('Please run \"Verify OTP & Get Token\" first to get authentication token');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Profile updated successfully\", function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson).to.have.property('id');",
+							"    pm.expect(responseJson).to.have.property('email');",
+							"    ",
+							"    // Check if email was updated",
+							"    if (responseJson.email === 'john.updated@example.com') {",
+							"        pm.test('Email updated successfully', function () {",
+							"            pm.expect(true).to.be.true;",
+							"        });",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"FullName\": \"John Doe Updated\",\n    \"Email\": \"john.updated@example.com\",\n    \"Gender\": \"Male\",\n    \"Dob\": \"1990-01-01\",\n    \"StateId\": 1,\n    \"LanguageId\": 1,\n    \"QualificationId\": 1,\n    \"ExamId\": 1\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5002/api/users/{{userId}}/profile",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5002",
+					"path": [
+						"api",
+						"users",
+						"{{userId}}",
+						"profile"
+					]
+				}
+			}
+		},
+		{
+			"name": "📸 Update Profile with Image (Form-Data)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Check if token exists",
+							"if (!pm.collectionVariables.get('authToken')) {",
+							"    console.log('Please run \"Verify OTP & Get Token\" first to get authentication token');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Profile updated with image successfully\", function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson).to.have.property('id');",
+							"    pm.expect(responseJson).to.have.property('email');",
+							"    ",
+							"    // Check if profile photo was uploaded",
+							"    if (responseJson.profilePhoto) {",
+							"        pm.test('Profile photo uploaded successfully', function () {",
+							"            pm.expect(responseJson.profilePhoto).to.include('uploads/profiles/user_');",
+							"        });",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "FullName",
+							"value": "John Doe Updated",
+							"type": "text"
+						},
+						{
+							"key": "Email",
+							"value": "john.updated@example.com",
+							"type": "text"
+						},
+						{
+							"key": "Gender",
+							"value": "Male",
+							"type": "text"
+						},
+						{
+							"key": "Dob",
+							"value": "1990-01-01",
+							"type": "text"
+						},
+						{
+							"key": "StateId",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "LanguageId",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "QualificationId",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "ExamId",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "ProfilePhoto",
+							"type": "file",
+							"src": "/path/to/your/profile-image.jpg",
+							"disabled": false
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:5002/api/users/{{userId}}/profile-with-image",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					]
+				}
+			}
+		},
+		{
+			"name": "🖼️ Upload Profile Image Only",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Check if token exists",
+							"if (!pm.collectionVariables.get('authToken')) {",
+							"    console.log('Please run \"Verify OTP & Get Token\" first to get authentication token');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Image uploaded successfully\", function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson).to.have.property('profilePhoto');",
+							"    pm.expect(responseJson.profilePhoto).to.include('uploads/profiles/user_');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "ProfilePhoto",
+							"type": "file",
+							"src": "/path/to/your/profile-image.jpg",
+							"disabled": false
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:5002/api/users/{{userId}}/profile-with-image",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5002",
+					"path": [
+						"api",
+						"users",
+						"{{userId}}",
+						"profile-with-image"
+					]
+				}
+			}
+		},
+		{
+			"name": "📧 Update Email Only (JSON)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Check if token exists",
+							"if (!pm.collectionVariables.get('authToken')) {",
+							"    console.log('Please run \"Verify OTP & Get Token\" first to get authentication token');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Email updated successfully\", function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.email).to.eql('new.email@example.com');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Email\": \"new.email@example.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5002/api/users/{{userId}}/profile",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5002",
+					"path": [
+						"api",
+						"users",
+						"{{userId}}",
+						"profile"
+					]
+				}
+			}
+		},
+		{
+			"name": "📊 Test File Upload Validation",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Check if token exists",
+							"if (!pm.collectionVariables.get('authToken')) {",
+							"    console.log('Please run \"Verify OTP & Get Token\" first to get authentication token');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 for invalid file\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"File validation error message\", function () {",
+							"    const responseJson = pm.response.json();",
+							"    pm.expect(responseJson.success).to.be.false;",
+							"    pm.expect(responseJson.message).to.include('Invalid file type');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "ProfilePhoto",
+							"type": "file",
+							"src": "/path/to/invalid-file.txt",
+							"disabled": false
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:5002/api/users/{{userId}}/profile-with-image",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5002",
+					"path": [
+						"api",
+						"users",
+						"{{userId}}",
+						"profile-with-image"
+					]
+				}
+			}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"console.log('UserService Profile Patch API Collection');",
+					"console.log('Make sure UserService is running on http://localhost:5002');"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}

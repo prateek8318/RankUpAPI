@@ -18,10 +18,16 @@ namespace ExamService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExams()
+        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExams([FromQuery] int? qualificationId = null)
         {
-            var exams = await _examService.GetAllExamsAsync();
-            return Ok(exams);
+            if (qualificationId.HasValue)
+            {
+                var exams = await _examService.GetExamsByQualificationAsync(qualificationId.Value);
+                return Ok(exams);
+            }
+            
+            var allExams = await _examService.GetAllExamsAsync();
+            return Ok(allExams);
         }
 
         [HttpGet("{id}")]

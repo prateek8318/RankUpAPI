@@ -41,7 +41,14 @@ builder.Services.AddScoped<IQuestionOptionRepository, QuestionOptionRepository>(
 builder.Services.AddScoped<IQuizAttemptRepository, QuizAttemptRepository>();
 builder.Services.AddScoped<ILeaderboardEntryRepository, LeaderboardEntryRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
-builder.Services.AddScoped<IDashboardBannerRepository, DashboardBannerRepository>();
+builder.Services.AddScoped<IHomeBannerRepository, HomeBannerRepository>();
+builder.Services.AddScoped<IPracticeModeRepository, PracticeModeRepository>();
+builder.Services.AddScoped<IDailyTargetRepository, DailyTargetRepository>();
+builder.Services.AddScoped<IRapidFireTestRepository, RapidFireTestRepository>();
+builder.Services.AddScoped<IFreeTestRepository, FreeTestRepository>();
+builder.Services.AddScoped<IMotivationMessageRepository, MotivationMessageRepository>();
+builder.Services.AddScoped<ISubscriptionBannerRepository, SubscriptionBannerRepository>();
+builder.Services.AddScoped<IContinuePracticeItemRepository, ContinuePracticeItemRepository>();
 builder.Services.AddScoped<IOfferBannerRepository, OfferBannerRepository>();
 builder.Services.AddScoped<IDailyVideoRepository, DailyVideoRepository>();
 builder.Services.AddScoped<IBulkUploadLogRepository, BulkUploadLogRepository>();
@@ -116,6 +123,76 @@ try
     if (await context.Database.CanConnectAsync())
     {
         await context.Database.MigrateAsync();
+        
+        // Seed sample data if tables are empty
+        if (!await context.PracticeModes.AnyAsync())
+        {
+            logger.LogInformation("Seeding sample data for HomeDashboardService...");
+            
+            // Seed Practice Modes
+            var practiceModes = new[]
+            {
+                new HomeDashboardService.Domain.Entities.PracticeMode
+                {
+                    Name = "Mathematics Practice",
+                    Description = "Practice mathematics problems",
+                    IconUrl = "calculator",
+                    IsActive = true,
+                    DisplayOrder = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new HomeDashboardService.Domain.Entities.PracticeMode
+                {
+                    Name = "Science Practice",
+                    Description = "Practice science questions",
+                    IconUrl = "flask",
+                    IsActive = true,
+                    DisplayOrder = 2,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            };
+            await context.PracticeModes.AddRangeAsync(practiceModes);
+            
+            // Seed Rapid Fire Tests
+            var rapidFireTests = new[]
+            {
+                new HomeDashboardService.Domain.Entities.RapidFireTest
+                {
+                    Title = "Quick Math Quiz",
+                    Description = "5-minute rapid fire math test",
+                    DurationSeconds = 300,
+                    TotalQuestions = 10,
+                    IsActive = true,
+                    DisplayOrder = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            };
+            await context.RapidFireTests.AddRangeAsync(rapidFireTests);
+            
+            // Seed Free Tests
+            var freeTests = new[]
+            {
+                new HomeDashboardService.Domain.Entities.FreeTest
+                {
+                    Title = "Free Assessment Test",
+                    Description = "Free diagnostic test",
+                    DurationMinutes = 30,
+                    TotalQuestions = 25,
+                    IsActive = true,
+                    DisplayOrder = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            };
+            await context.FreeTests.AddRangeAsync(freeTests);
+            
+            await context.SaveChangesAsync();
+            logger.LogInformation("Sample data seeded successfully.");
+        }
+        
         logger.LogInformation("Database initialization completed.");
     }
 }

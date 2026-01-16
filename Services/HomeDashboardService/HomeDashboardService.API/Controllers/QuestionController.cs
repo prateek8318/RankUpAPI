@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using HomeDashboardService.Application.DTOs;
 using HomeDashboardService.Application.Interfaces;
 
@@ -200,7 +201,12 @@ namespace HomeDashboardService.API.Controllers
 
         private int GetUserIdFromToken()
         {
-            var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("sub");
+            // Try multiple claim names that JWT might use for NameIdentifier
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) 
+                             ?? User.FindFirst("nameid") 
+                             ?? User.FindFirst("sub") 
+                             ?? User.FindFirst("UserId");
+            
             if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
             {
                 return userId;

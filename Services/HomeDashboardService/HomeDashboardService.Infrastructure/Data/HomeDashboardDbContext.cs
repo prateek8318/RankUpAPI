@@ -17,13 +17,20 @@ namespace HomeDashboardService.Infrastructure.Data
         public DbSet<Quiz> Quizzes { get; set; }
         public DbSet<Question> Questions { get; set; }
         public DbSet<QuestionOption> QuestionOptions { get; set; }
-        public DbSet<DashboardBanner> DashboardBanners { get; set; }
+        public DbSet<HomeBanner> HomeBanners { get; set; }
         public DbSet<OfferBanner> OfferBanners { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<LeaderboardEntry> LeaderboardEntries { get; set; }
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
         public DbSet<DailyVideo> DailyVideos { get; set; }
         public DbSet<BulkUploadLog> BulkUploadLogs { get; set; }
+        public DbSet<PracticeMode> PracticeModes { get; set; }
+        public DbSet<DailyTarget> DailyTargets { get; set; }
+        public DbSet<RapidFireTest> RapidFireTests { get; set; }
+        public DbSet<FreeTest> FreeTests { get; set; }
+        public DbSet<MotivationMessage> MotivationMessages { get; set; }
+        public DbSet<SubscriptionBanner> SubscriptionBanners { get; set; }
+        public DbSet<ContinuePracticeItem> ContinuePracticeItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -119,9 +126,10 @@ namespace HomeDashboardService.Infrastructure.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configure DashboardBanner
-            modelBuilder.Entity<DashboardBanner>(entity =>
+            // Configure HomeBanner (keeping table name DashboardBanners for backward compatibility)
+            modelBuilder.Entity<HomeBanner>(entity =>
             {
+                entity.ToTable("DashboardBanners"); // Keep existing table name
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(1000);
@@ -213,6 +221,95 @@ namespace HomeDashboardService.Infrastructure.Data
                 entity.HasIndex(e => e.ProcessedByUserId);
             });
 
+            // Configure PracticeMode
+            modelBuilder.Entity<PracticeMode>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.IconUrl).HasMaxLength(500);
+                entity.Property(e => e.ImageUrl).HasMaxLength(500);
+                entity.Property(e => e.LinkUrl).HasMaxLength(500);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.DisplayOrder);
+                entity.HasIndex(e => e.Type);
+            });
+
+            // Configure DailyTarget
+            modelBuilder.Entity<DailyTarget>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.TargetDate);
+                entity.HasIndex(e => e.IsActive);
+            });
+
+            // Configure RapidFireTest
+            modelBuilder.Entity<RapidFireTest>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.ImageUrl).HasMaxLength(500);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.DisplayOrder);
+                entity.HasIndex(e => e.QuizId);
+            });
+
+            // Configure FreeTest
+            modelBuilder.Entity<FreeTest>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.ImageUrl).HasMaxLength(500);
+                entity.Property(e => e.ThumbnailUrl).HasMaxLength(500);
+                entity.Property(e => e.LinkUrl).HasMaxLength(500);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.DisplayOrder);
+                entity.HasIndex(e => e.QuizId);
+                entity.HasIndex(e => e.ExamId);
+            });
+
+            // Configure MotivationMessage
+            modelBuilder.Entity<MotivationMessage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Message).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Author).HasMaxLength(200);
+                entity.Property(e => e.ImageUrl).HasMaxLength(500);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.DisplayOrder);
+                entity.HasIndex(e => e.Type);
+                entity.HasIndex(e => e.IsGreeting);
+            });
+
+            // Configure SubscriptionBanner
+            modelBuilder.Entity<SubscriptionBanner>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.ImageUrl).HasMaxLength(500);
+                entity.Property(e => e.LinkUrl).HasMaxLength(500);
+                entity.Property(e => e.CtaText).HasMaxLength(100);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.DisplayOrder);
+            });
+
+            // Configure ContinuePracticeItem
+            modelBuilder.Entity<ContinuePracticeItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.QuizTitle).HasMaxLength(200);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.QuizId);
+                entity.HasIndex(e => e.QuizAttemptId);
+                entity.HasIndex(e => e.IsActive);
+            });
+
             // Configure global query filters for soft delete
             modelBuilder.Entity<Exam>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<Subject>().HasQueryFilter(e => e.IsActive);
@@ -220,13 +317,20 @@ namespace HomeDashboardService.Infrastructure.Data
             modelBuilder.Entity<Quiz>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<Question>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<QuestionOption>().HasQueryFilter(e => e.IsActive);
-            modelBuilder.Entity<DashboardBanner>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<HomeBanner>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<OfferBanner>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<Notification>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<LeaderboardEntry>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<QuizAttempt>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<DailyVideo>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<BulkUploadLog>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<PracticeMode>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<DailyTarget>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<RapidFireTest>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<FreeTest>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<MotivationMessage>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<SubscriptionBanner>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<ContinuePracticeItem>().HasQueryFilter(e => e.IsActive);
         }
     }
 }

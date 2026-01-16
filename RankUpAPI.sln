@@ -1,68 +1,89 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11408.102
 MinimumVisualStudioVersion = 10.0.40219.1
-
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdminService.API", "Services\AdminService\AdminService.API\AdminService.API.csproj", "{A5B6C7D8-E9F0-4A5B-9C0D-4E5F6A7B8C9D}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExamService.API", "Services\ExamService\ExamService.API\ExamService.API.csproj", "{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserService.API", "Services\UserService\UserService.API\UserService.API.csproj", "{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeDashboardService.API", "Services\HomeDashboardService\HomeDashboardService.API\HomeDashboardService.API.csproj", "{87F94F26-F043-45CF-A16D-1983A2E4DCC3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizService.API", "Services\QuizService\QuizService.API\QuizService.API.csproj", "{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuestionService.API", "Services\QuestionService\QuestionService.API\QuestionService.API.csproj", "{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubscriptionService.API", "Services\SubscriptionService\SubscriptionService.API\SubscriptionService.API.csproj", "{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MasterService.API", "Services\MasterService\MasterService.API\MasterService.API.csproj", "{B6C7D8E9-F0A1-4B5C-9C0D-4E5F6A7B8C9D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaymentService.API", "Services\PaymentService\PaymentService.API\PaymentService.API.csproj", "{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdminService.API", "Services\AdminService\AdminService.API\AdminService.API.csproj", "{A5B6C7D8-E9F0-4A5B-9C0D-4E5F6A7B8C9D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QualificationService.API", "Services\QualificationService\QualificationService.API\QualificationService.API.csproj", "{633C639A-15A1-405C-AFB8-AAE2FBFE77D4}"
 EndProject
-
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuestionService.API", "Services\QuestionService\QuestionService.API\QuestionService.API.csproj", "{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizService.API", "Services\QuizService\QuizService.API\QuizService.API.csproj", "{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubscriptionService.API", "Services\SubscriptionService\SubscriptionService.API\SubscriptionService.API.csproj", "{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserService.API", "Services\UserService\UserService.API\UserService.API.csproj", "{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A5B6C7D8-E9F0-4A5B-9C0D-4E5F6A7B8C9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A5B6C7D8-E9F0-4A5B-9C0D-4E5F6A7B8C9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A5B6C7D8-E9F0-4A5B-9C0D-4E5F6A7B8C9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A5B6C7D8-E9F0-4A5B-9C0D-4E5F6A7B8C9D}.Release|Any CPU.Build.0 = Release|Any CPU
-		EndGlobalSection
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87F94F26-F043-45CF-A16D-1983A2E4DCC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87F94F26-F043-45CF-A16D-1983A2E4DCC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87F94F26-F043-45CF-A16D-1983A2E4DCC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87F94F26-F043-45CF-A16D-1983A2E4DCC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6C7D8E9-F0A1-4B5C-9C0D-4E5F6A7B8C9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6C7D8E9-F0A1-4B5C-9C0D-4E5F6A7B8C9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6C7D8E9-F0A1-4B5C-9C0D-4E5F6A7B8C9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6C7D8E9-F0A1-4B5C-9C0D-4E5F6A7B8C9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{633C639A-15A1-405C-AFB8-AAE2FBFE77D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{633C639A-15A1-405C-AFB8-AAE2FBFE77D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{633C639A-15A1-405C-AFB8-AAE2FBFE77D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{633C639A-15A1-405C-AFB8-AAE2FBFE77D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2CBB90DA-105B-4C69-82A5-DF0A08877181}
+	EndGlobalSection
 	GlobalSection(SolutionStartupProjects) = preSolution
-		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D} = ExamService.API
-		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B} = UserService.API
 		{A5B6C7D8-E9F0-4A5B-9C0D-4E5F6A7B8C9D} = AdminService.API
+		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D} = ExamService.API
+		{87F94F26-F043-45CF-A16D-1983A2E4DCC3} = HomeDashboardService.API
+		{B6C7D8E9-F0A1-4B5C-9C0D-4E5F6A7B8C9D} = QualificationService.API
 		{C1D2E3F4-A5B6-4C5D-9E0F-0A1B2C3D4E5F} = PaymentService.API
+		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D} = QuestionService.API
 		{C9D0E1F2-A3B4-4C5D-9E0F-8A9B0C1D2E3F} = QuizService.API
 		{E7F8A9B0-C1D2-4E5F-9A0B-6C7D8E9F0A1B} = SubscriptionService.API
-		{A3B4C5D6-E7F8-4A5B-9C0D-2E3F4A5B6C7D} = QuestionService.API
+		{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B} = UserService.API
 	EndGlobalSection
 EndGlobal

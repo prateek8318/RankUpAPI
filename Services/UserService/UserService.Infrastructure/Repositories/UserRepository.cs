@@ -25,6 +25,27 @@ namespace UserService.Infrastructure.Repositories
                 .FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
         }
 
+        public async Task<IEnumerable<User>> GetAllAsync(int page = 1, int pageSize = 50)
+        {
+            return await _context.Users
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<int> GetTotalUsersCountAsync()
+        {
+            return await _context.Users.CountAsync();
+        }
+
+        public async Task<int> GetDailyActiveUsersCountAsync()
+        {
+            var today = DateTime.UtcNow.Date;
+            return await _context.Users
+                .CountAsync(u => u.LastLoginAt.HasValue && u.LastLoginAt.Value.Date == today);
+        }
+
         public async Task<User> AddAsync(User user)
         {
             await _context.Users.AddAsync(user);

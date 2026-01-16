@@ -10,12 +10,22 @@ namespace HomeDashboardService.Application.Interfaces
         Task<QuizAttemptDto?> ResumeQuizAsync(int userId, int quizAttemptId);
         Task<DailyVideoDto?> GetDailyVideoAsync();
         Task<List<RecentAttemptDto>> GetRecentAttemptsAsync(int userId, int limit = 10);
-        Task<SubscriptionBannerDto?> GetSubscriptionBannerAsync(int userId);
+        Task<SubscriptionBannerDto?> GetUserSubscriptionBannerAsync(int userId);
         Task<List<LeaderboardEntryDto>> GetLeaderboardAsync(int quizId, int limit = 10);
         Task<List<TrendingTestDto>> GetTrendingTestsAsync(int limit = 10);
         Task<List<NotificationDto>> GetNotificationsAsync(int userId, int limit = 50);
-        Task<List<DashboardBannerDto>> GetBannersAsync();
+        Task<List<HomeBannerDto>> GetBannersAsync();
         Task<List<OfferBannerDto>> GetOfferBannersAsync();
+        Task<HomePageDataDto> GetHomePageDataAsync(int userId);
+        Task<HomePageResponseDto> GetHomePageResponseAsync(int userId);
+        Task<List<PracticeModeDto>> GetPracticeModesAsync();
+        Task<List<ContinuePracticeItemDto>> GetContinuePracticeAsync(int userId);
+        Task<DailyTargetDto?> GetDailyTargetsAsync(int userId);
+        Task<List<RapidFireTestDto>> GetRapidFireTestsAsync();
+        Task<List<FreeTestDto>> GetFreeTestsAsync();
+        Task<int> GetNotificationsCountAsync(int userId);
+        Task<List<LeaderboardPreviewDto>> GetLeaderboardPreviewAsync(int limit = 10);
+        Task<SubscriptionBannerConfigDto?> GetSubscriptionBannerAsync(int userId);
     }
 
     public class QuizAttemptDto

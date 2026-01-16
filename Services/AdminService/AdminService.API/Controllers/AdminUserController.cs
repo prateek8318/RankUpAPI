@@ -31,12 +31,14 @@ namespace AdminService.API.Controllers
             try
             {
                 var users = await _userServiceClient.GetAllUsersAsync(page, pageSize);
+                var totalCount = await _userServiceClient.GetTotalUsersCountAsync();
+                
                 return Ok(new PaginatedResponseDto<object>
                 {
                     Items = users?.Cast<object>().ToList() ?? new List<object>(),
                     Page = page,
                     PageSize = pageSize,
-                    TotalCount = users?.Count() ?? 0
+                    TotalCount = totalCount
                 });
             }
             catch (Exception ex)

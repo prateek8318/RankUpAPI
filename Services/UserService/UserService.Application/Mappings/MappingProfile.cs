@@ -8,7 +8,9 @@ namespace UserService.Application.Mappings
     {
         public MappingProfile()
         {
-            CreateMap<User, UserDto>();
+            CreateMap<User, UserDto>()
+                .ForMember(dest => dest.ProfilePhotoUrl, opt => opt.MapFrom(src => 
+                    string.IsNullOrEmpty(src.ProfilePhoto) ? null : $"http://localhost:5002/{src.ProfilePhoto}"));
         }
     }
 }

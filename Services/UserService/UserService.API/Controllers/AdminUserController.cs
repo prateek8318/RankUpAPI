@@ -25,12 +25,16 @@ namespace UserService.API.Controllers
             try
             {
                 var users = await _userService.GetAllUsersAsync(page, pageSize);
-                return Ok(users);
+                return Ok(ApiResponse.CreateSuccess(
+                    $"Retrieved {users.Count()} users successfully",
+                    users));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all users");
-                return StatusCode(500, new { error = "Internal server error" });
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to retrieve users list. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
             }
         }
 
@@ -41,14 +45,22 @@ namespace UserService.API.Controllers
             {
                 var user = await _userService.GetUserByIdAsync(id);
                 if (user == null)
-                    return NotFound();
+                {
+                    return NotFound(ApiResponse.CreateNotFound(
+                        $"User with ID {id} was not found",
+                        ErrorCodes.USER_NOT_FOUND));
+                }
 
-                return Ok(user);
+                return Ok(ApiResponse.CreateSuccess(
+                    $"User with ID {id} retrieved successfully",
+                    user));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting user {UserId}", id);
-                return StatusCode(500, new { error = "Internal server error" });
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    $"Unable to retrieve user with ID {id}. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
             }
         }
 
@@ -58,12 +70,16 @@ namespace UserService.API.Controllers
             try
             {
                 var totalUsers = await _userService.GetTotalUsersCountAsync();
-                return Ok(new { totalUsers });
+                return Ok(ApiResponse.CreateSuccess(
+                    "Total users count retrieved successfully",
+                    new { totalUsers }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting total users count");
-                return StatusCode(500, new { error = "Internal server error" });
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to retrieve total users count. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
             }
         }
 
@@ -73,12 +89,16 @@ namespace UserService.API.Controllers
             try
             {
                 var dailyActiveUsers = await _userService.GetDailyActiveUsersCountAsync();
-                return Ok(new { dailyActiveUsers });
+                return Ok(ApiResponse.CreateSuccess(
+                    "Daily active users count retrieved successfully",
+                    new { dailyActiveUsers }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting daily active users count");
-                return StatusCode(500, new { error = "Internal server error" });
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to retrieve daily active users count. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
             }
         }
     }

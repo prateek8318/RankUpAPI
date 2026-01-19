@@ -25,6 +25,7 @@ namespace HomeDashboardService.API.Controllers
         private readonly ISubscriptionBannerRepository _subscriptionBannerRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<AdminHomeController> _logger;
+        private readonly IWebHostEnvironment _environment;
 
         public AdminHomeController(
             IHomeBannerRepository homeBannerRepository,
@@ -35,7 +36,8 @@ namespace HomeDashboardService.API.Controllers
             IMotivationMessageRepository motivationMessageRepository,
             ISubscriptionBannerRepository subscriptionBannerRepository,
             IMapper mapper,
-            ILogger<AdminHomeController> logger)
+            ILogger<AdminHomeController> logger,
+            IWebHostEnvironment environment)
         {
             _homeBannerRepository = homeBannerRepository;
             _offerBannerRepository = offerBannerRepository;
@@ -46,6 +48,7 @@ namespace HomeDashboardService.API.Controllers
             _subscriptionBannerRepository = subscriptionBannerRepository;
             _mapper = mapper;
             _logger = logger;
+            _environment = environment;
         }
 
         #region Home Banners
@@ -330,6 +333,46 @@ namespace HomeDashboardService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting practice mode: {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("practice-modes/{id}/upload-icon")]
+        public async Task<IActionResult> UploadPracticeModeIcon(int id, IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                var practiceMode = await _practiceModeRepository.GetByIdAsync(id);
+                if (practiceMode == null)
+                    return NotFound();
+
+                var uploadsFolder = Path.Combine(_environment.ContentRootPath, "wwwroot", "images", "practice-modes");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                var uniqueFileName = $"{Guid.NewGuid()}_icon_{file.FileName}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+
+                var iconUrl = $"/images/practice-modes/{uniqueFileName}";
+                practiceMode.IconUrl = iconUrl;
+                practiceMode.UpdatedAt = DateTime.UtcNow;
+
+                await _practiceModeRepository.UpdateAsync(practiceMode);
+                await _practiceModeRepository.SaveChangesAsync();
+
+                return Ok(new { IconUrl = iconUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading icon for practice mode: {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }

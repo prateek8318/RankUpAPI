@@ -10,6 +10,7 @@ namespace ExamService.Application.DTOs
         public int PassingMarks { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? ImageUrl { get; set; }
         public List<int> QualificationIds { get; set; } = new();
     }
 
@@ -20,6 +21,7 @@ namespace ExamService.Application.DTOs
         public int DurationInMinutes { get; set; } = 60;
         public int TotalMarks { get; set; } = 100;
         public int PassingMarks { get; set; } = 35;
+        public string? ImageUrl { get; set; }
         public List<int>? QualificationIds { get; set; }
     }
 
@@ -31,6 +33,7 @@ namespace ExamService.Application.DTOs
         public int DurationInMinutes { get; set; }
         public int TotalMarks { get; set; }
         public int PassingMarks { get; set; }
+        public string? ImageUrl { get; set; }
         public List<int>? QualificationIds { get; set; }
     }
 }

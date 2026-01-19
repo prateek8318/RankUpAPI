@@ -37,21 +37,17 @@ namespace UserService.API.Controllers
         {
             if (string.IsNullOrWhiteSpace(request.MobileNumber) || !IsValidMobileNumber(request.MobileNumber))
             {
-                return BadRequest(new AuthResponse
-                {
-                    Success = false,
-                    Message = "Please provide a valid 10-digit mobile number"
-                });
+                return BadRequest(ApiResponse.CreateBadRequest(
+                    "Please provide a valid 10-digit mobile number",
+                    ErrorCodes.INVALID_MOBILE_NUMBER));
             }
 
             // Validate country code
             if (string.IsNullOrWhiteSpace(request.CountryCode) || !IsValidCountryCode(request.CountryCode))
             {
-                return BadRequest(new AuthResponse
-                {
-                    Success = false,
-                    Message = "Please provide a valid country code (e.g., +91, +1, +44)"
-                });
+                return BadRequest(ApiResponse.CreateBadRequest(
+                    "Please provide a valid country code (e.g., +91, +1, +44)",
+                    ErrorCodes.INVALID_COUNTRY_CODE));
             }
 
             // Use default OTP from configuration
@@ -79,13 +75,17 @@ namespace UserService.API.Controllers
             {
                 if (string.IsNullOrWhiteSpace(request?.MobileNumber) || string.IsNullOrWhiteSpace(request?.Otp))
                 {
-                    return BadRequest(new { success = false, message = "Mobile number and OTP are required" });
+                    return BadRequest(ApiResponse.CreateBadRequest(
+                        "Mobile number and OTP are required for verification",
+                        ErrorCodes.MISSING_REQUIRED_FIELDS));
                 }
 
                 // Validate country code
                 if (string.IsNullOrWhiteSpace(request.CountryCode) || !IsValidCountryCode(request.CountryCode))
                 {
-                    return BadRequest(new { success = false, message = "Please provide a valid country code (e.g., +91, +1, +44)" });
+                    return BadRequest(ApiResponse.CreateBadRequest(
+                        "Please provide a valid country code (e.g., +91, +1, +44)",
+                        ErrorCodes.INVALID_COUNTRY_CODE));
                 }
 
                 // Use full phone number for OTP validation
@@ -93,13 +93,17 @@ namespace UserService.API.Controllers
 
                 if (!_otpService.ValidateOtp(fullPhoneNumber, request.Otp))
                 {
-                    return BadRequest(new { success = false, message = "Invalid or expired OTP" });
+                    return BadRequest(ApiResponse.CreateBadRequest(
+                        "The OTP you entered is invalid or has expired. Please try again.",
+                        ErrorCodes.INVALID_OTP));
                 }
 
                 var userDto = await _userService.GetOrCreateUserAsync(request.MobileNumber, request.CountryCode);
                 if (userDto == null)
                 {
-                    return StatusCode(500, new { success = false, message = "Failed to process your request" });
+                    return StatusCode(500, ApiResponse.CreateInternalServerError(
+                        "Unable to process your login request. Please try again later.",
+                        ErrorCodes.DATABASE_ERROR));
                 }
 
                 await _userService.UpdateUserLoginInfoAsync(userDto.Id);
@@ -107,18 +111,26 @@ namespace UserService.API.Controllers
 
                 var token = GenerateJwtToken(userDto.Id.ToString(), userDto.PhoneNumber);
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Login successful",
-                    token,
-                    userId = userDto.Id
-                });
+                return Ok(ApiResponse.CreateSuccess(
+                    "Login successful! Welcome back.",
+                    new 
+                    {
+                        token,
+                        userId = userDto.Id,
+                        userName = userDto.Name,
+                        isNewUser = userDto.IsNewUser,
+                        isProfileComplete = !string.IsNullOrWhiteSpace(userDto.Name) && 
+                                          userDto.Name != $"User{userDto.PhoneNumber}",
+                        phoneNumber = fullPhoneNumber,
+                        isPhoneVerified = userDto.IsPhoneVerified
+                    }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error in VerifyOtp: {ex.Message}");
-                return StatusCode(500, new { success = false, message = "An error occurred" });
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "An unexpected error occurred during login. Please try again.",
+                    ErrorCodes.INTERNAL_SERVER_ERROR));
             }
         }
 
@@ -126,11 +138,27 @@ namespace UserService.API.Controllers
         [Authorize]
         public async Task<ActionResult<UserDto>> GetProfile(int userId)
         {
-            var user = await _userService.GetUserByIdAsync(userId);
-            if (user == null)
-                return NotFound();
+            try
+            {
+                var user = await _userService.GetUserByIdAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(ApiResponse.CreateNotFound(
+                        $"User profile with ID {userId} was not found",
+                        ErrorCodes.USER_NOT_FOUND));
+                }
 
-            return Ok(user);
+                return Ok(ApiResponse.CreateSuccess(
+                    "User profile retrieved successfully",
+                    user));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving user profile for ID {userId}: {ex.Message}");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to retrieve user profile. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
+            }
         }
 
         [HttpPut("profile/{userId}")]
@@ -140,14 +168,46 @@ namespace UserService.API.Controllers
             try
             {
                 var user = await _userService.UpdateUserProfileAsync(userId, request);
-                return Ok(user);
+                return Ok(ApiResponse.CreateSuccess(
+                    "User profile updated successfully",
+                    user));
             }
             catch (KeyNotFoundException)
             {
-                return NotFound();
+                return NotFound(ApiResponse.CreateNotFound(
+                    $"User profile with ID {userId} was not found for update",
+                    ErrorCodes.USER_NOT_FOUND));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating user profile for ID {userId}: {ex.Message}");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to update user profile. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
             }
         }
 
+        [HttpPost("logout")]
+        [Authorize]
+        public IActionResult Logout()
+        {
+            try
+            {
+                // In a stateless JWT implementation, we don't need to do anything server-side
+                // The client should simply discard the token
+                // For enhanced security, we could implement token blacklisting here if needed
+                
+                return Ok(ApiResponse.CreateSuccess(
+                    "Logout successful. Please discard the token from client side."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in Logout: {ex.Message}");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "An error occurred during logout. Please try again.",
+                    ErrorCodes.INTERNAL_SERVER_ERROR));
+            }
+        }
 
         private static bool IsValidMobileNumber(string mobileNumber)
         {

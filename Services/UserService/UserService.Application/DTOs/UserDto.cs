@@ -23,6 +23,7 @@ namespace UserService.Application.DTOs
         public bool IsPhoneVerified { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        public bool IsNewUser { get; set; } // Added to identify new vs existing user
     }
 
     public class ProfileUpdateRequest

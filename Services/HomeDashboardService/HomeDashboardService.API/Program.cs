@@ -99,6 +99,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add IWebHostEnvironment for file operations
+builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -108,6 +111,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // Enable serving static files
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();

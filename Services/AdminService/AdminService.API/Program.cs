@@ -12,6 +12,12 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add HttpContextAccessor for accessing current HTTP context in delegating handlers
+builder.Services.AddHttpContextAccessor();
+
+// Register the delegating handler
+builder.Services.AddTransient<AuthTokenDelegatingHandler>();
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -48,63 +54,72 @@ builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:UserService:BaseUrl"] ?? "http://localhost:5002");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // HTTP Client for ExamService  
 builder.Services.AddHttpClient<IExamServiceClient, ExamServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:ExamService:BaseUrl"] ?? "https://localhost:5003");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // HTTP Client for SubscriptionService
 builder.Services.AddHttpClient<ISubscriptionServiceClient, SubscriptionServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:SubscriptionService:BaseUrl"] ?? "https://localhost:5004");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // HTTP Client for QuizService
 builder.Services.AddHttpClient<IQuizServiceClient, QuizServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:QuizService:BaseUrl"] ?? "https://localhost:5005");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // HTTP Client for QuestionService
 builder.Services.AddHttpClient<IQuestionServiceClient, QuestionServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:QuestionService:BaseUrl"] ?? "https://localhost:5006");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // HTTP Client for HomeDashboardService
 builder.Services.AddHttpClient<IHomeDashboardServiceClient, HomeDashboardServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:HomeDashboardService:BaseUrl"] ?? "https://localhost:56927");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // HTTP Client for AnalyticsService
 builder.Services.AddHttpClient<IAnalyticsServiceClient, AnalyticsServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:AnalyticsService:BaseUrl"] ?? "https://localhost:5007");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // HTTP Client for MasterService
 builder.Services.AddHttpClient<IMasterServiceClient, MasterServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:MasterService:BaseUrl"] ?? "http://localhost:5009");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // HTTP Client for QualificationService
 builder.Services.AddHttpClient<IQualificationServiceClient, QualificationServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Services:QualificationService:BaseUrl"] ?? "https://localhost:5010");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
 
 // Add AuthService
 builder.Services.AddScoped<AuthService>();
@@ -144,7 +159,40 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo 
+    { 
+        Title = "AdminService API", 
+        Version = "v1",
+        Description = "Admin Management API with User Management and System Administration"
+    });
+    
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
 
 var app = builder.Build();
 

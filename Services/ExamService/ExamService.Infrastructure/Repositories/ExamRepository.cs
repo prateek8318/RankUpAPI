@@ -41,6 +41,7 @@ namespace ExamService.Infrastructure.Repositories
         public async Task<IEnumerable<Exam>> GetByQualificationIdAsync(int qualificationId)
         {
             return await _context.Exams
+                .Include(e => e.ExamQualifications)
                 .Where(e => e.ExamQualifications.Any(eq => eq.QualificationId == qualificationId))
                 .ToListAsync();
         }

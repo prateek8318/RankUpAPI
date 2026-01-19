@@ -27,15 +27,22 @@ namespace UserService.Application.Services
 
         public async Task<UserDto> GetOrCreateUserAsync(string phoneNumber, string? countryCode = null)
         {
-            var user = await _userRepository.GetByPhoneNumberAsync(phoneNumber);
+            // Use full phone number for lookup and storage
+            var fullPhoneNumber = string.IsNullOrWhiteSpace(countryCode) 
+                ? phoneNumber 
+                : $"{countryCode}{phoneNumber}";
+                
+            var user = await _userRepository.GetByPhoneNumberAsync(fullPhoneNumber);
+            var isNewUser = false;
 
             if (user == null)
             {
+                isNewUser = true;
                 user = new User
                 {
-                    PhoneNumber = phoneNumber,
+                    PhoneNumber = fullPhoneNumber,
                     CountryCode = countryCode ?? "+91", // Default to India if not provided
-                    Name = $"User{phoneNumber}",
+                    Name = $"User{fullPhoneNumber}",
                     Email = null,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
@@ -53,7 +60,9 @@ namespace UserService.Application.Services
                 await _userRepository.SaveChangesAsync();
             }
 
-            return _mapper.Map<UserDto>(user);
+            var userDto = _mapper.Map<UserDto>(user);
+            userDto.IsNewUser = isNewUser; // Set the flag
+            return userDto;
         }
 
         public async Task UpdateUserLoginInfoAsync(int userId)

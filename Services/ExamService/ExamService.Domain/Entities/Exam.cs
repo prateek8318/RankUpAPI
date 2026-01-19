@@ -15,6 +15,9 @@ namespace ExamService.Domain.Entities
         public int TotalMarks { get; set; } = 100;
         public int PassingMarks { get; set; } = 35;
         
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+        
         // Navigation property for many-to-many relationship with Qualifications
         public ICollection<ExamQualification> ExamQualifications { get; set; } = new List<ExamQualification>();
     }

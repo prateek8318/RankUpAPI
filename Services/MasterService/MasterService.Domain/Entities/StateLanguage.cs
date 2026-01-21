@@ -10,6 +10,10 @@ namespace MasterService.Domain.Entities
         [Required]
         public int LanguageId { get; set; }
         
+        [Required]
+        [MaxLength(100)]
+        public string Name { get; set; } = string.Empty;
+        
         public State State { get; set; } = null!;
         public Language Language { get; set; } = null!;
     }

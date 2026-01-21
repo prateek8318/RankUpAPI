@@ -23,7 +23,7 @@ namespace AdminService.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponseDto<object>>> CreateState([FromBody] JsonElement createDto)
+        public async Task<ActionResult<ApiResponseDto<object>>> CreateState([FromBody] JsonElement createDto, [FromQuery] int? languageId = null)
         {
             try
             {

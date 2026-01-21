@@ -22,20 +22,20 @@ start "QuestionService" cmd /k "cd /d Services\QuestionService\QuestionService.A
 
 timeout /t 3 /nobreak >nul
 
-echo Starting QuizService...
-start "QuizService" cmd /k "cd /d Services\QuizService\QuizService.API && dotnet run"
+@REM echo Starting QuizService...
+@REM start "QuizService" cmd /k "cd /d Services\QuizService\QuizService.API && dotnet run"
 
-timeout /t 3 /nobreak >nul
+@REM timeout /t 3 /nobreak >nul
 
-echo Starting PaymentService...
-start "PaymentService" cmd /k "cd /d Services\PaymentService\PaymentService.API && dotnet run"
+@REM echo Starting PaymentService...
+@REM start "PaymentService" cmd /k "cd /d Services\PaymentService\PaymentService.API && dotnet run"
 
-timeout /t 3 /nobreak >nul
+@REM timeout /t 3 /nobreak >nul
 
-echo Starting SubscriptionService...
-start "SubscriptionService" cmd /k "cd /d Services\SubscriptionService\SubscriptionService.API && dotnet run"
+@REM echo Starting SubscriptionService...
+@REM start "SubscriptionService" cmd /k "cd /d Services\SubscriptionService\SubscriptionService.API && dotnet run"
 
-timeout /t 3 /nobreak >nul
+@REM timeout /t 3 /nobreak >nul
 
 echo Starting HomeDashboardService...
 start "HomeDashboardService" cmd /k "cd /d Services\HomeDashboardService\HomeDashboardService.API && dotnet run"
@@ -50,7 +50,7 @@ timeout /t 3 /nobreak >nul
 echo Starting QualificationService...
 start "QualificationService" cmd /k "cd /d Services\QualificationService\QualificationService.API && dotnet run"
 
-timeout /t 3 /nobreak >nul
+timeout /t 3 /nobreak >nul 
 
 echo All services started! Check individual windows for status.
 echo.

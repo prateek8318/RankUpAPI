@@ -77,6 +77,9 @@ namespace UserService.Application.DTOs
         public string MobileNumber { get; set; } = string.Empty;
         public string CountryCode { get; set; } = "+91"; // Default to India
         public string Otp { get; set; } = string.Empty;
+        public string? FcmToken { get; set; } // Optional FCM token for push notifications
+        public string? DeviceId { get; set; } // Optional device identifier
+        public string? DeviceType { get; set; } // Optional device type (android, ios, web)
     }
 
     public class AuthResponse

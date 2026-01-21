@@ -14,7 +14,12 @@ namespace MasterService.Application.Mappings
 
             CreateMap<CreateStateDto, State>();
             CreateMap<UpdateStateDto, State>();
-            CreateMap<State, StateDto>();
+            CreateMap<State, StateDto>()
+                .ForMember(dest => dest.Names, opt => opt.MapFrom(src => src.StateLanguages));
+
+            CreateMap<StateLanguage, StateLanguageDto>()
+                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language.Code))
+                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language.Name));
         }
     }
 }

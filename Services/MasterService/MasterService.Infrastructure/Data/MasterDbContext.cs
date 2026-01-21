@@ -55,13 +55,14 @@ namespace MasterService.Infrastructure.Data
             modelBuilder.Entity<StateLanguage>(entity =>
             {
                 entity.HasIndex(e => new { e.StateId, e.LanguageId }).IsUnique();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.IsActive)
                       .HasDefaultValue(true)
                       .ValueGeneratedNever();
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
                 
                 entity.HasOne(e => e.State)
-                      .WithMany()
+                      .WithMany(s => s.StateLanguages)
                       .HasForeignKey(e => e.StateId)
                       .OnDelete(DeleteBehavior.Cascade);
                       

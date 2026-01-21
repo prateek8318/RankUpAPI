@@ -1,6 +1,39 @@
-@OTPLoginAPI_HostAddress = http://localhost:5234
+@UserService_HostAddress = http://localhost:5002
 
-GET {{OTPLoginAPI_HostAddress}}/weatherforecast/
-Accept: application/json
+### Send OTP
+POST {{UserService_HostAddress}}/api/users/auth/send-otp
+Content-Type: application/json
+
+{
+  "mobileNumber": "9876543210",
+  "countryCode": "+91"
+}
+
+###
+
+### Verify OTP without device info
+POST {{UserService_HostAddress}}/api/users/auth/verify-otp
+Content-Type: application/json
+
+{
+  "mobileNumber": "9876543210",
+  "countryCode": "+91",
+  "otp": "1234"
+}
+
+###
+
+### Verify OTP with device info
+POST {{UserService_HostAddress}}/api/users/auth/verify-otp
+Content-Type: application/json
+
+{
+  "mobileNumber": "9876543210",
+  "countryCode": "+91",
+  "otp": "1234",
+  "fcmToken": "fcm_token_here",
+  "deviceId": "device_12345",
+  "deviceType": "android"
+}
 
 ###

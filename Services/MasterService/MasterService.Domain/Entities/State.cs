@@ -13,5 +13,7 @@ namespace MasterService.Domain.Entities
         
         [MaxLength(10)]
         public string? CountryCode { get; set; }
+        
+        public ICollection<StateLanguage> StateLanguages { get; set; } = new List<StateLanguage>();
     }
 }

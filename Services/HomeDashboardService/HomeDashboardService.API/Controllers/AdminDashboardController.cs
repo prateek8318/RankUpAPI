@@ -8,7 +8,8 @@ namespace HomeDashboardService.API.Controllers
     /// <summary>
     /// Admin Dashboard Controller
     /// </summary>
-    [Route("api/admin/[controller]")]
+    // Use explicit route so the path is stable regardless of controller name
+    [Route("api/admin/dashboard")]
     [ApiController]
     [Authorize(Roles = "Admin")]
     public class AdminDashboardController : ControllerBase

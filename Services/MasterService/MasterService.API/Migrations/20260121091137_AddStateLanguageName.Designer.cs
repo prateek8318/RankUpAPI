@@ -4,6 +4,7 @@ using MasterService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MasterService.API.Migrations
 {
     [DbContext(typeof(MasterDbContext))]
-    partial class MasterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260121091137_AddStateLanguageName")]
+    partial class AddStateLanguageName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -166,12 +169,17 @@ namespace MasterService.API.Migrations
                     b.Property<int>("StateId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("StateId1")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("LanguageId");
+
+                    b.HasIndex("StateId1");
 
                     b.HasIndex("StateId", "LanguageId")
                         .IsUnique();
@@ -197,10 +205,14 @@ namespace MasterService.API.Migrations
                         .IsRequired();
 
                     b.HasOne("MasterService.Domain.Entities.State", "State")
-                        .WithMany("StateLanguages")
+                        .WithMany()
                         .HasForeignKey("StateId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("MasterService.Domain.Entities.State", null)
+                        .WithMany("StateLanguages")
+                        .HasForeignKey("StateId1");
 
                     b.Navigation("Language");
 

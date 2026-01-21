@@ -33,5 +33,20 @@ namespace HomeDashboardService.Infrastructure.Repositories
                 .OrderByDescending(t => t.TargetDate)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<DailyTarget>> GetTargetsAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var query = _dbSet.Where(t => t.IsActive);
+
+            if (startDate.HasValue)
+                query = query.Where(t => t.TargetDate >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(t => t.TargetDate <= endDate.Value);
+
+            return await query
+                .OrderByDescending(t => t.TargetDate)
+                .ToListAsync();
+        }
     }
 }

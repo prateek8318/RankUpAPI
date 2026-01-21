@@ -420,5 +420,6 @@ namespace HomeDashboardService.Application.DTOs
         public int? TargetMinutes { get; set; }
         public int? TargetScore { get; set; }
         public DateTime? TargetDate { get; set; }
+        public bool? IsActive { get; set; }
     }
 }

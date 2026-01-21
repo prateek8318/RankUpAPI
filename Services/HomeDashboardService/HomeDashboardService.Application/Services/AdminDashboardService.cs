@@ -9,13 +9,16 @@ namespace HomeDashboardService.Application.Services
     public class AdminDashboardService : IAdminDashboardService
     {
         private readonly IQuizAttemptRepository _quizAttemptRepository;
+        private readonly IDailyTargetRepository _dailyTargetRepository;
         private readonly ILogger<AdminDashboardService> _logger;
 
         public AdminDashboardService(
             IQuizAttemptRepository quizAttemptRepository,
+            IDailyTargetRepository dailyTargetRepository,
             ILogger<AdminDashboardService> logger)
         {
             _quizAttemptRepository = quizAttemptRepository;
+            _dailyTargetRepository = dailyTargetRepository;
             _logger = logger;
         }
 
@@ -312,31 +315,34 @@ namespace HomeDashboardService.Application.Services
             {
                 var entity = new DailyTarget
                 {
+                    UserId = 0, // global target (shared across users)
                     Title = target.Title,
                     Description = target.Description,
                     TargetQuizzes = target.TargetQuizzes,
                     TargetMinutes = target.TargetMinutes,
                     TargetScore = target.TargetScore,
                     TargetDate = target.TargetDate,
-                    CreatedAt = DateTime.UtcNow
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
-                // TODO: Save to database using repository
-                // var savedEntity = await _dailyTargetRepository.AddAsync(entity);
+                var savedEntity = await _dailyTargetRepository.AddAsync(entity);
+                await _dailyTargetRepository.SaveChangesAsync();
 
                 return new DailyTargetDto
                 {
-                    Id = 1, // TODO: Return actual ID
-                    Title = entity.Title,
-                    Description = entity.Description,
-                    TargetQuizzes = entity.TargetQuizzes,
-                    TargetMinutes = entity.TargetMinutes,
-                    TargetScore = entity.TargetScore,
-                    TargetDate = entity.TargetDate,
-                    CompletedQuizzes = 0,
-                    CompletedMinutes = 0,
-                    AchievedScore = 0,
-                    IsCompleted = false
+                    Id = savedEntity.Id,
+                    Title = savedEntity.Title,
+                    Description = savedEntity.Description,
+                    TargetQuizzes = savedEntity.TargetQuizzes,
+                    TargetMinutes = savedEntity.TargetMinutes,
+                    TargetScore = savedEntity.TargetScore,
+                    TargetDate = savedEntity.TargetDate,
+                    CompletedQuizzes = savedEntity.CompletedQuizzes,
+                    CompletedMinutes = savedEntity.CompletedMinutes,
+                    AchievedScore = savedEntity.AchievedScore,
+                    IsCompleted = savedEntity.IsCompleted
                 };
             }
             catch (Exception ex)
@@ -350,34 +356,35 @@ namespace HomeDashboardService.Application.Services
         {
             try
             {
-                // TODO: Get existing entity from repository
-                // var entity = await _dailyTargetRepository.GetByIdAsync(id);
-                // if (entity == null) return null;
+                var entity = await _dailyTargetRepository.GetByIdAsync(id);
+                if (entity == null)
+                    return null;
 
-                // Update properties
-                // entity.Title = target.Title ?? entity.Title;
-                // entity.Description = target.Description ?? entity.Description;
-                // entity.TargetQuizzes = target.TargetQuizzes ?? entity.TargetQuizzes;
-                // entity.TargetMinutes = target.TargetMinutes ?? entity.TargetMinutes;
-                // entity.TargetScore = target.TargetScore ?? entity.TargetScore;
-                // entity.TargetDate = target.TargetDate ?? entity.TargetDate;
-                // entity.UpdatedAt = DateTime.UtcNow;
+                entity.Title = target.Title ?? entity.Title;
+                entity.Description = target.Description ?? entity.Description;
+                entity.TargetQuizzes = target.TargetQuizzes ?? entity.TargetQuizzes;
+                entity.TargetMinutes = target.TargetMinutes ?? entity.TargetMinutes;
+                entity.TargetScore = target.TargetScore ?? entity.TargetScore;
+                entity.TargetDate = target.TargetDate ?? entity.TargetDate;
+                entity.IsActive = target.IsActive ?? entity.IsActive;
+                entity.UpdatedAt = DateTime.UtcNow;
 
-                // await _dailyTargetRepository.UpdateAsync(entity);
+                var updated = await _dailyTargetRepository.UpdateAsync(entity);
+                await _dailyTargetRepository.SaveChangesAsync();
 
                 return new DailyTargetDto
                 {
-                    Id = id,
-                    Title = target.Title ?? "Updated Target",
-                    Description = target.Description,
-                    TargetQuizzes = target.TargetQuizzes ?? 5,
-                    TargetMinutes = target.TargetMinutes ?? 30,
-                    TargetScore = target.TargetScore ?? 80,
-                    TargetDate = target.TargetDate ?? DateTime.UtcNow.AddDays(1),
-                    CompletedQuizzes = 0,
-                    CompletedMinutes = 0,
-                    AchievedScore = 0,
-                    IsCompleted = false
+                    Id = updated.Id,
+                    Title = updated.Title,
+                    Description = updated.Description,
+                    TargetQuizzes = updated.TargetQuizzes,
+                    TargetMinutes = updated.TargetMinutes,
+                    TargetScore = updated.TargetScore,
+                    TargetDate = updated.TargetDate,
+                    CompletedQuizzes = updated.CompletedQuizzes,
+                    CompletedMinutes = updated.CompletedMinutes,
+                    AchievedScore = updated.AchievedScore,
+                    IsCompleted = updated.IsCompleted
                 };
             }
             catch (Exception ex)

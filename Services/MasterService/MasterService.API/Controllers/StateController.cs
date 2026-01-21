@@ -20,11 +20,11 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<StateDto>>> GetStates()
+        public async Task<ActionResult<IEnumerable<StateDto>>> GetStates([FromQuery] int? languageId = null)
         {
             try
             {
-                var states = await _stateService.GetAllStatesAsync();
+                var states = await _stateService.GetAllStatesAsync(languageId);
                 return Ok(states);
             }
             catch (Exception ex)
@@ -36,11 +36,11 @@ namespace MasterService.API.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<ActionResult<StateDto>> GetState(int id)
+        public async Task<ActionResult<StateDto>> GetState(int id, [FromQuery] int? languageId = null)
         {
             try
             {
-                var state = await _stateService.GetStateByIdAsync(id);
+                var state = await _stateService.GetStateByIdAsync(id, languageId);
                 if (state == null)
                     return NotFound();
 
@@ -106,6 +106,22 @@ namespace MasterService.API.Controllers
                 return NotFound();
 
             return NoContent();
+        }
+
+        [HttpPost("seed-languages")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SeedLanguages()
+        {
+            try
+            {
+                await _stateService.SeedStateLanguagesAsync();
+                return Ok(new { message = "State languages seeded successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error seeding state languages");
+                return StatusCode(500, "Internal server error");
+            }
         }
     }
 }

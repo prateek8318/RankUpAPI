@@ -583,8 +583,9 @@ namespace HomeDashboardService.Application.Services
                     TimeRemainingSeconds = ci.TimeRemainingSeconds
                 }).ToList();
 
-                // Get daily targets - get all active daily targets for user
-                var dailyTargets = await _dailyTargetRepository.GetUserTargetsAsync(userId, DateTime.UtcNow.Date, DateTime.UtcNow.Date.AddDays(7));
+                // Get daily targets - global list (shared across users)
+                // Show all active targets (no date window) so older entries remain visible until deactivated.
+                var dailyTargets = await _dailyTargetRepository.GetTargetsAsync();
                 response.DailyTargets = dailyTargets.Select(dt => new DailyTargetItemDto
                 {
                     Id = dt.Id,

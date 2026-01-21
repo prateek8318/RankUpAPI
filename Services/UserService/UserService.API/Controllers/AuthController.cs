@@ -111,19 +111,30 @@ namespace UserService.API.Controllers
 
                 var token = GenerateJwtToken(userDto.Id.ToString(), userDto.PhoneNumber);
 
+                // Create response object with device information if provided
+                var responseData = new Dictionary<string, object>
+                {
+                    ["token"] = token,
+                    ["userId"] = userDto.Id,
+                    ["userName"] = userDto.Name,
+                    ["isNewUser"] = userDto.IsNewUser,
+                    ["isProfileComplete"] = !string.IsNullOrWhiteSpace(userDto.Name) && 
+                                           userDto.Name != $"User{userDto.PhoneNumber}",
+                    ["phoneNumber"] = fullPhoneNumber,
+                    ["isPhoneVerified"] = userDto.IsPhoneVerified
+                };
+
+                // Add device information to response if provided in request
+                if (!string.IsNullOrWhiteSpace(request.FcmToken))
+                    responseData["fcmToken"] = request.FcmToken;
+                if (!string.IsNullOrWhiteSpace(request.DeviceId))
+                    responseData["deviceId"] = request.DeviceId;
+                if (!string.IsNullOrWhiteSpace(request.DeviceType))
+                    responseData["deviceType"] = request.DeviceType;
+
                 return Ok(ApiResponse.CreateSuccess(
                     "Login successful! Welcome back.",
-                    new 
-                    {
-                        token,
-                        userId = userDto.Id,
-                        userName = userDto.Name,
-                        isNewUser = userDto.IsNewUser,
-                        isProfileComplete = !string.IsNullOrWhiteSpace(userDto.Name) && 
-                                          userDto.Name != $"User{userDto.PhoneNumber}",
-                        phoneNumber = fullPhoneNumber,
-                        isPhoneVerified = userDto.IsPhoneVerified
-                    }));
+                    responseData));
             }
             catch (Exception ex)
             {
@@ -235,6 +246,7 @@ namespace UserService.API.Controllers
                     new Claim(ClaimTypes.NameIdentifier, userId),
                     new Claim(JwtRegisteredClaimNames.Sub, userId),
                     new Claim(ClaimTypes.MobilePhone, mobileNumber),
+                    new Claim(ClaimTypes.Role, "User"),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(tokenExpiryInMinutes),

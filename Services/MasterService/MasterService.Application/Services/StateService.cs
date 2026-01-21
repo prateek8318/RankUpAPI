@@ -22,10 +22,25 @@ namespace MasterService.Application.Services
             state.CreatedAt = DateTime.UtcNow;
             state.IsActive = true;
 
+            // Add state languages if provided
+            if (createDto.Names != null && createDto.Names.Any())
+            {
+                foreach (var langDto in createDto.Names)
+                {
+                    state.StateLanguages.Add(new StateLanguage
+                    {
+                        LanguageId = langDto.LanguageId,
+                        Name = langDto.Name,
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    });
+                }
+            }
+
             await _stateRepository.AddAsync(state);
             await _stateRepository.SaveChangesAsync();
 
-            return _mapper.Map<StateDto>(state);
+            return await GetStateByIdAsync(state.Id);
         }
 
         public async Task<StateDto?> UpdateStateAsync(int id, UpdateStateDto updateDto)
@@ -36,10 +51,34 @@ namespace MasterService.Application.Services
 
             _mapper.Map(updateDto, state);
             state.UpdatedAt = DateTime.UtcNow;
+
+            // Update state languages if provided
+            if (updateDto.Names != null && updateDto.Names.Any())
+            {
+                // Remove existing languages
+                var existingLanguages = state.StateLanguages.ToList();
+                foreach (var existingLang in existingLanguages)
+                {
+                    state.StateLanguages.Remove(existingLang);
+                }
+
+                // Add new languages
+                foreach (var langDto in updateDto.Names)
+                {
+                    state.StateLanguages.Add(new StateLanguage
+                    {
+                        LanguageId = langDto.LanguageId,
+                        Name = langDto.Name,
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    });
+                }
+            }
+
             await _stateRepository.UpdateAsync(state);
             await _stateRepository.SaveChangesAsync();
 
-            return _mapper.Map<StateDto>(state);
+            return await GetStateByIdAsync(state.Id);
         }
 
         public async Task<bool> DeleteStateAsync(int id)
@@ -53,16 +92,50 @@ namespace MasterService.Application.Services
             return true;
         }
 
-        public async Task<StateDto?> GetStateByIdAsync(int id)
+        public async Task<StateDto?> GetStateByIdAsync(int id, int? languageId = null)
         {
             var state = await _stateRepository.GetByIdAsync(id);
-            return state == null ? null : _mapper.Map<StateDto>(state);
+            if (state == null)
+                return null;
+
+            var stateDto = _mapper.Map<StateDto>(state);
+            
+            // Set the primary name based on language preference
+            if (languageId.HasValue)
+            {
+                var languageName = state.StateLanguages
+                    .FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
+                
+                if (!string.IsNullOrEmpty(languageName))
+                    stateDto.Name = languageName;
+            }
+
+            return stateDto;
         }
 
-        public async Task<IEnumerable<StateDto>> GetAllStatesAsync()
+        public async Task<IEnumerable<StateDto>> GetAllStatesAsync(int? languageId = null)
         {
             var states = await _stateRepository.GetActiveAsync();
-            return states.OrderBy(s => s.Name).Select(s => _mapper.Map<StateDto>(s));
+            var stateDtos = states.OrderBy(s => s.Name).Select(s => _mapper.Map<StateDto>(s)).ToList();
+
+            // Set names based on language preference
+            if (languageId.HasValue)
+            {
+                foreach (var stateDto in stateDtos)
+                {
+                    var state = states.FirstOrDefault(s => s.Id == stateDto.Id);
+                    if (state != null)
+                    {
+                        var languageName = state.StateLanguages
+                            .FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
+                        
+                        if (!string.IsNullOrEmpty(languageName))
+                            stateDto.Name = languageName;
+                    }
+                }
+            }
+
+            return stateDtos;
         }
 
         public async Task<bool> ToggleStateStatusAsync(int id, bool isActive)
@@ -76,6 +149,13 @@ namespace MasterService.Application.Services
             await _stateRepository.UpdateAsync(state);
             await _stateRepository.SaveChangesAsync();
             return true;
+        }
+
+        public async Task SeedStateLanguagesAsync()
+        {
+            // For now, just return - the actual seeding will be done via database migration
+            // or a separate seeding service to avoid circular dependencies
+            await Task.CompletedTask;
         }
     }
 }

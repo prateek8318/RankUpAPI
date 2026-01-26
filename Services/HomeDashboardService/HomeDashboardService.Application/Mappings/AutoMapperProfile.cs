@@ -124,6 +124,18 @@ namespace HomeDashboardService.Application.Mappings
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
+            // Rapid Fire Test with Images mappings
+            CreateMap<RapidFireTest, RapidFireTestImagesDto>();
+            CreateMap<CreateRapidFireTestWithImagesDto, RapidFireTest>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
+            CreateMap<UpdateRapidFireTestWithImagesDto, RapidFireTest>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
             CreateMap<FreeTest, FreeTestDto>();
             CreateMap<CreateFreeTestDto, FreeTest>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())

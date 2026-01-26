@@ -10,5 +10,10 @@ namespace QualificationService.Domain.Entities
         
         [MaxLength(500)]
         public string? Description { get; set; }
+        
+        public int? StreamId { get; set; }
+        
+        // Navigation property
+        public virtual Stream? Stream { get; set; }
     }
 }

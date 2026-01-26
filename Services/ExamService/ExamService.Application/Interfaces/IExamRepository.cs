@@ -9,6 +9,7 @@ namespace ExamService.Application.Interfaces
         Task<IEnumerable<Exam>> GetAllAsync();
         Task<IEnumerable<Exam>> GetActiveAsync();
         Task<IEnumerable<Exam>> GetByQualificationIdAsync(int qualificationId);
+        Task<IEnumerable<Exam>> GetByQualificationAndStreamAsync(int qualificationId, int? streamId);
         Task<Exam> AddAsync(Exam exam);
         Task UpdateAsync(Exam exam);
         Task DeleteAsync(Exam exam);

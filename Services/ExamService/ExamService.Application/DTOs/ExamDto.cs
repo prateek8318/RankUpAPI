@@ -11,7 +11,9 @@ namespace ExamService.Application.DTOs
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? ImageUrl { get; set; }
+        public bool IsInternational { get; set; }
         public List<int> QualificationIds { get; set; } = new();
+        public List<int?> StreamIds { get; set; } = new();
     }
 
     public class CreateExamDto
@@ -22,7 +24,9 @@ namespace ExamService.Application.DTOs
         public int TotalMarks { get; set; } = 100;
         public int PassingMarks { get; set; } = 35;
         public string? ImageUrl { get; set; }
+        public bool IsInternational { get; set; } = false;
         public List<int>? QualificationIds { get; set; }
+        public List<int?>? StreamIds { get; set; }
     }
 
     public class UpdateExamDto
@@ -34,6 +38,15 @@ namespace ExamService.Application.DTOs
         public int TotalMarks { get; set; }
         public int PassingMarks { get; set; }
         public string? ImageUrl { get; set; }
+        public bool IsInternational { get; set; }
         public List<int>? QualificationIds { get; set; }
+        public List<int?>? StreamIds { get; set; }
+    }
+
+    public class QualificationDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
     }
 }

@@ -8,8 +8,10 @@ namespace ExamService.Application.Interfaces
         Task<ExamDto?> UpdateExamAsync(int id, UpdateExamDto updateDto);
         Task<bool> DeleteExamAsync(int id);
         Task<ExamDto?> GetExamByIdAsync(int id);
-        Task<IEnumerable<ExamDto>> GetAllExamsAsync();
-        Task<IEnumerable<ExamDto>> GetExamsByQualificationAsync(int qualificationId);
+        Task<IEnumerable<ExamDto>> GetAllExamsAsync(bool? isInternational = null);
+        Task<IEnumerable<ExamDto>> GetExamsByQualificationAsync(int qualificationId, int? streamId = null);
+        Task<IEnumerable<ExamDto>> GetExamsForUserAsync(int userId);
         Task<bool> ToggleExamStatusAsync(int id, bool isActive);
+        Task<int> SeedInternationalExamsAsync();
     }
 }

@@ -47,6 +47,11 @@ start "MasterService" cmd /k "cd /d Services\MasterService\MasterService.API && 
 
 timeout /t 3 /nobreak >nul
 
+echo Starting TestService...
+start "TestService" cmd /k "cd /d Services\TestService\TestService.API && dotnet run"
+
+timeout /t 3 /nobreak >nul
+
 echo Starting QualificationService...
 start "QualificationService" cmd /k "cd /d Services\QualificationService\QualificationService.API && dotnet run"
 
@@ -55,15 +60,20 @@ timeout /t 3 /nobreak >nul
 echo All services started! Check individual windows for status.
 echo.
 echo Service URLs:
-echo ExamService: http://localhost:5000/swagger
-echo UserService: http://localhost:5002/swagger
-echo AdminService: http://localhost:56924/swagger
-echo QuestionService: http://localhost:56922/swagger
-echo QuizService: http://localhost:56921/swagger
-echo PaymentService: http://localhost:56920/swagger
-echo SubscriptionService: http://localhost:56926/swagger
-echo HomeDashboardService: http://localhost:56928/swagger
-echo MasterService: http://localhost:5009/swagger
-echo QualificationService: http://localhost:5011/swagger
+echo ExamService: http://192.168.1.14:5000/swagger
+echo UserService: http://192.168.1.14:5002/swagger
+echo AdminService: http://192.168.1.14:56924/swagger
+echo QuestionService: http://192.168.1.14:56922/swagger
+echo QuizService: http://192.168.1.14:56921/swagger
+echo PaymentService: http://192.168.1.14:56920/swagger
+echo SubscriptionService: http://192.168.1.14:56926/swagger
+echo HomeDashboardService: http://192.168.1.14:56928/swagger
+echo MasterService: http://192.168.1.14:5009/swagger
+echo QualificationService: http://192.168.1.14:5011/swagger
+echo TestService: http://192.168.1.14:7001/swagger
+echo.
+echo Mobile App Access URLs:
+echo TestService API: http://192.168.1.14:7001/api
+echo Gateway API: http://192.168.1.14:7000/api
 echo.
 pause

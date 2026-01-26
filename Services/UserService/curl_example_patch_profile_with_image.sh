@@ -1,0 +1,12 @@
+curl -X PATCH "http://localhost:5002/api/users/profile-with-image" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "FullName=John Doe" \
+  -F "Email=john@example.com" \
+  -F "Gender=Male" \
+  -F "Dob=1995-01-15" \
+  -F "StateId=1" \
+  -F "LanguageId=1" \
+  -F "QualificationId=1" \
+  -F "ExamId=1" \
+  -F "IsInterestedInInternationalExam=true" \
+  -F "ProfilePhoto=@/path/to/your/image.jpg"

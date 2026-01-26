@@ -7,5 +7,8 @@ namespace ExamService.Domain.Entities
         
         public int QualificationId { get; set; }
         // Note: Qualification is managed by another service, we only store the ID
+        
+        public int? StreamId { get; set; }
+        // Note: Stream is managed by QualificationService, we only store the ID
     }
 }

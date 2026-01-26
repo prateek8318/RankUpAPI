@@ -46,6 +46,28 @@ namespace ExamService.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Exam>> GetByQualificationAndStreamAsync(int qualificationId, int? streamId)
+        {
+            var query = _context.Exams
+                .Include(e => e.ExamQualifications)
+                .Where(e => e.IsActive);
+
+            if (streamId.HasValue)
+            {
+                // Get exams that match both qualification and stream
+                query = query.Where(e => e.ExamQualifications.Any(eq => 
+                    eq.QualificationId == qualificationId && eq.StreamId == streamId.Value));
+            }
+            else
+            {
+                // If streamId is null, get all exams for this qualification (regardless of stream)
+                query = query.Where(e => e.ExamQualifications.Any(eq => 
+                    eq.QualificationId == qualificationId));
+            }
+
+            return await query.ToListAsync();
+        }
+
         public async Task<Exam> AddAsync(Exam exam)
         {
             await _context.Exams.AddAsync(exam);

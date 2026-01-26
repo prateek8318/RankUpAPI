@@ -813,4 +813,76 @@ namespace HomeDashboardService.Application.DTOs
 
         public decimal? AverageScore { get; set; }
     }
+
+    // Rapid Fire Test with Image Upload DTOs
+    public class CreateRapidFireTestWithImagesDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [Required]
+        public int QuizId { get; set; }
+
+        public int DurationSeconds { get; set; } = 60;
+
+        public int TotalQuestions { get; set; } = 10;
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsFeatured { get; set; } = false;
+    }
+
+    public class UpdateRapidFireTestWithImagesDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [Required]
+        public int QuizId { get; set; }
+
+        public int DurationSeconds { get; set; } = 60;
+
+        public int TotalQuestions { get; set; } = 10;
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public bool IsFeatured { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    // Rapid Fire Test Images Response DTO
+    public class RapidFireTestImagesDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? LogoUrl { get; set; }
+        public string? BackgroundImageUrl { get; set; }
+        public int QuizId { get; set; }
+        public int DurationSeconds { get; set; }
+        public int TotalQuestions { get; set; }
+        public bool IsFeatured { get; set; }
+        public int DisplayOrder { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public bool IsActive { get; set; }
+    }
 }

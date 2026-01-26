@@ -14,6 +14,12 @@ namespace HomeDashboardService.Domain.Entities
         [MaxLength(500)]
         public string? ImageUrl { get; set; }
 
+        [MaxLength(500)]
+        public string? LogoUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? BackgroundImageUrl { get; set; }
+
         public int QuizId { get; set; }
 
         public int DurationSeconds { get; set; } = 60;

@@ -52,5 +52,7 @@ namespace UserService.Domain.Entities
         public DateTime? LastLoginAt { get; set; }
         
         public bool IsPhoneVerified { get; set; } = false;
+        
+        public bool InterestedInIntlExam { get; set; } = false;
     }
 }

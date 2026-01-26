@@ -230,6 +230,8 @@ namespace HomeDashboardService.Application.DTOs
         public string Title { get; set; } = string.Empty;
         public string? Subtitle { get; set; }
         public string? IconUrl { get; set; }
+        public string? LogoUrl { get; set; }
+        public string? BackgroundImageUrl { get; set; }
         public string? NavigationKey { get; set; }
         public bool IsActive { get; set; }
         public int Duration { get; set; }
@@ -323,6 +325,8 @@ namespace HomeDashboardService.Application.DTOs
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
+        public string? LogoUrl { get; set; }
+        public string? BackgroundImageUrl { get; set; }
         public int QuizId { get; set; }
         public int DurationSeconds { get; set; }
         public int TotalQuestions { get; set; }

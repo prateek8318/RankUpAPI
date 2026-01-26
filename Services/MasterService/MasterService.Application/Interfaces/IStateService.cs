@@ -11,5 +11,6 @@ namespace MasterService.Application.Interfaces
         Task<IEnumerable<StateDto>> GetAllStatesAsync(int? languageId = null);
         Task<bool> ToggleStateStatusAsync(int id, bool isActive);
         Task SeedStateLanguagesAsync();
+        Task<int> DeleteStatesWithEmptyNamesAsync();
     }
 }

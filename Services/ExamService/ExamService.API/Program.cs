@@ -42,6 +42,10 @@ builder.Services.AddScoped<IExamQualificationRepository, ExamQualificationReposi
 
 // Register Application Services
 builder.Services.AddScoped<IExamService, ExamService.Application.Services.ExamService>();
+builder.Services.AddScoped<ExamService.API.Services.ExamDataSeedService>();
+
+// Add HttpClient for inter-service communication
+builder.Services.AddHttpClient();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");

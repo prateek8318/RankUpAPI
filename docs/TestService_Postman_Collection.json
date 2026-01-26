@@ -1,0 +1,851 @@
+{
+	"info": {
+		"_postman_id": "testservice-unified-architecture",
+		"name": "Test Service - Unified Architecture",
+		"description": "Complete Postman collection for Test Service API with unified practice modes (Mock Test, Test Series, Deep Practice, Previous Year)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Home Dashboard",
+			"item": [
+				{
+					"name": "Get Home Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/home/dashboard",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"home",
+								"dashboard"
+							]
+						},
+						"description": "Get home dashboard with selected exam, practice modes, resume tests, and daily targets"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Practice Modes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/home/dashboard/practice-modes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"home",
+								"dashboard",
+								"practice-modes"
+							]
+						},
+						"description": "Get all active practice modes (Mock Test, Test Series, Deep Practice, Previous Year)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Exams",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/home/dashboard/exams",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"home",
+								"dashboard",
+								"exams"
+							]
+						},
+						"description": "Get all active exams"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tests Management",
+			"item": [
+				{
+					"name": "Get Tests - Mock Test",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/tests?examId={{exam_id}}&practiceModeId=3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests"
+							],
+							"query": [
+								{
+									"key": "examId",
+									"value": "{{exam_id}}",
+									"description": "Exam ID (required)"
+								},
+								{
+									"key": "practiceModeId",
+									"value": "3",
+									"description": "Practice Mode ID: 3 = Mock Test"
+								}
+							]
+						},
+						"description": "Get Mock Tests for a specific exam"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tests - Test Series",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/tests?examId={{exam_id}}&practiceModeId=4&seriesId={{series_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests"
+							],
+							"query": [
+								{
+									"key": "examId",
+									"value": "{{exam_id}}",
+									"description": "Exam ID (required)"
+								},
+								{
+									"key": "practiceModeId",
+									"value": "4",
+									"description": "Practice Mode ID: 4 = Test Series"
+								},
+								{
+									"key": "seriesId",
+									"value": "{{series_id}}",
+									"description": "Series ID (required for Test Series)"
+								}
+							]
+						},
+						"description": "Get Test Series Tests for a specific exam and series"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tests - Deep Practice",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/tests?examId={{exam_id}}&practiceModeId=5&subjectId={{subject_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests"
+							],
+							"query": [
+								{
+									"key": "examId",
+									"value": "{{exam_id}}",
+									"description": "Exam ID (required)"
+								},
+								{
+									"key": "practiceModeId",
+									"value": "5",
+									"description": "Practice Mode ID: 5 = Deep Practice"
+								},
+								{
+									"key": "subjectId",
+									"value": "{{subject_id}}",
+									"description": "Subject ID (required for Deep Practice)"
+								}
+							]
+						},
+						"description": "Get Deep Practice Tests for a specific exam and subject"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tests - Previous Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/tests?examId={{exam_id}}&practiceModeId=6&year={{year}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests"
+							],
+							"query": [
+								{
+									"key": "examId",
+									"value": "{{exam_id}}",
+									"description": "Exam ID (required)"
+								},
+								{
+									"key": "practiceModeId",
+									"value": "6",
+									"description": "Practice Mode ID: 6 = Previous Year"
+								},
+								{
+									"key": "year",
+									"value": "{{year}}",
+									"description": "Year (required for Previous Year)"
+								}
+							]
+						},
+						"description": "Get Previous Year Tests for a specific exam and year"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Test by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/tests/{{test_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests",
+								"{{test_id}}"
+							]
+						},
+						"description": "Get a specific test by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Test",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"examId\": {{exam_id}},\n  \"practiceModeId\": {{practice_mode_id}},\n  \"seriesId\": {{series_id}},\n  \"subjectId\": {{subject_id}},\n  \"year\": {{year}},\n  \"title\": \"{{test_title}}\",\n  \"description\": \"{{test_description}}\",\n  \"durationInMinutes\": {{duration_minutes}},\n  \"totalQuestions\": {{total_questions}},\n  \"totalMarks\": {{total_marks}},\n  \"passingMarks\": {{passing_marks}},\n  \"instructionsEnglish\": \"{{instructions_english}}\",\n  \"instructionsHindi\": \"{{instructions_hindi}}\",\n  \"displayOrder\": {{display_order}},\n  \"isLocked\": {{is_locked}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tests",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests"
+							]
+						},
+						"description": "Create a new test (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Test",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": {{test_id}},\n  \"examId\": {{exam_id}},\n  \"practiceModeId\": {{practice_mode_id}},\n  \"seriesId\": {{series_id}},\n  \"subjectId\": {{subject_id}},\n  \"year\": {{year}},\n  \"title\": \"{{test_title}}\",\n  \"description\": \"{{test_description}}\",\n  \"durationInMinutes\": {{duration_minutes}},\n  \"totalQuestions\": {{total_questions}},\n  \"totalMarks\": {{total_marks}},\n  \"passingMarks\": {{passing_marks}},\n  \"instructionsEnglish\": \"{{instructions_english}}\",\n  \"instructionsHindi\": \"{{instructions_hindi}}\",\n  \"displayOrder\": {{display_order}},\n  \"isLocked\": {{is_locked}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tests/{{test_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests",
+								"{{test_id}}"
+							]
+						},
+						"description": "Update an existing test (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Test",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tests/{{test_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests",
+								"{{test_id}}"
+							]
+						},
+						"description": "Delete a test (Admin only)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Test Series Management",
+			"item": [
+				{
+					"name": "Get All Test Series",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/testseries",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"testseries"
+							]
+						},
+						"description": "Get all test series"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Test Series by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/testseries/{{series_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"testseries",
+								"{{series_id}}"
+							]
+						},
+						"description": "Get a specific test series by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Test Series by Exam",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/testseries/exam/{{exam_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"testseries",
+								"exam",
+								"{{exam_id}}"
+							]
+						},
+						"description": "Get test series for a specific exam"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Test Series",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"{{series_name}}\",\n  \"description\": \"{{series_description}}\",\n  \"examId\": {{exam_id}},\n  \"durationInMinutes\": {{duration_minutes}},\n  \"totalMarks\": {{total_marks}},\n  \"totalQuestions\": {{total_questions}},\n  \"passingMarks\": {{passing_marks}},\n  \"instructionsEnglish\": \"{{instructions_english}}\",\n  \"instructionsHindi\": \"{{instructions_hindi}}\",\n  \"displayOrder\": {{display_order}},\n  \"isLocked\": {{is_locked}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/testseries",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"testseries"
+							]
+						},
+						"description": "Create a new test series (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Test Series",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": {{series_id}},\n  \"name\": \"{{series_name}}\",\n  \"description\": \"{{series_description}}\",\n  \"examId\": {{exam_id}},\n  \"durationInMinutes\": {{duration_minutes}},\n  \"totalMarks\": {{total_marks}},\n  \"totalQuestions\": {{total_questions}},\n  \"passingMarks\": {{passing_marks}},\n  \"instructionsEnglish\": \"{{instructions_english}}\",\n  \"instructionsHindi\": \"{{instructions_hindi}}\",\n  \"displayOrder\": {{display_order}},\n  \"isLocked\": {{is_locked}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/testseries/{{series_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"testseries",
+								"{{series_id}}"
+							]
+						},
+						"description": "Update an existing test series (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Test Series",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/testseries/{{series_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"testseries",
+								"{{series_id}}"
+							]
+						},
+						"description": "Delete a test series (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Upload Tests to Series",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "{{csv_file_path}}"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tests/bulk-upload/{{series_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tests",
+								"bulk-upload",
+								"{{series_id}}"
+							]
+						},
+						"description": "Bulk upload tests to a test series using CSV file (Admin only)\n\nCSV Format:\nTestTitle,Description,DurationInMinutes,TotalQuestions,TotalMarks,PassingMarks,InstructionsEnglish,InstructionsHindi,DisplayOrder"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Test Execution",
+			"item": [
+				{
+					"name": "Start Test",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/test-execution/start/{{test_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test-execution",
+								"start",
+								"{{test_id}}"
+							]
+						},
+						"description": "Start a test attempt"
+					},
+					"response": []
+				},
+				{
+					"name": "Save Answer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"questionId\": {{question_id}},\n  \"answer\": \"{{user_answer}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/test-execution/save-answer/{{attempt_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test-execution",
+								"save-answer",
+								"{{attempt_id}}"
+							]
+						},
+						"description": "Save answer for a specific question in a test attempt"
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Test",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/test-execution/submit/{{attempt_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test-execution",
+								"submit",
+								"{{attempt_id}}"
+							]
+						},
+						"description": "Submit a completed test attempt and get results"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Test Attempt",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/test-execution/attempt/{{attempt_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test-execution",
+								"attempt",
+								"{{attempt_id}}"
+							]
+						},
+						"description": "Get details of a specific test attempt"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Test Questions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/test-execution/attempt/{{attempt_id}}/questions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test-execution",
+								"attempt",
+								"{{attempt_id}}",
+								"questions"
+							]
+						},
+						"description": "Get all questions for a test attempt with user's saved answers"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://localhost:7001",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "your_jwt_token_here",
+			"type": "string"
+		},
+		{
+			"key": "exam_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "series_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "subject_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "year",
+			"value": "2023",
+			"type": "string"
+		},
+		{
+			"key": "test_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "attempt_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "question_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "practice_mode_id",
+			"value": "3",
+			"type": "string"
+		},
+		{
+			"key": "test_title",
+			"value": "Sample Test Title",
+			"type": "string"
+		},
+		{
+			"key": "test_description",
+			"value": "Sample test description",
+			"type": "string"
+		},
+		{
+			"key": "duration_minutes",
+			"value": "60",
+			"type": "string"
+		},
+		{
+			"key": "total_questions",
+			"value": "50",
+			"type": "string"
+		},
+		{
+			"key": "total_marks",
+			"value": "100",
+			"type": "string"
+		},
+		{
+			"key": "passing_marks",
+			"value": "35",
+			"type": "string"
+		},
+		{
+			"key": "instructions_english",
+			"value": "Read all instructions carefully before starting the test",
+			"type": "string"
+		},
+		{
+			"key": "instructions_hindi",
+			"value": "परीक्षा शुरू करने से पहले सभी निर्देशों को ध्यान से पढ़ें",
+			"type": "string"
+		},
+		{
+			"key": "display_order",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "is_locked",
+			"value": "false",
+			"type": "string"
+		},
+		{
+			"key": "series_name",
+			"value": "Sample Test Series",
+			"type": "string"
+		},
+		{
+			"key": "series_description",
+			"value": "Sample test series description",
+			"type": "string"
+		},
+		{
+			"key": "user_answer",
+			"value": "A",
+			"type": "string"
+		},
+		{
+			"key": "csv_file_path",
+			"value": "/path/to/your/tests.csv",
+			"type": "string"
+		}
+	]
+}

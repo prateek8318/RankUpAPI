@@ -16,17 +16,22 @@ namespace QualificationService.Infrastructure.Repositories
 
         public async Task<Qualification?> GetByIdAsync(int id)
         {
-            return await _context.Qualifications.FindAsync(id);
+            return await _context.Qualifications
+                .Include(q => q.Stream)
+                .FirstOrDefaultAsync(q => q.Id == id);
         }
 
         public async Task<IEnumerable<Qualification>> GetAllAsync()
         {
-            return await _context.Qualifications.ToListAsync();
+            return await _context.Qualifications
+                .Include(q => q.Stream)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Qualification>> GetActiveAsync()
         {
             return await _context.Qualifications
+                .Include(q => q.Stream)
                 .Where(q => q.IsActive)
                 .ToListAsync();
         }

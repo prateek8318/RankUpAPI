@@ -18,6 +18,8 @@ namespace ExamService.Domain.Entities
         [MaxLength(500)]
         public string? ImageUrl { get; set; }
         
+        public bool IsInternational { get; set; } = false; // Default to Indian exams
+        
         // Navigation property for many-to-many relationship with Qualifications
         public ICollection<ExamQualification> ExamQualifications { get; set; } = new List<ExamQualification>();
     }

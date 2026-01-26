@@ -11,5 +11,6 @@ namespace MasterService.Application.Interfaces
         Task UpdateAsync(State state);
         Task DeleteAsync(State state);
         Task<int> SaveChangesAsync();
+        Task<IEnumerable<State>> GetStatesWithEmptyNamesAsync();
     }
 }

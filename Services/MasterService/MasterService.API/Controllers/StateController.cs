@@ -123,5 +123,21 @@ namespace MasterService.API.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        [HttpDelete("empty-names")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteStatesWithEmptyNames()
+        {
+            try
+            {
+                var deletedCount = await _stateService.DeleteStatesWithEmptyNamesAsync();
+                return Ok(new { message = $"Deleted {deletedCount} states with empty names" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting states with empty names");
+                return StatusCode(500, "Internal server error");
+            }
+        }
     }
 }

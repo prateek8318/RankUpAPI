@@ -473,6 +473,183 @@ namespace HomeDashboardService.API.Controllers
             }
         }
 
+        // Create Rapid Fire Test with Form Data (supports logo and background image upload)
+        [HttpPost("rapid-fire-tests/with-images")]
+        public async Task<ActionResult<RapidFireTestImagesDto>> CreateRapidFireTestWithImages(
+            [FromForm] CreateRapidFireTestWithImagesDto createDto,
+            IFormFile? logoFile = null,
+            IFormFile? backgroundImageFile = null)
+        {
+            try
+            {
+                var test = _mapper.Map<Domain.Entities.RapidFireTest>(createDto);
+
+                // Handle logo upload
+                if (logoFile != null && logoFile.Length > 0)
+                {
+                    var logoUrl = await UploadImageFile(logoFile, "rapid-fire-tests", "logo");
+                    test.LogoUrl = logoUrl;
+                }
+
+                // Handle background image upload
+                if (backgroundImageFile != null && backgroundImageFile.Length > 0)
+                {
+                    var backgroundImageUrl = await UploadImageFile(backgroundImageFile, "rapid-fire-tests", "background");
+                    test.BackgroundImageUrl = backgroundImageUrl;
+                }
+
+                await _rapidFireTestRepository.AddAsync(test);
+                await _rapidFireTestRepository.SaveChangesAsync();
+                
+                var result = _mapper.Map<RapidFireTestImagesDto>(test);
+                return CreatedAtAction(nameof(GetRapidFireTestWithImages), new { id = test.Id }, result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating rapid fire test with images");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // Update Rapid Fire Test with Form Data (supports logo and background image upload)
+        [HttpPut("rapid-fire-tests/{id}/with-images")]
+        public async Task<ActionResult<RapidFireTestImagesDto>> UpdateRapidFireTestWithImages(
+            int id,
+            [FromForm] UpdateRapidFireTestWithImagesDto updateDto,
+            IFormFile? logoFile = null,
+            IFormFile? backgroundImageFile = null)
+        {
+            try
+            {
+                var test = await _rapidFireTestRepository.GetByIdAsync(id);
+                if (test == null)
+                    return NotFound();
+
+                _mapper.Map(updateDto, test);
+                test.UpdatedAt = DateTime.UtcNow;
+
+                // Handle logo upload
+                if (logoFile != null && logoFile.Length > 0)
+                {
+                    var logoUrl = await UploadImageFile(logoFile, "rapid-fire-tests", "logo");
+                    test.LogoUrl = logoUrl;
+                }
+
+                // Handle background image upload
+                if (backgroundImageFile != null && backgroundImageFile.Length > 0)
+                {
+                    var backgroundImageUrl = await UploadImageFile(backgroundImageFile, "rapid-fire-tests", "background");
+                    test.BackgroundImageUrl = backgroundImageUrl;
+                }
+
+                await _rapidFireTestRepository.UpdateAsync(test);
+                await _rapidFireTestRepository.SaveChangesAsync();
+                
+                var result = _mapper.Map<RapidFireTestImagesDto>(test);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating rapid fire test with images: {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // Get Rapid Fire Test with all image URLs
+        [HttpGet("rapid-fire-tests/{id}/with-images")]
+        public async Task<ActionResult<RapidFireTestImagesDto>> GetRapidFireTestWithImages(int id)
+        {
+            try
+            {
+                var test = await _rapidFireTestRepository.GetByIdAsync(id);
+                if (test == null)
+                    return NotFound();
+
+                return Ok(_mapper.Map<RapidFireTestImagesDto>(test));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting rapid fire test with images: {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // Upload logo for specific rapid fire test
+        [HttpPost("rapid-fire-tests/{id}/upload-logo")]
+        public async Task<ActionResult<string>> UploadRapidFireTestLogo(int id, IFormFile logoFile)
+        {
+            try
+            {
+                if (logoFile == null || logoFile.Length == 0)
+                    return BadRequest("No logo file uploaded.");
+
+                var test = await _rapidFireTestRepository.GetByIdAsync(id);
+                if (test == null)
+                    return NotFound();
+
+                var logoUrl = await UploadImageFile(logoFile, "rapid-fire-tests", "logo");
+                test.LogoUrl = logoUrl;
+                test.UpdatedAt = DateTime.UtcNow;
+
+                await _rapidFireTestRepository.UpdateAsync(test);
+                await _rapidFireTestRepository.SaveChangesAsync();
+
+                return Ok(new { LogoUrl = logoUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading logo for rapid fire test: {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // Upload background image for specific rapid fire test
+        [HttpPost("rapid-fire-tests/{id}/upload-background")]
+        public async Task<ActionResult<string>> UploadRapidFireTestBackground(int id, IFormFile backgroundImageFile)
+        {
+            try
+            {
+                if (backgroundImageFile == null || backgroundImageFile.Length == 0)
+                    return BadRequest("No background image file uploaded.");
+
+                var test = await _rapidFireTestRepository.GetByIdAsync(id);
+                if (test == null)
+                    return NotFound();
+
+                var backgroundImageUrl = await UploadImageFile(backgroundImageFile, "rapid-fire-tests", "background");
+                test.BackgroundImageUrl = backgroundImageUrl;
+                test.UpdatedAt = DateTime.UtcNow;
+
+                await _rapidFireTestRepository.UpdateAsync(test);
+                await _rapidFireTestRepository.SaveChangesAsync();
+
+                return Ok(new { BackgroundImageUrl = backgroundImageUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading background image for rapid fire test: {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // Helper method for image upload
+        private async Task<string> UploadImageFile(IFormFile file, string folderName, string prefix)
+        {
+            var uploadsFolder = Path.Combine(_environment.ContentRootPath, "wwwroot", "images", folderName);
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var uniqueFileName = $"{Guid.NewGuid()}_{prefix}_{file.FileName}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+
+            return $"/images/{folderName}/{uniqueFileName}";
+        }
+
         #endregion
 
         #region Free Tests

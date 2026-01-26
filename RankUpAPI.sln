@@ -23,7 +23,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubscriptionService.API", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserService.API", "Services\UserService\UserService.API\UserService.API.csproj", "{E5F6A7B8-C9D0-4E5F-9A0B-4C5D6E7F8A9B}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{5854FF58-B8C5-05C6-5BF2-ACE42193F22B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestService.API", "Services\TestService\TestService.API\TestService.API.csproj", "{A5B6C7D8-E9F0-4A5B-9C0D-4E5F6A7B8C9D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GatewayAPI", "Services\GatewayAPI\GatewayAPI.csproj", "{0FF7263D-1A12-4A57-9C3D-BCAB694B1050}"
 EndProject

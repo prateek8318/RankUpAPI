@@ -50,6 +50,9 @@ namespace ExamService.Infrastructure.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsInternational")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -90,6 +93,9 @@ namespace ExamService.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
+
+                    b.Property<int?>("StreamId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");

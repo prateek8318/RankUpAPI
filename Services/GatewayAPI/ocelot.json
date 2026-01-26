@@ -207,9 +207,41 @@
       ],
       "UpstreamPathTemplate": "/api/admin/dashboard/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/testservice/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7001
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 7001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/testservice/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/testservice/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7001
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 7001
+        }
+      ],
+      "UpstreamPathTemplate": "/api/testservice/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "http://localhost:8000"
+    "BaseUrl": "http://192.168.1.14:7000"
   }
 }

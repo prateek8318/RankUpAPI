@@ -141,6 +141,9 @@ namespace UserService.Application.Services
             if (patchRequest.ExamId.HasValue)
                 user.ExamId = patchRequest.ExamId.Value;
 
+            if (patchRequest.InterestedInIntlExam.HasValue)
+                user.InterestedInIntlExam = patchRequest.InterestedInIntlExam.Value;
+
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);
             await _userRepository.SaveChangesAsync();
@@ -195,6 +198,9 @@ namespace UserService.Application.Services
 
             if (formData.ExamId.HasValue)
                 user.ExamId = formData.ExamId.Value;
+
+            if (formData.InterestedInIntlExam.HasValue)
+                user.InterestedInIntlExam = formData.InterestedInIntlExam.Value;
 
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);

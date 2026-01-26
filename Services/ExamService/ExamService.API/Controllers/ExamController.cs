@@ -22,21 +22,30 @@ namespace ExamService.API.Controllers
         }
 
         /// <summary>
-        /// Get all exams or filter by qualification ID
+        /// Get all exams or filter by qualification ID, stream ID and/or international status
         /// </summary>
         /// <param name="qualificationId">Optional qualification ID to filter exams</param>
+        /// <param name="streamId">Optional stream ID to filter exams</param>
+        /// <param name="isInternational">Optional filter for international exams (true/false)</param>
         /// <returns>List of exams</returns>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExams([FromQuery] int? qualificationId = null)
+        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExams([FromQuery] int? qualificationId = null, [FromQuery] int? streamId = null, [FromQuery] bool? isInternational = null)
         {
             if (qualificationId.HasValue)
             {
-                var exams = await _examService.GetExamsByQualificationAsync(qualificationId.Value);
+                var exams = await _examService.GetExamsByQualificationAsync(qualificationId.Value, streamId);
+                
+                // Filter by international status if provided
+                if (isInternational.HasValue)
+                {
+                    exams = exams.Where(e => e.IsInternational == isInternational.Value);
+                }
+                
                 return Ok(exams);
             }
             
-            var allExams = await _examService.GetAllExamsAsync();
+            var allExams = await _examService.GetAllExamsAsync(isInternational);
             return Ok(allExams);
         }
 
@@ -57,16 +66,37 @@ namespace ExamService.API.Controllers
         }
 
         /// <summary>
-        /// Get exams by qualification ID
+        /// Get exams by qualification ID and optionally by stream ID
         /// </summary>
         /// <param name="qualificationId">Qualification ID</param>
-        /// <returns>List of exams for the qualification</returns>
+        /// <param name="streamId">Optional stream ID</param>
+        /// <returns>List of exams for the qualification and stream</returns>
         [HttpGet("by-qualification/{qualificationId}")]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExamsByQualification(int qualificationId)
+        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExamsByQualification(int qualificationId, [FromQuery] int? streamId = null)
         {
-            var exams = await _examService.GetExamsByQualificationAsync(qualificationId);
+            var exams = await _examService.GetExamsByQualificationAsync(qualificationId, streamId);
             return Ok(exams);
+        }
+
+        /// <summary>
+        /// Get exams based on user's international exam interest
+        /// </summary>
+        /// <returns>List of exams filtered by user preference</returns>
+        [HttpGet("for-user")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExamsForUser()
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var exams = await _examService.GetExamsForUserAsync(userId);
+                return Ok(exams);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error retrieving exams for user: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -175,7 +205,8 @@ namespace ExamService.API.Controllers
                 TotalMarks = exam.TotalMarks,
                 PassingMarks = exam.PassingMarks,
                 ImageUrl = imageUrl,
-                QualificationIds = exam.QualificationIds
+                QualificationIds = exam.QualificationIds,
+                StreamIds = exam.StreamIds
             };
 
             var result = await _examService.UpdateExamAsync(id, updateDto);
@@ -183,6 +214,21 @@ namespace ExamService.API.Controllers
                 return BadRequest("Failed to update exam with image URL.");
 
             return Ok(new { ImageUrl = imageUrl });
+        }
+
+        [HttpPost("seed-international-exams")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SeedInternationalExams()
+        {
+            try
+            {
+                var createdCount = await _examService.SeedInternationalExamsAsync();
+                return Ok(new { message = $"Created {createdCount} international exams" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error seeding international exams: {ex.Message}");
+            }
         }
     }
 }

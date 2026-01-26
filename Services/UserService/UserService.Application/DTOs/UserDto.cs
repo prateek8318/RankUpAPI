@@ -24,6 +24,7 @@ namespace UserService.Application.DTOs
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool IsNewUser { get; set; } // Added to identify new vs existing user
+        public bool InterestedInIntlExam { get; set; }
     }
 
     public class ProfileUpdateRequest
@@ -51,6 +52,7 @@ namespace UserService.Application.DTOs
         public int? LanguageId { get; set; }
         public int? QualificationId { get; set; }
         public int? ExamId { get; set; }
+        public bool? InterestedInIntlExam { get; set; }
     }
 
     public class PatchProfileFormData
@@ -63,6 +65,7 @@ namespace UserService.Application.DTOs
         public int? LanguageId { get; set; }
         public int? QualificationId { get; set; }
         public int? ExamId { get; set; }
+        public bool? InterestedInIntlExam { get; set; }
         public IFormFile? ProfilePhoto { get; set; }
     }
 

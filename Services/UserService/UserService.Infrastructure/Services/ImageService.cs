@@ -43,9 +43,24 @@ namespace UserService.Infrastructure.Services
 
                 // Create uploads directory if it doesn't exist
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles");
-                if (!Directory.Exists(uploadsFolder))
+                _logger.LogInformation($"Attempting to create/use directory: {uploadsFolder}");
+                
+                try
                 {
-                    Directory.CreateDirectory(uploadsFolder);
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                        _logger.LogInformation($"Created directory: {uploadsFolder}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Directory already exists: {uploadsFolder}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to create directory: {uploadsFolder}");
+                    throw new InvalidOperationException("Failed to create uploads directory. Please check server permissions.", ex);
                 }
 
                 // Generate unique filename
@@ -53,9 +68,19 @@ namespace UserService.Infrastructure.Services
                 var filePath = Path.Combine(uploadsFolder, fileName);
 
                 // Save the file
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                _logger.LogInformation($"Attempting to save file: {filePath}");
+                try
                 {
-                    await imageFile.CopyToAsync(stream);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await imageFile.CopyToAsync(stream);
+                    }
+                    _logger.LogInformation($"File saved successfully: {filePath}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to save file: {filePath}");
+                    throw new InvalidOperationException("Failed to save the uploaded file. Please check server permissions and disk space.", ex);
                 }
 
                 // Return relative path

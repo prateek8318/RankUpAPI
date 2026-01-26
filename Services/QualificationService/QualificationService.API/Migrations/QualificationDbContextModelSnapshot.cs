@@ -48,6 +48,9 @@ namespace QualificationService.API.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("StreamId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -55,7 +58,55 @@ namespace QualificationService.API.Migrations
 
                     b.HasIndex("Name");
 
+                    b.HasIndex("StreamId");
+
                     b.ToTable("Qualifications");
+                });
+
+            modelBuilder.Entity("QualificationService.Domain.Entities.Stream", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Streams");
+                });
+
+            modelBuilder.Entity("QualificationService.Domain.Entities.Qualification", b =>
+                {
+                    b.HasOne("QualificationService.Domain.Entities.Stream", "Stream")
+                        .WithMany()
+                        .HasForeignKey("StreamId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Stream");
                 });
 #pragma warning restore 612, 618
         }

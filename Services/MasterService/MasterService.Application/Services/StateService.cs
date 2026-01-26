@@ -157,5 +157,20 @@ namespace MasterService.Application.Services
             // or a separate seeding service to avoid circular dependencies
             await Task.CompletedTask;
         }
+
+        public async Task<int> DeleteStatesWithEmptyNamesAsync()
+        {
+            var statesToDelete = await _stateRepository.GetStatesWithEmptyNamesAsync();
+            var deletedCount = 0;
+
+            foreach (var state in statesToDelete)
+            {
+                await _stateRepository.DeleteAsync(state);
+                deletedCount++;
+            }
+
+            await _stateRepository.SaveChangesAsync();
+            return deletedCount;
+        }
     }
 }

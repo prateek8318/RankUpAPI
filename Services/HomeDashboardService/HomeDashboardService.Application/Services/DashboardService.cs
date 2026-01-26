@@ -562,7 +562,7 @@ namespace HomeDashboardService.Application.Services
                     Title = pm.Name,
                     Subtitle = pm.Description,
                     IconUrl = pm.IconUrl,
-                    NavigationKey = pm.LinkUrl ?? $"practice/{pm.Type}",
+                    NavigationKey = pm.LinkUrl ?? $"practice/{pm.Id}",
                     IsActive = pm.IsActive
                 }).ToList();
 
@@ -606,6 +606,8 @@ namespace HomeDashboardService.Application.Services
                     Title = rft.Title,
                     Subtitle = rft.Description,
                     IconUrl = rft.ImageUrl,
+                    LogoUrl = rft.LogoUrl,
+                    BackgroundImageUrl = rft.BackgroundImageUrl,
                     NavigationKey = $"rapid-fire/{rft.Id}",
                     IsActive = rft.IsActive,
                     Duration = rft.DurationSeconds

@@ -31,8 +31,11 @@ builder.Services.AddDbContext<QualificationDbContext>(options =>
 });
 
 builder.Services.AddScoped<IQualificationRepository, QualificationRepository>();
+builder.Services.AddScoped<IStreamRepository, StreamRepository>();
 
 builder.Services.AddScoped<IQualificationService, QualificationService.Application.Services.QualificationService>();
+builder.Services.AddScoped<IStreamService, StreamService>();
+builder.Services.AddScoped<QualificationService.API.Services.DataSeedService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);

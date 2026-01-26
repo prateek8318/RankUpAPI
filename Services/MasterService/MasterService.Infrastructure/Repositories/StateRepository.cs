@@ -61,5 +61,13 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await _context.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<State>> GetStatesWithEmptyNamesAsync()
+        {
+            return await _context.States
+                .Include(s => s.StateLanguages)
+                .Where(s => !s.StateLanguages.Any() || s.StateLanguages.All(sl => !sl.IsActive))
+                .ToListAsync();
+        }
     }
 }

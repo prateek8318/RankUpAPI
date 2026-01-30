@@ -32,7 +32,7 @@ builder.Services.AddDbContext<UserDbContext>(options =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService.Application.Services.UserService>();
-builder.Services.AddSingleton<IOtpService, OtpService>();
+builder.Services.AddSingleton<IOtpService, UserService.Application.Services.OtpService>();
 builder.Services.AddScoped<IImageService, UserService.Infrastructure.Services.ImageService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");

@@ -39,6 +39,15 @@ namespace MasterService.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<State>> GetActiveByCountryCodeAsync(string countryCode)
+        {
+            return await _context.States
+                .Include(s => s.StateLanguages)
+                .ThenInclude(sl => sl.Language)
+                .Where(s => s.IsActive && s.CountryCode == countryCode)
+                .ToListAsync();
+        }
+
         public async Task<State> AddAsync(State state)
         {
             await _context.States.AddAsync(state);

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using UserService.Application.Interfaces;
 using UserService.Domain.ValueObjects;
 
@@ -7,10 +8,20 @@ namespace UserService.Application.Services
     {
         private readonly Dictionary<string, OtpCode> _otpStore = new();
         private readonly Random _random = new();
+        private readonly IConfiguration _configuration;
+
+        public OtpService(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
 
         public string GenerateOtp()
         {
-            return _random.Next(100000, 999999).ToString();
+            var otpLength = _configuration.GetValue<int>("OtpSettings:OtpLength", 4);
+            var minValue = (int)Math.Pow(10, otpLength - 1);
+            var maxValue = (int)Math.Pow(10, otpLength) - 1;
+            
+            return _random.Next(minValue, maxValue).ToString();
         }
 
         public void StoreOtp(string phoneNumber, string otp)

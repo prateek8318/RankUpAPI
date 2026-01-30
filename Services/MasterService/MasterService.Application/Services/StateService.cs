@@ -138,6 +138,31 @@ namespace MasterService.Application.Services
             return stateDtos;
         }
 
+        public async Task<IEnumerable<StateDto>> GetStatesByCountryCodeAsync(string countryCode, int? languageId = null)
+        {
+            var states = await _stateRepository.GetActiveByCountryCodeAsync(countryCode);
+            var stateDtos = states.OrderBy(s => s.Name).Select(s => _mapper.Map<StateDto>(s)).ToList();
+
+            // Set names based on language preference
+            if (languageId.HasValue)
+            {
+                foreach (var stateDto in stateDtos)
+                {
+                    var state = states.FirstOrDefault(s => s.Id == stateDto.Id);
+                    if (state != null)
+                    {
+                        var languageName = state.StateLanguages
+                            .FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
+                        
+                        if (!string.IsNullOrEmpty(languageName))
+                            stateDto.Name = languageName;
+                    }
+                }
+            }
+
+            return stateDtos;
+        }
+
         public async Task<bool> ToggleStateStatusAsync(int id, bool isActive)
         {
             var state = await _stateRepository.GetByIdAsync(id);

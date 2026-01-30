@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -52,7 +53,7 @@ namespace UserService.API.Controllers
 
             // Use default OTP from configuration
             var useRandomOtp = _configuration.GetValue<bool>("OtpSettings:UseRandomOtp", false);
-            var defaultOtp = _configuration.GetValue<string>("OtpSettings:DefaultOtp", "1234");
+            var defaultOtp = _configuration.GetValue<string>("OtpSettings:DefaultOtp", "123456");
             var otp = useRandomOtp ? _otpService.GenerateOtp() : defaultOtp;
             
             // Store OTP with full phone number (country code + mobile number)
@@ -188,6 +189,14 @@ namespace UserService.API.Controllers
                 return NotFound(ApiResponse.CreateNotFound(
                     $"User profile with ID {userId} was not found for update",
                     ErrorCodes.USER_NOT_FOUND));
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("IX_Users_Email") == true 
+                                               || ex.InnerException?.Message.Contains("Email") == true)
+            {
+                _logger.LogWarning(ex, "Duplicate email detected while updating user profile for ID {UserId}", userId);
+                return BadRequest(ApiResponse.CreateBadRequest(
+                    "This email address is already registered with another account. Please use a different email.",
+                    ErrorCodes.DUPLICATE_EMAIL));
             }
             catch (Exception ex)
             {

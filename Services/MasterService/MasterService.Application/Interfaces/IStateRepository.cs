@@ -7,6 +7,7 @@ namespace MasterService.Application.Interfaces
         Task<State?> GetByIdAsync(int id);
         Task<IEnumerable<State>> GetAllAsync();
         Task<IEnumerable<State>> GetActiveAsync();
+        Task<IEnumerable<State>> GetActiveByCountryCodeAsync(string countryCode);
         Task<State> AddAsync(State state);
         Task UpdateAsync(State state);
         Task DeleteAsync(State state);

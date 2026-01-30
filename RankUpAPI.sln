@@ -180,6 +180,6 @@ Global
 		SolutionGuid = {2CBB90DA-105B-4C69-82A5-DF0A08877181}
 	EndGlobalSection
 	GlobalSection(SolutionStartupProjects) = preSolution
-		{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D} = ExamService.API
+		{0FF7263D-1A12-4A57-9C3D-BCAB694B1050} = GatewayAPI
 	EndGlobalSection
 EndGlobal

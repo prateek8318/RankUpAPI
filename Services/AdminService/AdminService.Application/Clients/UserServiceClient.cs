@@ -170,19 +170,25 @@ namespace AdminService.Application.Clients
             try
             {
                 // Add service-to-service authentication
-                _httpClient.DefaultRequestHeaders.Authorization = 
+                _httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", GetServiceToken());
-                
+
                 var response = await _retryPolicy.ExecuteAsync(async () =>
                     await _httpClient.GetAsync("/api/admin/users/count"));
 
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    var result = await response.Content.ReadFromJsonAsync<Dictionary<string, int>>();
-                    return result?.GetValueOrDefault("totalUsers", 0) ?? 0;
+                    _logger.LogWarning("UserService responded with non-success status code {StatusCode} when fetching total users count", response.StatusCode);
+                    return 0;
                 }
 
-                return 0;
+                // The UserService wraps data using ApiResponse<T>, so deserialize accordingly
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<Dictionary<string, int>>>();
+                var totalUsers = apiResponse?.Data != null && apiResponse.Data.TryGetValue("totalUsers", out var count)
+                    ? count
+                    : 0;
+
+                return totalUsers;
             }
             catch (Exception ex)
             {
@@ -196,19 +202,25 @@ namespace AdminService.Application.Clients
             try
             {
                 // Add service-to-service authentication
-                _httpClient.DefaultRequestHeaders.Authorization = 
+                _httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", GetServiceToken());
-                
+
                 var response = await _retryPolicy.ExecuteAsync(async () =>
                     await _httpClient.GetAsync("/api/admin/users/daily-active-count"));
 
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    var result = await response.Content.ReadFromJsonAsync<Dictionary<string, int>>();
-                    return result?.GetValueOrDefault("dailyActiveUsers", 0) ?? 0;
+                    _logger.LogWarning("UserService responded with non-success status code {StatusCode} when fetching daily active users count", response.StatusCode);
+                    return 0;
                 }
 
-                return 0;
+                // The UserService wraps data using ApiResponse<T>, so deserialize accordingly
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<Dictionary<string, int>>>();
+                var dailyActiveUsers = apiResponse?.Data != null && apiResponse.Data.TryGetValue("dailyActiveUsers", out var count)
+                    ? count
+                    : 0;
+
+                return dailyActiveUsers;
             }
             catch (Exception ex)
             {

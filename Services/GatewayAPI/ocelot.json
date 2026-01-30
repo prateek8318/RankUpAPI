@@ -50,7 +50,7 @@
     },
     {
       "DownstreamPathTemplate": "/api/admin/{everything}",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
@@ -225,23 +225,23 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
     },
     {
-      "DownstreamPathTemplate": "/api/testservice/{everything}",
+      "DownstreamPathTemplate": "/api/questions/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 7001
+          "Port": 56922
         },
         {
           "Host": "192.168.1.14",
-          "Port": 7001
+          "Port": 56922
         }
       ],
-      "UpstreamPathTemplate": "/api/testservice/{everything}",
+      "UpstreamPathTemplate": "/api/questions/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "http://192.168.1.14:7000"
+    "BaseUrl": "http://localhost:8000"
   }
 }

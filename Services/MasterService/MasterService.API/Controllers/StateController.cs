@@ -20,11 +20,21 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<StateDto>>> GetStates([FromQuery] int? languageId = null)
+        public async Task<ActionResult<IEnumerable<StateDto>>> GetStates([FromQuery] int? languageId = null, [FromQuery] string? countryCode = null)
         {
             try
             {
-                var states = await _stateService.GetAllStatesAsync(languageId);
+                IEnumerable<StateDto> states;
+                
+                if (!string.IsNullOrEmpty(countryCode))
+                {
+                    states = await _stateService.GetStatesByCountryCodeAsync(countryCode, languageId);
+                }
+                else
+                {
+                    states = await _stateService.GetAllStatesAsync(languageId);
+                }
+                
                 return Ok(states);
             }
             catch (Exception ex)

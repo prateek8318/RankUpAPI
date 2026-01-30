@@ -9,6 +9,7 @@ namespace MasterService.Application.Interfaces
         Task<bool> DeleteStateAsync(int id);
         Task<StateDto?> GetStateByIdAsync(int id, int? languageId = null);
         Task<IEnumerable<StateDto>> GetAllStatesAsync(int? languageId = null);
+        Task<IEnumerable<StateDto>> GetStatesByCountryCodeAsync(string countryCode, int? languageId = null);
         Task<bool> ToggleStateStatusAsync(int id, bool isActive);
         Task SeedStateLanguagesAsync();
         Task<int> DeleteStatesWithEmptyNamesAsync();

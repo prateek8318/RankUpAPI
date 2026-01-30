@@ -144,6 +144,8 @@ namespace MasterService.API.Controllers
                 return Ok(new { message = $"Deleted {deletedCount} states with empty names" });
             }
             catch (Exception ex)
+
+
             {
                 _logger.LogError(ex, "Error deleting states with empty names");
                 return StatusCode(500, "Internal server error");

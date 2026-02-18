@@ -14,6 +14,8 @@ namespace MasterService.Domain.Entities
         [MaxLength(10)]
         public string? CountryCode { get; set; }
         
+        public bool IsActive { get; set; } = true;
+        
         public ICollection<StateLanguage> StateLanguages { get; set; } = new List<StateLanguage>();
     }
 }

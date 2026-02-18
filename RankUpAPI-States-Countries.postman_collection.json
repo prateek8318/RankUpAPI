@@ -1,0 +1,697 @@
+{
+	"info": {
+		"_postman_id": "f4c5e8f0-4c7a-4b8e-8e2f9e6f7e3a",
+		"name": "RankUpAPI - States & Countries",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "f4c5e8f0-4c7a-4b8e-8e2f9e6f7e3a"
+	},
+	"item": [
+		{
+			"name": "🌍 States API",
+			"item": [
+				{
+					"name": "Get All States (Public)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/states",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "states"],
+							"query": [
+								{
+									"key": "languageId",
+									"value": "1",
+									"description": "Language ID (1=English, 2=Hindi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get States by Country Code",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/states?countryCode={{countryCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "states"],
+							"query": [
+								{
+									"key": "countryCode",
+									"value": "IN",
+									"description": "Country Code (e.g., IN, US, UK)"
+								},
+								{
+									"key": "languageId",
+									"value": "1",
+									"description": "Language ID (1=English, 2=Hindi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get State by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/states/{{stateId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "states", "{{stateId}}"],
+							"query": [
+								{
+									"key": "languageId",
+									"value": "1",
+									"description": "Language ID (1=English, 2=Hindi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create State (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nameEn\": \"New State\",\n  \"nameHi\": \"नया राज्य\",\n  \"countryCode\": \"IN\",\n  \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/states",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "states"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update State (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"nameEn\": \"Updated State\",\n  \"nameHi\": \"अपडेटेड राज्य\",\n  \"countryCode\": \"IN\",\n  \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/states/{{stateId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "states", "{{stateId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete State (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/states/{{stateId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "states", "{{stateId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle State Status (Admin)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "true",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/states/{{stateId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "states", "{{stateId}}", "status"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏷️ Categories API",
+			"item": [
+				{
+					"name": "Get All Categories (Public)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories"],
+							"query": [
+								{
+									"key": "language",
+									"value": "en",
+									"description": "Language (en, hi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Categories (Optimized)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/all-optimized",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "all-optimized"],
+							"query": [
+								{
+									"key": "language",
+									"value": "en",
+									"description": "Language (en, hi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Categories Data (Public)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "all"],
+							"query": [
+								{
+									"key": "language",
+									"value": "en",
+									"description": "Language (en, hi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Qualifications (Public)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/qualifications",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "qualifications"],
+							"query": [
+								{
+									"key": "language",
+									"value": "en",
+									"description": "Language (en, hi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Exam Categories (Public)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/exam-categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "exam-categories"],
+							"query": [
+								{
+									"key": "language",
+									"value": "en",
+									"description": "Language (en, hi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Streams (Public)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/streams",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "streams"],
+							"query": [
+								{
+									"key": "language",
+									"value": "en",
+									"description": "Language (en, hi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category by ID (Public)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "{{categoryId}}"],
+							"query": [
+								{
+									"key": "language",
+									"value": "en",
+									"description": "Language (en, hi)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Category (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nameEn\": \"Science\",\n  \"nameHi\": \"विज्ञान\",\n  \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"nameEn\": \"Updated Science\",\n  \"nameHi\": \"अपडेटेड विज्ञान\",\n  \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "{{categoryId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "{{categoryId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Category Status (Admin)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "true",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/{{categoryId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "{{categoryId}}", "status"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👤 Admin Authentication",
+			"item": [
+				{
+					"name": "Admin Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"otp\": \"123456\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/auth/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "auth", "verify-otp"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "auth", "logout"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Admin Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/auth/profile/{{adminId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "auth", "profile", "{{adminId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📊 Dashboard API",
+			"item": [
+				{
+					"name": "Get Dashboard Totals",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/dashboard/totals",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "dashboard", "totals"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard Overview",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/dashboard/overview",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "dashboard", "overview"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/dashboard/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "dashboard", "stats"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "stateId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "categoryId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "countryCode",
+			"value": "IN",
+			"type": "string"
+		}
+	]
+}

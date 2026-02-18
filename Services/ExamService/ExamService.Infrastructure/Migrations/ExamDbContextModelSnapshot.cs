@@ -74,6 +74,61 @@ namespace ExamService.Infrastructure.Migrations
                     b.ToTable("Exams");
                 });
 
+            modelBuilder.Entity("ExamService.Domain.Entities.ExamAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AnsweredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ExamSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsMarkedForReview")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSkipped")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PointsEarned")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SelectedOptionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TextAnswer")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("TimeSpentSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamSessionId");
+
+                    b.ToTable("ExamAnswers");
+                });
+
             modelBuilder.Entity("ExamService.Domain.Entities.ExamQualification", b =>
                 {
                     b.Property<int>("ExamId")
@@ -105,6 +160,90 @@ namespace ExamService.Infrastructure.Migrations
                     b.ToTable("ExamQualifications");
                 });
 
+            modelBuilder.Entity("ExamService.Domain.Entities.ExamSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CorrectAnswers")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurrentQuestionIndex")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DurationInMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ExamId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ExamLanguage")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<int>("IncorrectAnswers")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPaused")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastPauseTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SkippedQuestions")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TotalPauseDuration")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ExamSessions");
+                });
+
+            modelBuilder.Entity("ExamService.Domain.Entities.ExamAnswer", b =>
+                {
+                    b.HasOne("ExamService.Domain.Entities.ExamSession", "ExamSession")
+                        .WithMany("Answers")
+                        .HasForeignKey("ExamSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExamSession");
+                });
+
             modelBuilder.Entity("ExamService.Domain.Entities.ExamQualification", b =>
                 {
                     b.HasOne("ExamService.Domain.Entities.Exam", "Exam")
@@ -119,6 +258,11 @@ namespace ExamService.Infrastructure.Migrations
             modelBuilder.Entity("ExamService.Domain.Entities.Exam", b =>
                 {
                     b.Navigation("ExamQualifications");
+                });
+
+            modelBuilder.Entity("ExamService.Domain.Entities.ExamSession", b =>
+                {
+                    b.Navigation("Answers");
                 });
 #pragma warning restore 612, 618
         }

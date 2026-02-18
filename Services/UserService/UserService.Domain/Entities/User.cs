@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Common.Language;
 
 namespace UserService.Domain.Entities
 {
@@ -29,8 +30,9 @@ namespace UserService.Domain.Entities
         [MaxLength(100)]
         public string? Qualification { get; set; }
         
-        [MaxLength(50)]
-        public string? LanguagePreference { get; set; }
+        [MaxLength(5)]
+        [LanguageValidation]
+        public string? PreferredLanguage { get; set; }
         
         [MaxLength(255)]
         public string? ProfilePhoto { get; set; }
@@ -45,6 +47,10 @@ namespace UserService.Domain.Entities
         public int? QualificationId { get; set; }
         
         public int? ExamId { get; set; }
+        
+        public int? CategoryId { get; set; }
+        
+        public int? StreamId { get; set; }
         
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }

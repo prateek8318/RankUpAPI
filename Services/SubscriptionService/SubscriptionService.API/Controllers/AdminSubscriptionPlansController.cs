@@ -7,9 +7,17 @@ namespace SubscriptionService.API.Controllers
 {
     /// <summary>
     /// Admin Controller for Subscription Plans
-    /// Handles plan management
+    /// Handles plan management within SubscriptionService.
     /// </summary>
-    [Route("api/admin/[controller]")]
+    // NOTE:
+    // Route is aligned with AdminService's SubscriptionServiceClient:
+    //  - GET    /api/admin/subscription-plans
+    //  - GET    /api/admin/subscription-plans/{id}
+    //  - GET    /api/admin/subscription-plans/active
+    //  - POST   /api/admin/subscription-plans
+    //  - PUT    /api/admin/subscription-plans/{id}
+    //  - DELETE /api/admin/subscription-plans/{id}
+    [Route("api/admin/subscription-plans")]
     [ApiController]
     [Authorize(Roles = "Admin")]
     public class SubscriptionPlansController : ControllerBase
@@ -30,7 +38,7 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <param name="createPlanDto">Plan creation details</param>
         /// <returns>Created plan details</returns>
-        [HttpPost("plans")]
+        [HttpPost]
         public async Task<ActionResult<SubscriptionPlanDto>> CreatePlan([FromBody] CreateSubscriptionPlanDto createPlanDto)
         {
             try
@@ -51,7 +59,7 @@ namespace SubscriptionService.API.Controllers
         /// <param name="id">Plan ID</param>
         /// <param name="updatePlanDto">Plan update details</param>
         /// <returns>Updated plan details</returns>
-        [HttpPut("plans/{id}")]
+        [HttpPut("{id}")]
         public async Task<ActionResult<SubscriptionPlanDto>> UpdatePlan(int id, [FromBody] UpdateSubscriptionPlanDto updatePlanDto)
         {
             try
@@ -76,7 +84,7 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <param name="id">Plan ID</param>
         /// <returns>Success status</returns>
-        [HttpDelete("plans/{id}")]
+        [HttpDelete("{id}")]
         public async Task<ActionResult<bool>> DeletePlan(int id)
         {
             try
@@ -99,7 +107,7 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <param name="id">Plan ID</param>
         /// <returns>Plan details</returns>
-        [HttpGet("plans/{id}")]
+        [HttpGet("{id}")]
         public async Task<ActionResult<SubscriptionPlanDto>> GetPlanById(int id)
         {
             try
@@ -121,7 +129,7 @@ namespace SubscriptionService.API.Controllers
         /// Get all subscription plans
         /// </summary>
         /// <returns>List of all plans</returns>
-        [HttpGet("plans")]
+        [HttpGet]
         public async Task<ActionResult<IEnumerable<SubscriptionPlanListDto>>> GetAllPlans()
         {
             try
@@ -141,7 +149,7 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <param name="examCategory">Exam category filter</param>
         /// <returns>List of plans for the exam category</returns>
-        [HttpGet("plans/by-exam/{examCategory}")]
+        [HttpGet("by-exam/{examCategory}")]
         public async Task<ActionResult<IEnumerable<SubscriptionPlanListDto>>> GetPlansByExamCategory(string examCategory)
         {
             try
@@ -160,7 +168,7 @@ namespace SubscriptionService.API.Controllers
         /// Get all active subscription plans
         /// </summary>
         /// <returns>List of active plans</returns>
-        [HttpGet("plans/active")]
+        [HttpGet("active")]
         public async Task<ActionResult<IEnumerable<SubscriptionPlanListDto>>> GetActivePlans()
         {
             try

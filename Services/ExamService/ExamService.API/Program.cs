@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Common.Middleware;
+using Common.Services;
+using Common.HttpClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +23,10 @@ builder.Services.AddControllers()
 
 // Register AutoMapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+// Add HttpContextAccessor for language service
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ILanguageService, LanguageService>();
 
 // Register DbContext
 builder.Services.AddDbContext<ExamDbContext>(options =>
@@ -46,6 +53,11 @@ builder.Services.AddScoped<ExamService.API.Services.ExamDataSeedService>();
 
 // Add HttpClient for inter-service communication
 builder.Services.AddHttpClient();
+
+// Add language header handler for inter-service calls
+builder.Services.AddTransient<LanguageHeaderHandler>();
+builder.Services.AddHttpClient("InternalServices")
+    .AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -148,6 +160,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseStaticFiles(); // Serve static files from wwwroot
 app.UseCors();
+app.UseLanguage(); // Add language middleware
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -30,6 +30,9 @@ namespace UserService.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
                     b.Property<string>("CountryCode")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
@@ -67,10 +70,6 @@ namespace UserService.API.Migrations
                     b.Property<int?>("LanguageId")
                         .HasColumnType("int");
 
-                    b.Property<string>("LanguagePreference")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
 
@@ -91,6 +90,10 @@ namespace UserService.API.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("PreferredLanguage")
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
                     b.Property<string>("ProfilePhoto")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -109,6 +112,9 @@ namespace UserService.API.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("StateId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StreamId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")

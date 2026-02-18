@@ -1,0 +1,611 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using UserService.Application.DTOs;
+using UserService.Application.Interfaces;
+using UserService.Application.Services;
+using Common.Services;
+
+namespace UserService.API.Controllers
+{
+    /// <summary>
+    /// User Profile Management Controller - Handles user profile operations, language data, and photo uploads
+    /// </summary>
+    /// <remarks>
+    /// **Features:**
+    /// - Get current user profile
+    /// - Partial profile updates (PATCH)
+    /// - Profile photo upload
+    /// - Multi-language data retrieval (states, qualifications, categories, streams)
+    /// - International exam preferences
+    /// 
+    /// **Authentication:** All endpoints require JWT token except language data endpoints
+    /// **File Upload:** Profile photos limited to 10MB, supports JPG, PNG, GIF formats
+    /// </remarks>
+    [Route("api/users")]
+    [ApiController]
+    public class UserController : ControllerBase
+    {
+        private readonly IUserService _userService;
+        private readonly ILogger<UserController> _logger;
+        private readonly ILanguageService _languageService;
+        private readonly IUserLanguageService _userLanguageService;
+
+        public UserController(IUserService userService, ILogger<UserController> logger, ILanguageService languageService, IUserLanguageService userLanguageService)
+        {
+            _userService = userService;
+            _logger = logger;
+            _languageService = languageService;
+            _userLanguageService = userLanguageService;
+        }
+
+        /// <summary>
+        /// Get current user's profile information
+        /// </summary>
+        /// <returns>Complete user profile data</returns>
+        /// <remarks>
+        /// **Authentication:** Requires JWT token
+        /// **Access:** Returns profile of the authenticated user only
+        /// 
+        /// **Response Includes:**
+        /// - Basic Info: Name, email, phone, country code
+        /// - Personal Details: Gender, date of birth, qualification
+        /// - Preferences: Language, exam category, international exam interest
+        /// - IDs: State, language, qualification, exam, category, stream IDs
+        /// - Metadata: Last login, verification status, account status
+        /// - Profile Photo: URL if uploaded
+        /// 
+        /// **Example Response:**
+        /// ```json
+        /// {
+        ///   "success": true,
+        ///   "message": "User profile retrieved successfully",
+        ///   "data": {
+        ///     "id": 123,
+        ///     "name": "John Doe",
+        ///     "email": "john@example.com",
+        ///     "phoneNumber": "9876543210",
+        ///     "countryCode": "+91",
+        ///     "gender": "Male",
+        ///     "dateOfBirth": "1990-01-01",
+        ///     "qualification": "Bachelor's Degree",
+        ///     "preferredLanguage": "English",
+        ///     "profilePhotoUrl": "https://example.com/photos/user123.jpg",
+        ///     "preferredExam": "Engineering",
+        ///     "stateId": 1,
+        ///     "languageId": 1,
+        ///     "qualificationId": 1,
+        ///     "examId": 1,
+        ///     "categoryId": 1,
+        ///     "streamId": 1,
+        ///     "lastLoginAt": "2024-01-15T10:30:00Z",
+        ///     "isPhoneVerified": true,
+        ///     "isActive": true,
+        ///     "createdAt": "2024-01-01T00:00:00Z",
+        ///     "isNewUser": false,
+        ///     "interestedInIntlExam": true
+        ///   }
+        /// }
+        /// ```
+        /// </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<UserDto>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("profile")]
+        [Authorize]
+        public async Task<ActionResult<UserDto>> GetProfile()
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var user = await _userService.GetUserByIdAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(ApiResponse.CreateNotFound(
+                        $"User profile with ID {userId} was not found",
+                        ErrorCodes.USER_NOT_FOUND));
+                }
+                return Ok(ApiResponse.CreateSuccess(
+                    "User profile retrieved successfully",
+                    user));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching user profile");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "An error occurred while fetching your profile. Please try again later.",
+                    ErrorCodes.INTERNAL_SERVER_ERROR));
+            }
+        }
+
+        /// <summary>
+        /// Partially update current user's profile (text fields only)
+        /// </summary>
+        /// <param name="request">Partial profile update data</param>
+        /// <returns>Updated user profile</returns>
+        /// <remarks>
+        /// **Authentication:** Requires JWT token
+        /// **Update Type:** Partial update (only provided fields are updated)
+        /// **File Upload:** Use `/profile-with-image` endpoint for photo upload
+        /// 
+        /// **Updateable Fields:**
+        /// - FullName: User's full name (2-100 characters)
+        /// - Email: Valid email address (must be unique)
+        /// - Gender: "Male", "Female", or "Other"
+        /// - Dob: Date of birth in ISO format (YYYY-MM-DD)
+        /// - StateId: Valid state ID from language data
+        /// - LanguageId: Valid language ID from language data
+        /// - QualificationId: Valid qualification ID from language data
+        /// - ExamId: Valid exam ID from language data
+        /// - CategoryId: Valid category ID from language data
+        /// - StreamId: Valid stream ID from language data
+        /// - InterestedInIntlExam: Boolean for international exam interest
+        /// 
+        /// **Example Request:**
+        /// ```json
+        /// {
+        ///   "fullName": "John Doe",
+        ///   "email": "john.doe@example.com",
+        ///   "gender": "Male",
+        ///   "dob": "1990-01-01",
+        ///   "stateId": 1,
+        ///   "languageId": 1,
+        ///   "interestedInIntlExam": true
+        /// }
+        /// ```
+        /// 
+        /// **Note:** Only include fields you want to update. Null fields are ignored.
+        /// </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<UserDto>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpPatch("profile")]
+        [Authorize]
+        public async Task<ActionResult<UserDto>> PatchProfile([FromBody] PatchProfileRequest request)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var user = await _userService.PatchUserProfileAsync(userId, request);
+                return Ok(ApiResponse.CreateSuccess(
+                    "User profile updated successfully",
+                    user));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(ApiResponse.CreateNotFound(
+                    "User profile not found for update",
+                    ErrorCodes.USER_NOT_FOUND));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user profile");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "An error occurred while updating your profile. Please try again later.",
+                    ErrorCodes.INTERNAL_SERVER_ERROR));
+            }
+        }
+
+        /// <summary>
+        /// Partially update current user's profile with profile photo upload
+        /// </summary>
+        /// <param name="formData">Form data with profile fields and photo file</param>
+        /// <returns>Updated user profile with photo URL</returns>
+        /// <remarks>
+        /// **Authentication:** Requires JWT token
+        /// **Content-Type:** multipart/form-data
+        /// **File Size Limit:** 10MB
+        /// **Supported Formats:** JPG, JPEG, PNG, GIF
+        /// 
+        /// **Form Fields:**
+        /// - FullName: User's full name (optional)
+        /// - Email: Valid email address (optional)
+        /// - Gender: "Male", "Female", or "Other" (optional)
+        /// - Dob: Date of birth (YYYY-MM-DD) (optional)
+        /// - StateId, LanguageId, etc.: All optional ID fields
+        /// - InterestedInIntlExam: Boolean (optional)
+        /// - ProfilePhoto: Image file (optional)
+        /// 
+        /// **Request Format (multipart/form-data):**
+        /// ```
+        /// FullName: "John Doe"
+        /// Email: "john@example.com"
+        /// ProfilePhoto: [binary file data]
+        /// ```
+        /// 
+        /// **Example Response:**
+        /// ```json
+        /// {
+        ///   "success": true,
+        ///   "message": "User profile with photo updated successfully",
+        ///   "data": {
+        ///     "id": 123,
+        ///     "name": "John Doe",
+        ///     "email": "john@example.com",
+        ///     "profilePhotoUrl": "https://example.com/photos/user123.jpg",
+        ///     "...other fields..."
+        ///   }
+        /// }
+        /// ```
+        /// 
+        /// **Error Responses:**
+        /// - 400: Invalid file format or size
+        /// - 413: File too large (>10MB)
+        /// </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<UserDto>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status413PayloadTooLarge, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpPatch("profile-with-image")]
+        [Authorize]
+        [RequestFormLimits(MultipartBodyLengthLimit = 10485760)] // 10MB limit
+        [RequestSizeLimit(10485760)] // 10MB limit
+        public async Task<ActionResult<UserDto>> PatchProfileWithImage([FromForm] PatchProfileFormData formData)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var user = await _userService.PatchProfileWithImageAsync(userId, formData);
+                return Ok(ApiResponse.CreateSuccess(
+                    "User profile with photo updated successfully",
+                    user));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(ApiResponse.CreateNotFound(
+                    "User profile not found for update with photo",
+                    ErrorCodes.USER_NOT_FOUND));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse.CreateBadRequest(
+                    ex.Message,
+                    ErrorCodes.INVALID_FILE_FORMAT));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user profile with image");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "An error occurred while updating your profile photo. Please try again later.",
+                    ErrorCodes.FILE_UPLOAD_ERROR));
+            }
+        }
+
+        /// <summary>
+        /// Test endpoint to verify language middleware is working
+        /// </summary>
+        /// <param name="language">Optional language parameter</param>
+        /// <returns>Current language and test message</returns>
+        /// <remarks>
+        /// **Purpose:** Debug endpoint to verify language middleware functionality
+        /// **Authentication:** Not required
+        /// 
+        /// **Example Response:**
+        /// ```json
+        /// {
+        ///   "message": "Language middleware is working!",
+        ///   "currentLanguage": "en",
+        ///   "timestamp": "2024-01-15T10:30:00Z"
+        /// }
+        /// ```
+        /// </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [HttpGet("test-language")]
+        public IActionResult TestLanguage()
+        {
+            var language = _languageService.GetCurrentLanguage();
+            return Ok(new { 
+                message = "Language middleware is working!",
+                currentLanguage = language,
+                timestamp = DateTime.UtcNow
+            });
+        }
+
+        /// <summary>
+        /// Get list of states with multi-language support
+        /// </summary>
+        /// <param name="language">Language code (e.g., 'en', 'hi', 'mr'). If not provided, uses current language from middleware</param>
+        /// <returns>List of states with names in specified language</returns>
+        /// <remarks>
+        **Purpose:** Get states for user profile selection
+        **Authentication:** Not required
+        **Language Support:** English, Hindi, Marathi, and other configured languages
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "data": [
+            {"id": 1, "name": "Maharashtra"},
+            {"id": 2, "name": "Gujarat"},
+            {"id": 3, "name": "Karnataka"}
+          ],
+          "language": "en"
+        }
+        ```
+        
+        **Usage:** Call this endpoint to populate state dropdown/selector in user profile forms
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("language-data/states")]
+        public async Task<IActionResult> GetStates([FromQuery] string? language = null)
+        {
+            try
+            {
+                var states = await _userLanguageService.GetStatesAsync(language);
+                return Ok(new
+                {
+                    success = true,
+                    data = states["states"],
+                    language = language ?? _languageService.GetCurrentLanguage()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting states data");
+                return StatusCode(500, new { success = false, message = "Error fetching states data" });
+            }
+        }
+
+        /// <summary>
+        /// Get list of qualifications with multi-language support
+        /// </summary>
+        /// <param name="language">Language code (e.g., 'en', 'hi', 'mr'). If not provided, uses current language from middleware</param>
+        /// <returns>List of qualifications with names in specified language</returns>
+        /// <remarks>
+        **Purpose:** Get educational qualifications for user profile selection
+        **Authentication:** Not required
+        **Language Support:** English, Hindi, Marathi, and other configured languages
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "data": [
+            {"id": 1, "name": "10th Pass"},
+            {"id": 2, "name": "12th Pass"},
+            {"id": 3, "name": "Bachelor's Degree"},
+            {"id": 4, "name": "Master's Degree"}
+          ],
+          "language": "en"
+        }
+        ```
+        
+        **Usage:** Call this endpoint to populate qualification dropdown/selector in user profile forms
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("language-data/qualifications")]
+        public async Task<IActionResult> GetQualifications([FromQuery] string? language = null)
+        {
+            try
+            {
+                var qualifications = await _userLanguageService.GetQualificationsAsync(language);
+                return Ok(new
+                {
+                    success = true,
+                    data = qualifications["qualifications"],
+                    language = language ?? _languageService.GetCurrentLanguage()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting qualifications data");
+                return StatusCode(500, new { success = false, message = "Error fetching qualifications data" });
+            }
+        }
+
+        /// <summary>
+        /// Get list of exam categories with multi-language support
+        /// </summary>
+        /// <param name="language">Language code (e.g., 'en', 'hi', 'mr'). If not provided, uses current language from middleware</param>
+        /// <returns>List of exam categories with names in specified language</returns>
+        /// <remarks>
+        **Purpose:** Get exam categories for user profile selection (e.g., Engineering, Medical, Management)
+        **Authentication:** Not required
+        **Language Support:** English, Hindi, Marathi, and other configured languages
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "data": [
+            {"id": 1, "name": "Engineering"},
+            {"id": 2, "name": "Medical"},
+            {"id": 3, "name": "Management"},
+            {"id": 4, "name": "Arts"}
+          ],
+          "language": "en"
+        }
+        ```
+        
+        **Usage:** Call this endpoint to populate exam category dropdown/selector in user profile forms
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("language-data/exam-categories")]
+        public async Task<IActionResult> GetExamCategories([FromQuery] string? language = null)
+        {
+            try
+            {
+                var examCategories = await _userLanguageService.GetExamCategoriesAsync(language);
+                return Ok(new
+                {
+                    success = true,
+                    data = examCategories["examCategories"],
+                    language = language ?? _languageService.GetCurrentLanguage()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting exam categories data");
+                return StatusCode(500, new { success = false, message = "Error fetching exam categories data" });
+            }
+        }
+
+        /// <summary>
+        /// Get list of categories with multi-language support
+        /// </summary>
+        /// <param name="language">Language code (e.g., 'en', 'hi', 'mr'). If not provided, uses current language from middleware</param>
+        /// <returns>List of categories with names in specified language</returns>
+        /// <remarks>
+        **Purpose:** Get general categories for user profile selection
+        **Authentication:** Not required
+        **Language Support:** English, Hindi, Marathi, and other configured languages
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "data": [
+            {"id": 1, "name": "Government"},
+            {"id": 2, "name": "Private"},
+            {"id": 3, "name": "Self-Employed"}
+          ],
+          "language": "en"
+        }
+        ```
+        
+        **Usage:** Call this endpoint to populate category dropdown/selector in user profile forms
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("language-data/categories")]
+        public async Task<IActionResult> GetCategories([FromQuery] string? language = null)
+        {
+            try
+            {
+                var categories = await _userLanguageService.GetCategoriesAsync(language);
+                return Ok(new
+                {
+                    success = true,
+                    data = categories["categories"],
+                    language = language ?? _languageService.GetCurrentLanguage()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting categories data");
+                return StatusCode(500, new { success = false, message = "Error fetching categories data" });
+            }
+        }
+
+        /// <summary>
+        /// Get list of streams with multi-language support
+        /// </summary>
+        /// <param name="language">Language code (e.g., 'en', 'hi', 'mr'). If not provided, uses current language from middleware</param>
+        /// <returns>List of streams with names in specified language</returns>
+        /// <remarks>
+        **Purpose:** Get educational streams for user profile selection (e.g., Science, Commerce, Arts)
+        **Authentication:** Not required
+        **Language Support:** English, Hindi, Marathi, and other configured languages
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "data": [
+            {"id": 1, "name": "Science"},
+            {"id": 2, "name": "Commerce"},
+            {"id": 3, "name": "Arts"},
+            {"id": 4, "name": "Vocational"}
+          ],
+          "language": "en"
+        }
+        ```
+        
+        **Usage:** Call this endpoint to populate stream dropdown/selector in user profile forms
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("language-data/streams")]
+        public async Task<IActionResult> GetStreams([FromQuery] string? language = null)
+        {
+            try
+            {
+                var streams = await _userLanguageService.GetStreamsAsync(language);
+                return Ok(new
+                {
+                    success = true,
+                    data = streams["streams"],
+                    language = language ?? _languageService.GetCurrentLanguage()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting streams data");
+                return StatusCode(500, new { success = false, message = "Error fetching streams data" });
+            }
+        }
+
+        /// <summary>
+        /// Get all language data (states, qualifications, exam categories, categories, streams) in a single request
+        /// </summary>
+        /// <param name="language">Language code (e.g., 'en', 'hi', 'mr'). If not provided, uses current language from middleware</param>
+        /// <returns>Complete language data collection</returns>
+        /// <remarks>
+        **Purpose:** Get all dropdown data in a single API call for faster page loading
+        **Authentication:** Not required
+        **Language Support:** English, Hindi, Marathi, and other configured languages
+        **Performance:** Recommended for initial page load to reduce multiple API calls
+        
+        **Example Response:**
+        {
+          "success": true,
+          "data": {
+            "states": [
+              {"id": 1, "name": "Maharashtra"},
+              {"id": 2, "name": "Gujarat"}
+            ],
+            "qualifications": [
+              {"id": 1, "name": "10th Pass"},
+              {"id": 2, "name": "12th Pass"}
+            ],
+            "examCategories": [
+              {"id": 1, "name": "Engineering"},
+              {"id": 2, "name": "Medical"}
+            ],
+            "categories": [
+              {"id": 1, "name": "Government"},
+              {"id": 2, "name": "Private"}
+            ],
+            "streams": [
+              {"id": 1, "name": "Science"},
+              {"id": 2, "name": "Commerce"}
+            ]
+          },
+          "message": "Language data fetched successfully"
+        }
+        
+        **Usage:** Call this endpoint on page load to populate all dropdown selectors at once
+        **Benefits:** Reduces network calls, improves page load performance
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("language-data/all")]
+        public async Task<IActionResult> GetAllLanguageData([FromQuery] string? language = null)
+        {
+            try
+            {
+                var allData = await _userLanguageService.GetAllUserDataAsync(language);
+                return Ok(new
+                {
+                    success = true,
+                    data = allData,
+                    message = "Language data fetched successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all language data");
+                return StatusCode(500, new { success = false, message = "Error fetching language data" });
+            }
+        }
+    }
+}

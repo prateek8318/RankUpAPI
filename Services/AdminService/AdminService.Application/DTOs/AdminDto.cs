@@ -26,6 +26,23 @@ namespace AdminService.Application.DTOs
         public AdminDto? Admin { get; set; }
     }
 
+    public class AdminLoginResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public bool RequiresTwoFactor { get; set; }
+        public string? MobileNumber { get; set; }
+        public string? Token { get; set; }
+        public string? RefreshToken { get; set; }
+        public AdminDto? Admin { get; set; }
+    }
+
+    public class AdminOtpVerificationRequest
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Otp { get; set; } = string.Empty;
+    }
+
     public class RoleDto
     {
         public int Id { get; set; }

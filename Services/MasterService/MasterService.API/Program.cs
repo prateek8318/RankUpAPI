@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Common.Middleware;
+using Common.Services;
+using Common.Language;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +18,7 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
@@ -32,9 +36,17 @@ builder.Services.AddDbContext<MasterDbContext>(options =>
 
 builder.Services.AddScoped<ILanguageRepository, LanguageRepository>();
 builder.Services.AddScoped<IStateRepository, StateRepository>();
-
-builder.Services.AddScoped<ILanguageService, LanguageService>();
+builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICmsContentRepository, CmsContentRepository>();
+builder.Services.AddScoped<MasterService.Application.Interfaces.ILanguageService, MasterService.Application.Services.LanguageService>();
 builder.Services.AddScoped<IStateService, StateService>();
+builder.Services.AddScoped<ICountryService, CountryService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ICmsContentService, CmsContentService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<Common.Services.ILanguageService, Common.Services.LanguageService>();
+builder.Services.AddScoped<Common.Language.ILanguageDataService, Common.Language.LanguageDataService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
@@ -86,6 +98,7 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 
 app.UseCors();
+app.UseLanguage();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

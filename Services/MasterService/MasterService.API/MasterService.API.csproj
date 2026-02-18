@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MasterService.Application\MasterService.Application.csproj" />
     <ProjectReference Include="..\MasterService.Infrastructure\MasterService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Common\Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

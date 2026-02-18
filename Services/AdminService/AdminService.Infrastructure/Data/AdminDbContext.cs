@@ -11,6 +11,7 @@ namespace AdminService.Infrastructure.Data
         }
 
         public DbSet<Admin> Admins { get; set; }
+        public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
@@ -31,6 +32,18 @@ namespace AdminService.Infrastructure.Data
                 entity.HasIndex(a => a.UserId);
                 entity.Property(a => a.IsActive).HasDefaultValue(true).ValueGeneratedNever();
                 entity.Property(a => a.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure SubscriptionPlan entity
+            modelBuilder.Entity<SubscriptionPlan>(entity =>
+            {
+                entity.Property(sp => sp.PlanName).IsRequired().HasMaxLength(100);
+                entity.Property(sp => sp.ExamType).IsRequired().HasMaxLength(50);
+                entity.Property(sp => sp.Duration).IsRequired().HasMaxLength(50);
+                entity.Property(sp => sp.ColorCode).HasMaxLength(20);
+                entity.Property(sp => sp.Price).HasPrecision(10, 2);
+                entity.Property(sp => sp.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+                entity.Property(sp => sp.CreatedAt).HasDefaultValueSql("GETDATE()");
             });
 
             // Configure Role entity

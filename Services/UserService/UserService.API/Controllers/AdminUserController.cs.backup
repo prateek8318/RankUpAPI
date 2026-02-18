@@ -1,0 +1,282 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using UserService.Application.DTOs;
+using UserService.Application.Interfaces;
+
+namespace UserService.API.Controllers
+{
+    /// <summary>
+    /// Admin User Management Controller - Handles administrative operations on user data
+    /// </summary>
+    /// <remarks>
+    /// **Purpose:** Administrative functions for user management and analytics
+    /// **Authentication:** Requires Admin or Service role JWT token
+    /// **Access Control:** Restricted to administrative users only
+    /// 
+    /// **Features:**
+    /// - Get paginated list of all users
+    /// - Get specific user by ID
+    /// - Get total users count
+    /// - Get daily active users count
+    /// 
+    /// **Authorization:** Requires JWT token with 'Admin' or 'Service' role
+    /// **Base Route:** /api/admin/users
+    /// </remarks>
+    [ApiController]
+    [Route("api/admin/users")]
+    [Authorize(Roles = "Admin,Service")]
+    public class AdminUserController : ControllerBase
+    {
+        private readonly IUserService _userService;
+        private readonly ILogger<AdminUserController> _logger;
+
+        public AdminUserController(IUserService userService, ILogger<AdminUserController> logger)
+        {
+            _userService = userService;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Get paginated list of all users
+        /// </summary>
+        /// <param name="page">Page number (default: 1, min: 1)</param>
+        /// <param name="pageSize">Number of users per page (default: 50, max: 100)</param>
+        /// <returns>Paginated list of users</returns>
+        /// <remarks>
+        **Purpose:** Retrieve all users with pagination for admin dashboard
+        **Authentication:** Requires Admin or Service role
+        **Pagination:** Supports server-side pagination for large datasets
+        
+        **Query Parameters:**
+        - page: Page number to retrieve (1-based indexing)
+        - pageSize: Number of users per page (recommended: 10-100)
+        
+        **Example Requests:**
+        - GET /api/admin/users (default: page=1, pageSize=50)
+        - GET /api/admin/users?page=2&pageSize=25
+        - GET /api/admin/users?page=1&pageSize=100
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "message": "Retrieved 50 users successfully",
+          "data": [
+            {
+              "id": 1,
+              "name": "John Doe",
+              "email": "john@example.com",
+              "phoneNumber": "9876543210",
+              "...other user fields..."
+            },
+            "...more users..."
+          ]
+        }
+        ```
+        
+        **Performance:** Optimized for admin dashboard with efficient pagination
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<IEnumerable<UserDto>>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetAllUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        {
+            try
+            {
+                var users = await _userService.GetAllUsersAsync(page, pageSize);
+                return Ok(ApiResponse.CreateSuccess(
+                    $"Retrieved {users.Count()} users successfully",
+                    users));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all users");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to retrieve users list. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
+            }
+        }
+
+        /// <summary>
+        /// Get specific user by ID
+        /// </summary>
+        /// <param name="id">Unique user identifier</param>
+        /// <returns>Complete user profile information</returns>
+        /// <remarks>
+        **Purpose:** Retrieve detailed information for a specific user
+        **Authentication:** Requires Admin or Service role
+        **Use Case:** Admin user management, support tickets, user verification
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "message": "User with ID 123 retrieved successfully",
+          "data": {
+            "id": 123,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "phoneNumber": "9876543210",
+            "countryCode": "+91",
+            "gender": "Male",
+            "dateOfBirth": "1990-01-01",
+            "qualification": "Bachelor's Degree",
+            "preferredLanguage": "English",
+            "profilePhotoUrl": "https://example.com/photos/user123.jpg",
+            "preferredExam": "Engineering",
+            "stateId": 1,
+            "languageId": 1,
+            "qualificationId": 1,
+            "examId": 1,
+            "categoryId": 1,
+            "streamId": 1,
+            "lastLoginAt": "2024-01-15T10:30:00Z",
+            "isPhoneVerified": true,
+            "isActive": true,
+            "createdAt": "2024-01-01T00:00:00Z",
+            "isNewUser": false,
+            "interestedInIntlExam": true
+          }
+        }
+        ```
+        
+        **Error Responses:**
+        - 404: User not found
+        - 401: Unauthorized (invalid/missing token)
+        - 403: Forbidden (insufficient permissions)
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<UserDto>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserDto>> GetUserById(int id)
+        {
+            try
+            {
+                var user = await _userService.GetUserByIdAsync(id);
+                if (user == null)
+                {
+                    return NotFound(ApiResponse.CreateNotFound(
+                        $"User with ID {id} was not found",
+                        ErrorCodes.USER_NOT_FOUND));
+                }
+
+                return Ok(ApiResponse.CreateSuccess(
+                    $"User with ID {id} retrieved successfully",
+                    user));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user {UserId}", id);
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    $"Unable to retrieve user with ID {id}. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
+            }
+        }
+
+        /// <summary>
+        /// Get total count of all users in the system
+        /// </summary>
+        /// <returns>Total users count</returns>
+        /// <remarks>
+        **Purpose:** Get total number of registered users for analytics and reporting
+        **Authentication:** Requires Admin or Service role
+        **Use Case:** Dashboard statistics, user growth metrics, system overview
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "message": "Total users count retrieved successfully",
+          "data": {
+            "totalUsers": 15420
+          }
+        }
+        ```
+        
+        **Performance:** Optimized database query for fast count retrieval
+        **Includes:** Both active and inactive users
+        **Updates:** Real-time count reflecting current database state
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("count")]
+        public async Task<ActionResult> GetTotalUsersCount()
+        {
+            try
+            {
+                var totalUsers = await _userService.GetTotalUsersCountAsync();
+                return Ok(ApiResponse.CreateSuccess(
+                    "Total users count retrieved successfully",
+                    new { totalUsers }));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting total users count");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to retrieve total users count. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
+            }
+        }
+
+        /// <summary>
+        /// Get count of daily active users
+        /// </summary>
+        /// <returns>Daily active users count</returns>
+        /// <remarks>
+        **Purpose:** Get number of users who logged in today for engagement analytics
+        **Authentication:** Requires Admin or Service role
+        **Use Case:** Daily engagement metrics, user activity tracking, dashboard KPIs
+        
+        **Definition:** Users who have logged in within the last 24 hours
+        **Timezone:** Uses UTC timezone for consistent daily calculation
+        
+        **Example Response:**
+        ```json
+        {
+          "success": true,
+          "message": "Daily active users count retrieved successfully",
+          "data": {
+            "dailyActiveUsers": 1250
+          }
+        }
+        ```
+        
+        **Analytics Use:**
+        - Daily engagement tracking
+        - User retention metrics
+        - Peak activity analysis
+        - Performance monitoring
+        
+        **Note:** Count updates in real-time as users log in
+        </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
+        [HttpGet("daily-active-count")]
+        public async Task<ActionResult> GetDailyActiveUsersCount()
+        {
+            try
+            {
+                var dailyActiveUsers = await _userService.GetDailyActiveUsersCountAsync();
+                return Ok(ApiResponse.CreateSuccess(
+                    "Daily active users count retrieved successfully",
+                    new { dailyActiveUsers }));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting daily active users count");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to retrieve daily active users count. Please try again later.",
+                    ErrorCodes.DATABASE_ERROR));
+            }
+        }
+    }
+}

@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ExamService.Application\ExamService.Application.csproj" />
     <ProjectReference Include="..\ExamService.Infrastructure\ExamService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Common\Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

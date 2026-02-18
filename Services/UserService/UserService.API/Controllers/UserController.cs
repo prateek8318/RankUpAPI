@@ -6,6 +6,20 @@ using UserService.Application.Interfaces;
 
 namespace UserService.API.Controllers
 {
+    /// <summary>
+    /// User Profile Management Controller - Handles user profile operations, language data, and photo uploads
+    /// </summary>
+    /// <remarks>
+    /// **Features:**
+    /// - Get current user profile
+    /// - Partial profile updates (PATCH)
+    /// - Profile photo upload
+    /// - Multi-language data retrieval (states, qualifications, categories, streams)
+    /// - International exam preferences
+    /// 
+    /// **Authentication:** All endpoints require JWT token except language data endpoints
+    /// **File Upload:** Profile photos limited to 10MB, supports JPG, PNG, GIF formats
+    /// </remarks>
     [Route("api/users")]
     [ApiController]
     public class UserController : ControllerBase
@@ -19,6 +33,55 @@ namespace UserService.API.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Get current user's profile information
+        /// </summary>
+        /// <returns>Complete user profile data</returns>
+        /// <remarks>
+        /// **Authentication:** Requires JWT token
+        /// **Access:** Returns profile of the authenticated user only
+        /// 
+        /// **Response Includes:**
+        /// - Basic Info: Name, email, phone, country code
+        /// - Personal Details: Gender, date of birth, qualification
+        /// - Preferences: Language, exam category, international exam interest
+        /// - IDs: State, language, qualification, exam, category, stream IDs
+        /// - Metadata: Last login, verification status, account status
+        /// - Profile Photo: URL if uploaded
+        /// 
+        /// **Example Response:**
+        /// {
+        ///   "success": true,
+        ///   "message": "User profile retrieved successfully",
+        ///   "data": {
+        ///     "id": 123,
+        ///     "name": "John Doe",
+        ///     "email": "john@example.com",
+        ///     "phoneNumber": "9876543210",
+        ///     "countryCode": "+91",
+        ///     "gender": "Male",
+        ///     "dateOfBirth": "1990-01-01",
+        ///     "qualification": "Bachelor's Degree",
+        ///     "languagePreference": "English",
+        ///     "profilePhotoUrl": "https://example.com/photos/user123.jpg",
+        ///     "preferredExam": "Engineering",
+        ///     "stateId": 1,
+        ///     "languageId": 1,
+        ///     "qualificationId": 1,
+        ///     "examId": 1,
+        ///     "lastLoginAt": "2024-01-15T10:30:00Z",
+        ///     "isPhoneVerified": true,
+        ///     "isActive": true,
+        ///     "createdAt": "2024-01-01T00:00:00Z",
+        ///     "isNewUser": false,
+        ///     "interestedInIntlExam": true
+        ///   }
+        /// }
+        /// </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<UserDto>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
         [HttpGet("profile")]
         [Authorize]
         public async Task<ActionResult<UserDto>> GetProfile()

@@ -11,6 +11,19 @@ using UserService.Application.Interfaces;
 
 namespace UserService.API.Controllers
 {
+    /// <summary>
+    /// Authentication Controller - Handles OTP-based login, user registration, and JWT token management
+    /// </summary>
+    /// <remarks>
+    /// **Authentication Flow:**
+    /// 1. Send OTP to user's mobile number
+    /// 2. Verify OTP to get JWT token
+    /// 3. Use JWT token for authenticated requests
+    /// 
+    /// **Supported Countries:** India (+91), USA (+1), UK (+44), and others
+    /// **OTP Format:** 6-digit numeric code
+    /// **Token Validity:** 60 minutes
+    /// </remarks>
     [ApiController]
     [Route("api/users/auth")]
     public class AuthController : ControllerBase
@@ -32,6 +45,37 @@ namespace UserService.API.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Send OTP to user's mobile number for authentication
+        /// </summary>
+        /// <param name="request">Mobile number and country code for OTP delivery</param>
+        /// <returns>OTP delivery confirmation</returns>
+        /// <remarks>
+        /// **Request Details:**
+        /// - Mobile Number: Must be exactly 10 digits (e.g., "9876543210")
+        /// - Country Code: Must start with '+' followed by 1-3 digits (e.g., "+91", "+1", "+44")
+        /// - Default Country Code: +91 (India) if not specified
+        /// 
+        /// **OTP Settings:**
+        /// - Development: Uses default OTP "123456"
+        /// - Production: Generates random 6-digit OTP
+        /// - OTP Validity: 5 minutes
+        /// 
+        /// **Example Request:**
+        /// {
+        ///   "mobileNumber": "9876543210",
+        ///   "countryCode": "+91"
+        /// }
+        /// 
+        /// **Example Response:**
+        /// {
+        ///   "success": true,
+        ///   "message": "OTP sent to +919876543210",
+        ///   "data": null
+        /// }
+        /// </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AuthResponse))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse))]
         [AllowAnonymous]
         [HttpPost("send-otp")]
         public IActionResult SendOtp([FromBody] OtpRequest request)
@@ -68,6 +112,56 @@ namespace UserService.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Verify OTP and authenticate user to receive JWT token
+        /// </summary>
+        /// <param name="request">OTP verification details with optional device information</param>
+        /// <returns>JWT token and user profile information</returns>
+        /// <remarks>
+        /// **Request Details:**
+        /// - Mobile Number: Same 10-digit number used for sending OTP
+        /// - Country Code: Same country code used for sending OTP
+        /// - OTP: 6-digit numeric code received via SMS
+        /// - FCM Token: Optional - for push notifications (Android/iOS)
+        /// - Device ID: Optional - unique device identifier
+        /// - Device Type: Optional - "android", "ios", or "web"
+        /// 
+        /// **Response Includes:**
+        /// - JWT Token: For authenticated API calls
+        /// - User ID: Unique user identifier
+        /// - User Name: Current user name (or default if new user)
+        /// - Is New User: true if first-time login
+        /// - Is Profile Complete: true if user has set a custom name
+        /// - Phone Verified: true if phone number is verified
+        /// 
+        /// **Example Request:**
+        /// {
+        ///   "mobileNumber": "9876543210",
+        ///   "countryCode": "+91",
+        ///   "otp": "123456",
+        ///   "fcmToken": "firebase_fcm_token",
+        ///   "deviceId": "unique_device_id",
+        ///   "deviceType": "android"
+        /// }
+        /// 
+        /// **Example Response:**
+        /// {
+        ///   "success": true,
+        ///   "message": "Login successful! Welcome back.",
+        ///   "data": {
+        ///     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        ///     "userId": 123,
+        ///     "userName": "John Doe",
+        ///     "isNewUser": false,
+        ///     "isProfileComplete": true,
+        ///     "phoneNumber": "+919876543210",
+        ///     "isPhoneVerified": true
+        ///   }
+        /// }
+        /// </remarks>
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
         [AllowAnonymous]
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp([FromBody] OtpVerificationRequest request)

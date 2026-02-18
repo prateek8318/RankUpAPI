@@ -12,6 +12,8 @@ namespace ExamService.Infrastructure.Data
 
         public DbSet<Exam> Exams { get; set; }
         public DbSet<ExamQualification> ExamQualifications { get; set; }
+        public DbSet<ExamSession> ExamSessions { get; set; }
+        public DbSet<ExamAnswer> ExamAnswers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

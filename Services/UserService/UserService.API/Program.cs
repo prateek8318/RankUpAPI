@@ -7,6 +7,10 @@ using UserService.Application.Mappings;
 using UserService.Application.Services;
 using UserService.Infrastructure.Data;
 using UserService.Infrastructure.Repositories;
+using Common.Middleware;
+using Common.Services;
+using Common.HttpClient;
+using Common.Language;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +22,10 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+// Add HttpContextAccessor for language service
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ILanguageService, LanguageService>();
 
 builder.Services.AddDbContext<UserDbContext>(options =>
 {
@@ -34,6 +42,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService.Application.Services.UserService>();
 builder.Services.AddSingleton<IOtpService, UserService.Application.Services.OtpService>();
 builder.Services.AddScoped<IImageService, UserService.Infrastructure.Services.ImageService>();
+builder.Services.AddScoped<IUserLanguageService, UserService.Application.Services.UserLanguageService>();
+builder.Services.AddScoped<ILanguageDataService, Common.Language.LanguageDataService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
@@ -94,13 +104,26 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = "UserService API", 
         Version = "v1",
-        Description = "User Management API with Authentication and Profile Management"
+        Description = "Comprehensive User Management API with OTP-based Authentication, Profile Management, and Multi-language Support\n\n**Features:**\n- OTP-based mobile authentication\n- User profile management with photo upload\n- Multi-language data support (states, qualifications, categories, streams)\n- JWT token-based authentication\n- International exam preferences\n\n**Base URL:** `http://localhost:5002` or `https://localhost:5002`\n\n**Authentication:** Most endpoints require JWT token in Authorization header: `Bearer {your-jwt-token}`",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "API Support",
+            Email = "support@rankup.com"
+        }
     });
+    
+    // Include XML Comments for better documentation
+    var xmlFile = "UserService.API.xml";
+    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (System.IO.File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
     
     // Add JWT Authentication to Swagger
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below. Example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'",
+        Description = "JWT Authorization header using the Bearer scheme.\n\n**How to use:**\n1. First call `/api/users/auth/send-otp` and `/api/users/auth/verify-otp` to get a JWT token\n2. Click the 'Authorize' button below\n3. Enter 'Bearer ' followed by your token (without quotes)\n4. Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`\n\n**Note:** Token expires after 60 minutes",
         Name = "Authorization",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
@@ -135,6 +158,7 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection(); // Disabled for development to avoid 307 redirects
 app.UseStaticFiles(); // Enable serving static files
 app.UseCors();
+app.UseLanguage(); // Add language middleware
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

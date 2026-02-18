@@ -18,6 +18,8 @@ namespace AdminService.Application.Services
         private readonly ILogger<AdminService> _logger;
         private readonly string _adminEmail;
         private readonly string _adminPassword;
+        private readonly string _adminMobileNumber;
+        private readonly string _fixedOtp = "123456";
 
         public AdminService(
             IAdminRepository adminRepository,
@@ -31,20 +33,71 @@ namespace AdminService.Application.Services
             _logger = logger;
             _adminEmail = _configuration["AdminCredentials:Email"] ?? "admin@rankup.com";
             _adminPassword = _configuration["AdminCredentials:Password"] ?? "Admin@123";
+            _adminMobileNumber = _configuration["AdminCredentials:MobileNumber"] ?? "+919876543210";
         }
 
-        public async Task<AdminAuthResponse> LoginAsync(AdminLoginRequest request)
+        public async Task<AdminLoginResponse> LoginAsync(AdminLoginRequest request)
         {
             // Simple password check (in production, use proper password hashing)
             if (request.Email != _adminEmail || request.Password != _adminPassword)
             {
-                return new AdminAuthResponse
+                return new AdminLoginResponse
                 {
                     Success = false,
-                    Message = "Invalid email or password"
+                    Message = "Invalid email or password",
+                    RequiresTwoFactor = false
                 };
             }
 
+            // Always require 2-step verification
+            if (!string.IsNullOrEmpty(_adminMobileNumber))
+            {
+                // In a real implementation, send OTP to mobile number here
+                _logger.LogInformation($"OTP {_fixedOtp} sent to {_adminMobileNumber}");
+                
+                return new AdminLoginResponse
+                {
+                    Success = true,
+                    Message = "Password verified. Please enter OTP sent to your mobile.",
+                    RequiresTwoFactor = true,
+                    MobileNumber = MaskMobileNumber(_adminMobileNumber)
+                };
+            }
+
+            // If no mobile number configured, return error
+            return new AdminLoginResponse
+            {
+                Success = false,
+                Message = "Mobile number not configured for admin. 2-step verification required.",
+                RequiresTwoFactor = false
+            };
+        }
+
+        public async Task<AdminAuthResponse> VerifyOtpAsync(AdminOtpVerificationRequest request)
+        {
+            if (request.Email != _adminEmail)
+            {
+                return new AdminAuthResponse
+                {
+                    Success = false,
+                    Message = "Invalid email"
+                };
+            }
+
+            if (request.Otp != _fixedOtp)
+            {
+                return new AdminAuthResponse
+                {
+                    Success = false,
+                    Message = "Invalid OTP"
+                };
+            }
+
+            return await CompleteLoginAsync();
+        }
+
+        private async Task<AdminAuthResponse> CompleteLoginAsync()
+        {
             // Create a simple admin response for testing
             var adminDto = new AdminDto
             {
@@ -52,12 +105,12 @@ namespace AdminService.Application.Services
                 UserId = 1,
                 Role = "SuperAdmin",
                 Permissions = new List<string> { "all" },
-                IsTwoFactorEnabled = false,
+                IsTwoFactorEnabled = !string.IsNullOrEmpty(_adminMobileNumber),
                 LastLoginAt = DateTime.UtcNow,
                 IsActive = true
             };
 
-            var token = GenerateJwtTokenForTesting(request.Email);
+            var token = GenerateJwtTokenForTesting(_adminEmail);
             var refreshToken = GenerateRefreshToken();
 
             await LogActivityAsync(1, "Login", "Auth", null, "Admin logged in");
@@ -70,6 +123,14 @@ namespace AdminService.Application.Services
                 RefreshToken = refreshToken,
                 Admin = adminDto
             };
+        }
+
+        private string MaskMobileNumber(string mobileNumber)
+        {
+            if (string.IsNullOrEmpty(mobileNumber) || mobileNumber.Length < 4)
+                return mobileNumber;
+            
+            return mobileNumber.Substring(0, 3) + "*****" + mobileNumber.Substring(mobileNumber.Length - 2);
         }
 
         public async Task<AdminDto?> GetAdminByIdAsync(int id)

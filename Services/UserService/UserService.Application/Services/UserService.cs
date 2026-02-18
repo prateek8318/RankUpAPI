@@ -99,7 +99,7 @@ namespace UserService.Application.Services
                 user.Qualification = profileUpdate.Qualification;
 
             if (!string.IsNullOrWhiteSpace(profileUpdate.LanguagePreference))
-                user.LanguagePreference = profileUpdate.LanguagePreference;
+                user.PreferredLanguage = profileUpdate.LanguagePreference;
 
             if (!string.IsNullOrWhiteSpace(profileUpdate.PreferredExam))
                 user.PreferredExam = profileUpdate.PreferredExam;
@@ -140,6 +140,8 @@ namespace UserService.Application.Services
 
             if (patchRequest.ExamId.HasValue)
                 user.ExamId = patchRequest.ExamId.Value;
+
+            // CategoryId and StreamId removed from DTOs
 
             if (patchRequest.InterestedInIntlExam.HasValue)
                 user.InterestedInIntlExam = patchRequest.InterestedInIntlExam.Value;
@@ -198,6 +200,8 @@ namespace UserService.Application.Services
 
             if (formData.ExamId.HasValue)
                 user.ExamId = formData.ExamId.Value;
+
+            // CategoryId and StreamId removed from DTOs
 
             if (formData.InterestedInIntlExam.HasValue)
                 user.InterestedInIntlExam = formData.InterestedInIntlExam.Value;

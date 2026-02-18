@@ -14,7 +14,10 @@
         }
       ],
       "UpstreamPathTemplate": "/api/exam/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
     },
     {
       "DownstreamPathTemplate": "/api/exams/{everything}",
@@ -30,7 +33,10 @@
         }
       ],
       "UpstreamPathTemplate": "/api/exams/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
     },
     {
       "DownstreamPathTemplate": "/api/users/{everything}",
@@ -46,11 +52,14 @@
         }
       ],
       "UpstreamPathTemplate": "/api/users/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
     },
     {
       "DownstreamPathTemplate": "/api/admin/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
@@ -59,10 +68,17 @@
         {
           "Host": "192.168.1.14",
           "Port": 56923
+        },
+        {
+          "Host": "192.168.1.21",
+          "Port": 56923
         }
       ],
       "UpstreamPathTemplate": "/api/admin/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
     },
     {
       "DownstreamPathTemplate": "/api/qualifications/{everything}",
@@ -78,7 +94,10 @@
         }
       ],
       "UpstreamPathTemplate": "/api/qualification/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
     },
     {
       "DownstreamPathTemplate": "/api/{everything}",
@@ -94,7 +113,10 @@
         }
       ],
       "UpstreamPathTemplate": "/api/master/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
     },
     {
       "DownstreamPathTemplate": "/api/states/{everything}",
@@ -238,7 +260,10 @@
         }
       ],
       "UpstreamPathTemplate": "/api/questions/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
     }
   ],
   "GlobalConfiguration": {

@@ -9,14 +9,21 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Common.Middleware;
+using Common.Services;
+using Common.HttpClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add HttpContextAccessor for accessing current HTTP context in delegating handlers
 builder.Services.AddHttpContextAccessor();
 
-// Register the delegating handler
+// Register the delegating handlers
 builder.Services.AddTransient<AuthTokenDelegatingHandler>();
+builder.Services.AddTransient<LanguageHeaderHandler>();
+
+// Register common language service
+builder.Services.AddScoped<ILanguageService, LanguageService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -42,12 +49,14 @@ builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IExportLogRepository, ExportLogRepository>();
+builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 
 // Application Services
 builder.Services.AddScoped<IAdminService, AdminService.Application.Services.AdminService>();
 builder.Services.AddScoped<IDashboardAggregationService, DashboardAggregationService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IExportService, ExportService>();
+builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 
 // HTTP Client for UserService
 builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>
@@ -55,7 +64,8 @@ builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>
     client.BaseAddress = new Uri(builder.Configuration["Services:UserService:BaseUrl"] ?? "http://localhost:5002");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // HTTP Client for ExamService  
 builder.Services.AddHttpClient<IExamServiceClient, ExamServiceClient>(client =>
@@ -63,7 +73,8 @@ builder.Services.AddHttpClient<IExamServiceClient, ExamServiceClient>(client =>
     client.BaseAddress = new Uri(builder.Configuration["Services:ExamService:BaseUrl"] ?? "https://localhost:5003");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // HTTP Client for SubscriptionService
 builder.Services.AddHttpClient<ISubscriptionServiceClient, SubscriptionServiceClient>(client =>
@@ -71,7 +82,8 @@ builder.Services.AddHttpClient<ISubscriptionServiceClient, SubscriptionServiceCl
     client.BaseAddress = new Uri(builder.Configuration["Services:SubscriptionService:BaseUrl"] ?? "https://localhost:5004");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // HTTP Client for QuizService
 builder.Services.AddHttpClient<IQuizServiceClient, QuizServiceClient>(client =>
@@ -79,7 +91,8 @@ builder.Services.AddHttpClient<IQuizServiceClient, QuizServiceClient>(client =>
     client.BaseAddress = new Uri(builder.Configuration["Services:QuizService:BaseUrl"] ?? "https://localhost:5005");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // HTTP Client for QuestionService
 builder.Services.AddHttpClient<IQuestionServiceClient, QuestionServiceClient>(client =>
@@ -87,7 +100,8 @@ builder.Services.AddHttpClient<IQuestionServiceClient, QuestionServiceClient>(cl
     client.BaseAddress = new Uri(builder.Configuration["Services:QuestionService:BaseUrl"] ?? "https://localhost:5006");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // HTTP Client for HomeDashboardService
 builder.Services.AddHttpClient<IHomeDashboardServiceClient, HomeDashboardServiceClient>(client =>
@@ -95,7 +109,8 @@ builder.Services.AddHttpClient<IHomeDashboardServiceClient, HomeDashboardService
     client.BaseAddress = new Uri(builder.Configuration["Services:HomeDashboardService:BaseUrl"] ?? "https://localhost:56927");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // HTTP Client for AnalyticsService
 builder.Services.AddHttpClient<IAnalyticsServiceClient, AnalyticsServiceClient>(client =>
@@ -103,7 +118,8 @@ builder.Services.AddHttpClient<IAnalyticsServiceClient, AnalyticsServiceClient>(
     client.BaseAddress = new Uri(builder.Configuration["Services:AnalyticsService:BaseUrl"] ?? "https://localhost:5007");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // HTTP Client for MasterService
 builder.Services.AddHttpClient<IMasterServiceClient, MasterServiceClient>(client =>
@@ -111,7 +127,8 @@ builder.Services.AddHttpClient<IMasterServiceClient, MasterServiceClient>(client
     client.BaseAddress = new Uri(builder.Configuration["Services:MasterService:BaseUrl"] ?? "http://localhost:5009");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // HTTP Client for QualificationService
 builder.Services.AddHttpClient<IQualificationServiceClient, QualificationServiceClient>(client =>
@@ -119,7 +136,8 @@ builder.Services.AddHttpClient<IQualificationServiceClient, QualificationService
     client.BaseAddress = new Uri(builder.Configuration["Services:QualificationService:BaseUrl"] ?? "https://localhost:5010");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<AuthTokenDelegatingHandler>();
+.AddHttpMessageHandler<AuthTokenDelegatingHandler>()
+.AddHttpMessageHandler<LanguageHeaderHandler>();
 
 // Add AuthService
 builder.Services.AddScoped<AuthService>();
@@ -167,9 +185,23 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(builder =>
+    options.AddPolicy("AllowFrontend", builder =>
     {
-        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        builder.WithOrigins(
+                "http://localhost:5176",
+                "http://localhost:3000", 
+                "http://localhost:8080",
+                "http://192.168.1.9:5176",
+                "http://192.168.1.9:3000",
+                "http://192.168.1.9:8080",
+                "http://192.168.1.21:5176",
+                "http://192.168.1.21:3000",
+                "http://192.168.1.21:8080",
+                "http://192.168.1.21:5173"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
@@ -218,8 +250,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-app.UseCors();
+// Remove HTTPS redirection for development to avoid CORS issues
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseCors("AllowFrontend");
+app.UseLanguage();
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -13,6 +13,9 @@ namespace AdminService.Domain.Entities
         public bool IsTwoFactorEnabled { get; set; } = false;
         public string? TwoFactorSecret { get; set; }
         
+        [MaxLength(20)]
+        public string? MobileNumber { get; set; }
+        
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
         public DateTime? LastLoginAt { get; set; }

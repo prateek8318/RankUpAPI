@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using SubscriptionService.Domain.Entities;
 
 namespace SubscriptionService.Infrastructure.Data
@@ -12,6 +13,7 @@ namespace SubscriptionService.Infrastructure.Data
 
         // DbSets for all entities
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        public DbSet<SubscriptionPlanTranslation> SubscriptionPlanTranslations { get; set; }
         public DbSet<UserSubscription> UserSubscriptions { get; set; }
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
@@ -24,6 +26,11 @@ namespace SubscriptionService.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            var stringListComparer = new ValueComparer<List<string>>(
+                (c1, c2) => (c1 ?? new()).SequenceEqual(c2 ?? new()),
+                c => (c ?? new()).Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                c => (c ?? new()).ToList());
+
             // Configure SubscriptionPlan
             modelBuilder.Entity<SubscriptionPlan>(entity =>
             {
@@ -31,15 +38,44 @@ namespace SubscriptionService.Infrastructure.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).IsRequired();
                 entity.Property(e => e.Price).HasPrecision(18, 2);
+                entity.Property(e => e.Discount).HasPrecision(18, 2);
                 entity.Property(e => e.ExamCategory).HasMaxLength(100);
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
-                entity.Property(e => e.Features).HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
+                entity.Property(e => e.DurationType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.CardColorTheme).HasMaxLength(50);
+                entity.Property(e => e.Features)
+                    .HasConversion(
+                        v => string.Join(',', v),
+                        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+                    .Metadata.SetValueComparer(stringListComparer);
 
                 entity.HasIndex(e => e.ExamCategory);
                 entity.HasIndex(e => e.Type);
                 entity.HasIndex(e => e.IsActive);
+            });
+
+            modelBuilder.Entity<SubscriptionPlanTranslation>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.LanguageCode).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).IsRequired();
+                entity.Property(e => e.Features)
+                    .HasConversion(
+                        v => string.Join(',', v),
+                        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+                    .Metadata.SetValueComparer(stringListComparer);
+
+                entity.HasIndex(e => new { e.SubscriptionPlanId, e.LanguageCode }).IsUnique();
+
+                entity.HasOne(e => e.SubscriptionPlan)
+                    .WithMany(p => p.Translations)
+                    .HasForeignKey(e => e.SubscriptionPlanId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Match SubscriptionPlan's soft-delete filter
+                entity.HasQueryFilter(t => t.SubscriptionPlan.IsActive);
             });
 
 

@@ -49,10 +49,6 @@ timeout /t 2 >nul
 
 cd Services\QuestionService\QuestionService.API
 start "QuestionService" cmd /k "dotnet run"
-timeout /t 2 >nul
-
-cd Services\QualificationService\QualificationService.API
-start "QualificationService" cmd /k "dotnet run"
 
 echo.
 echo ========================================

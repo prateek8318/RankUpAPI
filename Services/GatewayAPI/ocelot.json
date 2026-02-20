@@ -39,6 +39,25 @@
       }
     },
     {
+      "DownstreamPathTemplate": "/api/exams/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5000
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 5000
+        }
+      ],
+      "UpstreamPathTemplate": "/api/admin/exams/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
+    },
+    {
       "DownstreamPathTemplate": "/api/users/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -74,7 +93,49 @@
           "Port": 56923
         }
       ],
-      "UpstreamPathTemplate": "/api/admin/{everything}",
+      "UpstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 56923
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 56923
+        },
+        {
+          "Host": "192.168.1.21",
+          "Port": 56923
+        }
+      ],
+      "UpstreamPathTemplate": "/api/admin/subscriptions/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
+    },
+        {
+      "DownstreamPathTemplate": "/api/qualifications/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5009
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 5009
+        }
+      ],
+      "UpstreamPathTemplate": "/api/qualification/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
       "DownstreamHeaderTransform": {
         "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
@@ -84,16 +145,23 @@
       "DownstreamPathTemplate": "/api/qualifications/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 56920
-        },
-        {
-          "Host": "192.168.1.14",
-          "Port": 56920
-        }
+        { "Host": "localhost", "Port": 5009 },
+        { "Host": "192.168.1.14", "Port": 5009 }
       ],
-      "UpstreamPathTemplate": "/api/qualification/{everything}",
+      "UpstreamPathTemplate": "/api/qualifications/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "DownstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/streams/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 5009 },
+        { "Host": "192.168.1.14", "Port": 5009 }
+      ],
+      "UpstreamPathTemplate": "/api/streams/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
       "DownstreamHeaderTransform": {
         "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"

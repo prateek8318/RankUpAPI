@@ -77,9 +77,27 @@ namespace AdminService.Application.Clients
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     _logger.LogWarning("Failed to create state: {StatusCode} - {Error}", response.StatusCode, errorContent);
+                    
+                    // Throw exceptions for specific status codes
+                    if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                    {
+                        throw new InvalidOperationException(errorContent);
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        throw new ArgumentException(errorContent);
+                    }
                 }
 
                 return null;
+            }
+            catch (InvalidOperationException)
+            {
+                throw; // Re-throw InvalidOperationException
+            }
+            catch (ArgumentException)
+            {
+                throw; // Re-throw ArgumentException
             }
             catch (Exception ex)
             {

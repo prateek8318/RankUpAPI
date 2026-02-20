@@ -141,7 +141,8 @@ namespace UserService.Application.Services
             if (patchRequest.ExamId.HasValue)
                 user.ExamId = patchRequest.ExamId.Value;
 
-            // CategoryId and StreamId removed from DTOs
+            if (patchRequest.CategoryId.HasValue)
+                user.CategoryId = patchRequest.CategoryId.Value;
 
             if (patchRequest.InterestedInIntlExam.HasValue)
                 user.InterestedInIntlExam = patchRequest.InterestedInIntlExam.Value;
@@ -201,7 +202,8 @@ namespace UserService.Application.Services
             if (formData.ExamId.HasValue)
                 user.ExamId = formData.ExamId.Value;
 
-            // CategoryId and StreamId removed from DTOs
+            if (formData.CategoryId.HasValue)
+                user.CategoryId = formData.CategoryId.Value;
 
             if (formData.InterestedInIntlExam.HasValue)
                 user.InterestedInIntlExam = formData.InterestedInIntlExam.Value;

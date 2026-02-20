@@ -332,12 +332,32 @@ namespace SubscriptionService.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CardColorTheme")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Discount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DurationType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("ExamCategory")
                         .HasMaxLength(100)
@@ -357,6 +377,9 @@ namespace SubscriptionService.Infrastructure.Migrations
                     b.Property<bool>("IsPopular")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsRecommended")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -367,6 +390,9 @@ namespace SubscriptionService.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TestPapersCount")
                         .HasColumnType("int");
 
                     b.Property<int>("Type")
@@ -387,6 +413,43 @@ namespace SubscriptionService.Infrastructure.Migrations
                     b.HasIndex("Type");
 
                     b.ToTable("SubscriptionPlans");
+                });
+
+            modelBuilder.Entity("SubscriptionService.Domain.Entities.SubscriptionPlanTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Features")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SubscriptionPlanId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubscriptionPlanId", "LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("SubscriptionPlanTranslations");
                 });
 
             modelBuilder.Entity("SubscriptionService.Domain.Entities.UserSubscription", b =>
@@ -498,6 +561,17 @@ namespace SubscriptionService.Infrastructure.Migrations
                     b.Navigation("UserSubscription");
                 });
 
+            modelBuilder.Entity("SubscriptionService.Domain.Entities.SubscriptionPlanTranslation", b =>
+                {
+                    b.HasOne("SubscriptionService.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
+                        .WithMany("Translations")
+                        .HasForeignKey("SubscriptionPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SubscriptionPlan");
+                });
+
             modelBuilder.Entity("SubscriptionService.Domain.Entities.UserSubscription", b =>
                 {
                     b.HasOne("SubscriptionService.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
@@ -511,6 +585,8 @@ namespace SubscriptionService.Infrastructure.Migrations
 
             modelBuilder.Entity("SubscriptionService.Domain.Entities.SubscriptionPlan", b =>
                 {
+                    b.Navigation("Translations");
+
                     b.Navigation("UserSubscriptions");
                 });
 

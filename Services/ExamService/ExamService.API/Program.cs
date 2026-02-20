@@ -92,9 +92,10 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.AllowAnyOrigin()
+        builder.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8080")
                .AllowAnyMethod()
-               .AllowAnyHeader();
+               .AllowAnyHeader()
+               .AllowCredentials();
     });
 });
 
@@ -109,17 +110,23 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = "ExamService API", 
         Version = "v1",
-        Description = "Exam Management API with Image Upload"
+        Description = "Comprehensive Exam Management API with Multi-language Support\n\n**Features:**\n- Exam CRUD operations (Create, Read, Update, Delete)\n- Filter exams by qualification, stream, and international status\n- Multi-language support (English, Hindi, Tamil, Gujarati)\n- Image upload for exams\n- JWT token-based authentication\n\n**Base URL:** `http://localhost:5003` or `https://localhost:5003`\n\n**Authentication:** Most endpoints require JWT token in Authorization header: `Bearer {your-jwt-token}`\n\n**Language Support:** All GET endpoints support `language` query parameter (e.g., `?language=hi`). If not provided, language is detected from `X-Language` header or defaults to English.",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "API Support",
+            Email = "support@rankup.com"
+        }
     });
     
     // Add JWT Authentication to Swagger
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Description = "JWT Authorization header using the Bearer scheme.\n\n**How to use:**\n1. First call authentication endpoints to get a JWT token\n2. Click the 'Authorize' button below\n3. Enter 'Bearer ' followed by your token (without quotes)\n4. Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`\n\n**Note:** Token expires after configured time period",
         Name = "Authorization",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
     });
 
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement

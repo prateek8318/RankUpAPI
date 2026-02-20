@@ -19,9 +19,14 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo 
     { 
-        Title = "Test Service API", 
+        Title = "TestService API", 
         Version = "v1",
-        Description = "API for managing tests, practice modes, and test series"
+        Description = "Comprehensive Test Management API\n\n**Features:**\n- Test CRUD operations (Create, Read, Update, Delete)\n- Test series management\n- Practice mode management\n- User test attempt tracking\n- Test question management\n- JWT token-based authentication\n\n**Base URL:** `http://localhost:5001` or `https://localhost:5001`\n\n**Authentication:** Most endpoints require JWT token in Authorization header: `Bearer {your-jwt-token}`",
+        Contact = new OpenApiContact
+        {
+            Name = "API Support",
+            Email = "support@rankup.com"
+        }
     });
 
     // Include XML Comments
@@ -32,11 +37,12 @@ builder.Services.AddSwaggerGen(c =>
     // Add JWT Authentication
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Description = "JWT Authorization header using the Bearer scheme.\n\n**How to use:**\n1. First call authentication endpoints to get a JWT token\n2. Click the 'Authorize' button below\n3. Enter 'Bearer ' followed by your token (without quotes)\n4. Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`\n\n**Note:** Token expires after configured time period",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -82,9 +88,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8080")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 

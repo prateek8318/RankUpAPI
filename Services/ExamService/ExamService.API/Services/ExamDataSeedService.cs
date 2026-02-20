@@ -303,7 +303,7 @@ namespace ExamService.API.Services
             try
             {
                 var httpClient = _httpClientFactory.CreateClient();
-                var qualificationServiceUrl = _configuration["Services:QualificationService:BaseUrl"] ?? "http://localhost:5011";
+                var qualificationServiceUrl = _configuration["Services:QualificationService:BaseUrl"] ?? _configuration["Services:MasterService:BaseUrl"] ?? "http://localhost:5009";
                 
                 var response = await httpClient.GetAsync($"{qualificationServiceUrl}/api/qualifications");
                 if (response.IsSuccessStatusCode)
@@ -325,7 +325,7 @@ namespace ExamService.API.Services
             try
             {
                 var httpClient = _httpClientFactory.CreateClient();
-                var qualificationServiceUrl = _configuration["Services:QualificationService:BaseUrl"] ?? "http://localhost:5011";
+                var qualificationServiceUrl = _configuration["Services:QualificationService:BaseUrl"] ?? _configuration["Services:MasterService:BaseUrl"] ?? "http://localhost:5009";
                 
                 var response = await httpClient.GetAsync($"{qualificationServiceUrl}/api/streams");
                 if (response.IsSuccessStatusCode)

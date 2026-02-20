@@ -18,6 +18,17 @@ namespace MasterService.Application.Services
 
         public async Task<LanguageDto> CreateLanguageAsync(CreateLanguageDto createDto)
         {
+            // Check for existing language with same name (case-insensitive)
+            var existingLanguages = await _languageRepository.GetAllAsync();
+            var duplicateLanguage = existingLanguages.FirstOrDefault(l => 
+                l.Name.Equals(createDto.Name, StringComparison.OrdinalIgnoreCase) ||
+                (l.Code != null && createDto.Code != null && l.Code.Equals(createDto.Code, StringComparison.OrdinalIgnoreCase)));
+
+            if (duplicateLanguage != null)
+            {
+                throw new InvalidOperationException($"A language with name '{createDto.Name}' or code '{createDto.Code}' already exists.");
+            }
+
             var language = _mapper.Map<Language>(createDto);
             language.CreatedAt = DateTime.UtcNow;
             language.IsActive = true;

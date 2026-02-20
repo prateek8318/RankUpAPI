@@ -36,6 +36,14 @@ namespace AdminService.API.Controllers
 
                 return Ok(new ApiResponseDto<object> { Success = true, Data = state });
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating state");

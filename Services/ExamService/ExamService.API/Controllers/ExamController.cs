@@ -2,6 +2,7 @@ using ExamService.Application.DTOs;
 using ExamService.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Common.Services;
 
 namespace ExamService.API.Controllers
 {
@@ -14,11 +15,13 @@ namespace ExamService.API.Controllers
     {
         private readonly IExamService _examService;
         private readonly IWebHostEnvironment _environment;
+        private readonly ILanguageService _languageService;
 
-        public ExamController(IExamService examService, IWebHostEnvironment environment)
+        public ExamController(IExamService examService, IWebHostEnvironment environment, ILanguageService languageService)
         {
             _examService = examService;
             _environment = environment;
+            _languageService = languageService;
         }
 
         /// <summary>
@@ -27,11 +30,18 @@ namespace ExamService.API.Controllers
         /// <param name="qualificationId">Optional qualification ID to filter exams</param>
         /// <param name="streamId">Optional stream ID to filter exams</param>
         /// <param name="isInternational">Optional filter for international exams (true/false)</param>
+        /// <param name="language">Optional language code (e.g., 'en', 'hi'). Defaults to header value or 'en'</param>
         /// <returns>List of exams</returns>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExams([FromQuery] int? qualificationId = null, [FromQuery] int? streamId = null, [FromQuery] bool? isInternational = null)
+        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExams(
+            [FromQuery] int? qualificationId = null, 
+            [FromQuery] int? streamId = null, 
+            [FromQuery] bool? isInternational = null,
+            [FromQuery] string? language = null)
         {
+            var currentLanguage = language ?? _languageService.GetCurrentLanguage();
+            
             if (qualificationId.HasValue)
             {
                 var exams = await _examService.GetExamsByQualificationAsync(qualificationId.Value, streamId);
@@ -42,27 +52,47 @@ namespace ExamService.API.Controllers
                     exams = exams.Where(e => e.IsInternational == isInternational.Value);
                 }
                 
-                return Ok(exams);
+                return Ok(new
+                {
+                    success = true,
+                    data = exams,
+                    language = currentLanguage,
+                    message = "Exams fetched successfully"
+                });
             }
             
             var allExams = await _examService.GetAllExamsAsync(isInternational);
-            return Ok(allExams);
+            return Ok(new
+            {
+                success = true,
+                data = allExams,
+                language = currentLanguage,
+                message = "Exams fetched successfully"
+            });
         }
 
         /// <summary>
         /// Get exam by ID
         /// </summary>
         /// <param name="id">Exam ID</param>
+        /// <param name="language">Optional language code (e.g., 'en', 'hi'). Defaults to header value or 'en'</param>
         /// <returns>Exam details</returns>
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<ActionResult<ExamDto>> GetExam(int id)
+        public async Task<ActionResult<ExamDto>> GetExam(int id, [FromQuery] string? language = null)
         {
+            var currentLanguage = language ?? _languageService.GetCurrentLanguage();
             var exam = await _examService.GetExamByIdAsync(id);
             if (exam == null)
-                return NotFound();
+                return NotFound(new { success = false, message = "Exam not found" });
 
-            return Ok(exam);
+            return Ok(new
+            {
+                success = true,
+                data = exam,
+                language = currentLanguage,
+                message = "Exam fetched successfully"
+            });
         }
 
         /// <summary>
@@ -70,32 +100,48 @@ namespace ExamService.API.Controllers
         /// </summary>
         /// <param name="qualificationId">Qualification ID</param>
         /// <param name="streamId">Optional stream ID</param>
+        /// <param name="language">Optional language code (e.g., 'en', 'hi'). Defaults to header value or 'en'</param>
         /// <returns>List of exams for the qualification and stream</returns>
         [HttpGet("by-qualification/{qualificationId}")]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExamsByQualification(int qualificationId, [FromQuery] int? streamId = null)
+        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExamsByQualification(int qualificationId, [FromQuery] int? streamId = null, [FromQuery] string? language = null)
         {
+            var currentLanguage = language ?? _languageService.GetCurrentLanguage();
             var exams = await _examService.GetExamsByQualificationAsync(qualificationId, streamId);
-            return Ok(exams);
+            return Ok(new
+            {
+                success = true,
+                data = exams,
+                language = currentLanguage,
+                message = "Exams fetched successfully"
+            });
         }
 
         /// <summary>
         /// Get exams based on user's international exam interest
         /// </summary>
+        /// <param name="language">Optional language code (e.g., 'en', 'hi'). Defaults to header value or 'en'</param>
         /// <returns>List of exams filtered by user preference</returns>
         [HttpGet("for-user")]
         [Authorize]
-        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExamsForUser()
+        public async Task<ActionResult<IEnumerable<ExamDto>>> GetExamsForUser([FromQuery] string? language = null)
         {
             try
             {
+                var currentLanguage = language ?? _languageService.GetCurrentLanguage();
                 var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
                 var exams = await _examService.GetExamsForUserAsync(userId);
-                return Ok(exams);
+                return Ok(new
+                {
+                    success = true,
+                    data = exams,
+                    language = currentLanguage,
+                    message = "Exams fetched successfully"
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error retrieving exams for user: {ex.Message}");
+                return BadRequest(new { success = false, message = $"Error retrieving exams for user: {ex.Message}" });
             }
         }
 

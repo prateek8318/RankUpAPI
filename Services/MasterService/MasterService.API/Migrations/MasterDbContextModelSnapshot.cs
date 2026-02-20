@@ -217,6 +217,98 @@ namespace MasterService.API.Migrations
                     b.ToTable("Languages");
                 });
 
+            modelBuilder.Entity("MasterService.Domain.Entities.Qualification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int?>("CountryId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryCode");
+
+                    b.HasIndex("CountryId");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Qualifications");
+                });
+
+            modelBuilder.Entity("MasterService.Domain.Entities.QualificationLanguage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("QualificationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LanguageId");
+
+                    b.HasIndex("QualificationId", "LanguageId")
+                        .IsUnique();
+
+                    b.ToTable("QualificationLanguages");
+                });
+
             modelBuilder.Entity("MasterService.Domain.Entities.State", b =>
                 {
                     b.Property<int>("Id")
@@ -300,6 +392,92 @@ namespace MasterService.API.Migrations
                     b.ToTable("StateLanguages");
                 });
 
+            modelBuilder.Entity("MasterService.Domain.Entities.Stream", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("QualificationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("QualificationId");
+
+                    b.ToTable("Streams");
+                });
+
+            modelBuilder.Entity("MasterService.Domain.Entities.StreamLanguage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("StreamId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LanguageId");
+
+                    b.HasIndex("StreamId", "LanguageId")
+                        .IsUnique();
+
+                    b.ToTable("StreamLanguages");
+                });
+
             modelBuilder.Entity("MasterService.Domain.Entities.CmsContentTranslation", b =>
                 {
                     b.HasOne("MasterService.Domain.Entities.CmsContent", "CmsContent")
@@ -309,6 +487,40 @@ namespace MasterService.API.Migrations
                         .IsRequired();
 
                     b.Navigation("CmsContent");
+                });
+
+            modelBuilder.Entity("MasterService.Domain.Entities.Qualification", b =>
+                {
+                    b.HasOne("MasterService.Domain.Entities.Country", null)
+                        .WithMany()
+                        .HasForeignKey("CountryCode")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MasterService.Domain.Entities.Country", "Country")
+                        .WithMany()
+                        .HasForeignKey("CountryId");
+
+                    b.Navigation("Country");
+                });
+
+            modelBuilder.Entity("MasterService.Domain.Entities.QualificationLanguage", b =>
+                {
+                    b.HasOne("MasterService.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MasterService.Domain.Entities.Qualification", "Qualification")
+                        .WithMany("QualificationLanguages")
+                        .HasForeignKey("QualificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+
+                    b.Navigation("Qualification");
                 });
 
             modelBuilder.Entity("MasterService.Domain.Entities.State", b =>
@@ -339,14 +551,56 @@ namespace MasterService.API.Migrations
                     b.Navigation("State");
                 });
 
+            modelBuilder.Entity("MasterService.Domain.Entities.Stream", b =>
+                {
+                    b.HasOne("MasterService.Domain.Entities.Qualification", "Qualification")
+                        .WithMany("Streams")
+                        .HasForeignKey("QualificationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Qualification");
+                });
+
+            modelBuilder.Entity("MasterService.Domain.Entities.StreamLanguage", b =>
+                {
+                    b.HasOne("MasterService.Domain.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MasterService.Domain.Entities.Stream", "Stream")
+                        .WithMany("StreamLanguages")
+                        .HasForeignKey("StreamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+
+                    b.Navigation("Stream");
+                });
+
             modelBuilder.Entity("MasterService.Domain.Entities.CmsContent", b =>
                 {
                     b.Navigation("Translations");
                 });
 
+            modelBuilder.Entity("MasterService.Domain.Entities.Qualification", b =>
+                {
+                    b.Navigation("QualificationLanguages");
+
+                    b.Navigation("Streams");
+                });
+
             modelBuilder.Entity("MasterService.Domain.Entities.State", b =>
                 {
                     b.Navigation("StateLanguages");
+                });
+
+            modelBuilder.Entity("MasterService.Domain.Entities.Stream", b =>
+                {
+                    b.Navigation("StreamLanguages");
                 });
 #pragma warning restore 612, 618
         }

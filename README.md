@@ -8,14 +8,11 @@ A microservices-based API platform for competitive exam preparation with compreh
 - **Admin Service** - Administrative operations and analytics
 - **User Service** - User management, profiles, and authentication
 - **Exam Service** - National and International exam management
-- **Qualification Service** - Educational qualifications and streams
 - **Question Service** - Question bank management
 - **Quiz Service** - Interactive quiz functionality
 - **Test Service** - Comprehensive test execution and analytics
-- **Analytics Service** - Performance analytics and reporting
 - **Home Dashboard Service** - Unified dashboard experience
 - **Subscription Service** - Payment and subscription management
-- **Video Service** - Educational video content management
 - **API Gateway** - Centralized routing with Ocelot
 
 ### Key Features
@@ -84,18 +81,7 @@ cd RankUpAPI
 .\update-all-databases.bat
 ```
 
-### 3. Seed Initial Data
-```bash
-# Seed qualifications and streams first
-POST http://localhost:5011/api/seed/qualifications?clearExisting=true
-Authorization: Bearer {Admin_Token}
-
-# Then seed exams
-POST https://localhost:5001/api/seed/exams?clearExisting=true
-Authorization: Bearer {Admin_Token}
-```
-
-### 4. Start All Services
+### 3. Start All Services
 ```bash
 # Start all services with gateway
 .\start-all-services-with-gateway.bat
@@ -182,11 +168,9 @@ PUT /api/admin/exams
 - **Admin Service**: 5002
 - **User Service**: 5003
 - **Exam Service**: 5000/5001 (HTTP/HTTPS)
-- **Qualification Service**: 5011
 - **Question Service**: 5008
 - **Quiz Service**: 5009
 - **Test Service**: 56928
-- **Analytics Service**: 5040
 - **Subscription Service**: 7070
 
 ## 📝 API Documentation
@@ -222,14 +206,11 @@ RankUpAPI/
 │   ├── AdminService/          # Administrative operations
 │   ├── UserService/           # User management
 │   ├── ExamService/           # Exam management
-│   ├── QualificationService/  # Educational qualifications
 │   ├── QuestionService/       # Question bank
 │   ├── QuizService/           # Quiz functionality
 │   ├── TestService/           # Test execution & analytics
-│   ├── AnalyticsService/      # Performance analytics
 │   ├── HomeDashboardService/  # Dashboard service
 │   ├── SubscriptionService/   # Payment & subscriptions
-│   ├── VideoService/          # Video content
 │   └── GatewayAPI/            # API Gateway (Ocelot)
 ├── docs/                      # Documentation & collections
 ├── Scripts/                   # Database scripts

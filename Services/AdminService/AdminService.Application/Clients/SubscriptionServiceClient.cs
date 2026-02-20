@@ -19,14 +19,27 @@ namespace AdminService.Application.Clients
             _httpClient = httpClient;
             _logger = logger;
             
+            _logger.LogInformation("SubscriptionServiceClient initialized with BaseAddress: {BaseAddress}, Timeout: {Timeout}s", 
+                httpClient.BaseAddress, httpClient.Timeout.TotalSeconds);
+            
             _retryPolicy = Policy
-                .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+                .Handle<HttpRequestException>()
+                .OrResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
                 .WaitAndRetryAsync(
                     retryCount: 3,
                     sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                     onRetry: (outcome, timespan, retryCount, context) =>
                     {
-                        _logger.LogWarning($"Retry {retryCount} after {timespan.TotalSeconds}s");
+                        if (outcome.Exception != null)
+                        {
+                            _logger.LogWarning("Retry {RetryCount} after {Delay}s due to {ExceptionType}: {ExceptionMessage}", 
+                                retryCount, timespan.TotalSeconds, outcome.Exception.GetType().Name, outcome.Exception.Message);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Retry {RetryCount} after {Delay}s due to HTTP status {StatusCode}", 
+                                retryCount, timespan.TotalSeconds, outcome.Result?.StatusCode);
+                        }
                     });
         }
 
@@ -101,6 +114,8 @@ namespace AdminService.Application.Clients
         {
             try
             {
+                _logger.LogInformation("Creating subscription plan at {Url}", _httpClient.BaseAddress + "/api/admin/subscription-plans");
+                
                 var json = JsonSerializer.Serialize(createDto);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -110,14 +125,32 @@ namespace AdminService.Application.Clients
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation("Successfully created subscription plan");
                     return JsonSerializer.Deserialize<object>(responseContent);
                 }
-
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Failed to create subscription plan. Status: {StatusCode}, Content: {Content}", 
+                        response.StatusCode, errorContent);
+                    return null;
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request failed when creating subscription plan. BaseAddress: {BaseAddress}", 
+                    _httpClient.BaseAddress);
+                return null;
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                _logger.LogError(ex, "Request timed out when creating subscription plan. Timeout: {Timeout}s", 
+                    _httpClient.Timeout.TotalSeconds);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calling SubscriptionService to create subscription plan");
+                _logger.LogError(ex, "Unexpected error when creating subscription plan");
                 return null;
             }
         }
@@ -160,6 +193,54 @@ namespace AdminService.Application.Clients
             {
                 _logger.LogError(ex, $"Error calling SubscriptionService to delete subscription plan {id}");
                 return false;
+            }
+        }
+
+        public async Task<List<Dictionary<string, object>>?> GetAllUserSubscriptionsAsync()
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.GetAsync("/api/admin/usersubscriptions"));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var subscriptions = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(content);
+                    return subscriptions;
+                }
+
+                _logger.LogWarning($"Failed to get all user subscriptions: {response.StatusCode}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SubscriptionService for all user subscriptions");
+                return null;
+            }
+        }
+
+        public async Task<List<Dictionary<string, object>>?> GetExpiringUserSubscriptionsAsync(int daysBeforeExpiry = 30)
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.GetAsync($"/api/admin/usersubscriptions/expiring?daysBeforeExpiry={daysBeforeExpiry}"));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var subscriptions = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(content);
+                    return subscriptions;
+                }
+
+                _logger.LogWarning($"Failed to get expiring user subscriptions: {response.StatusCode}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SubscriptionService for expiring user subscriptions");
+                return null;
             }
         }
     }

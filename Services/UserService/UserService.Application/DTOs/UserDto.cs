@@ -19,6 +19,7 @@ namespace UserService.Application.DTOs
         public int? LanguageId { get; set; }
         public int? QualificationId { get; set; }
         public int? ExamId { get; set; }
+        public int? CategoryId { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public bool IsPhoneVerified { get; set; }
         public bool IsActive { get; set; }
@@ -40,6 +41,7 @@ namespace UserService.Application.DTOs
         public int? LanguageId { get; set; }
         public int? QualificationId { get; set; }
         public int? ExamId { get; set; }
+        public int? CategoryId { get; set; }
     }
     
     /// <summary>
@@ -59,6 +61,7 @@ namespace UserService.Application.DTOs
     /// - LanguageId: Valid language ID from language data endpoint (e.g., 1, 2, 3)
     /// - QualificationId: Valid qualification ID from language data endpoint (e.g., 1, 2, 3)
     /// - ExamId: Valid exam ID from language data endpoint (e.g., 1, 2, 3)
+    /// - CategoryId: Valid category ID from language data endpoint (e.g., 1, 2, 3)
     /// - InterestedInIntlExam: Boolean flag for international exam preferences (true/false)
     /// 
     /// **Examples:**
@@ -82,6 +85,7 @@ namespace UserService.Application.DTOs
     ///   "dob": "1990-01-15",
     ///   "stateId": 1,
     ///   "languageId": 1,
+    ///   "categoryId": 1,
     ///   "interestedInIntlExam": true
     /// }
     /// ```
@@ -96,6 +100,7 @@ namespace UserService.Application.DTOs
         public int? LanguageId { get; set; }
         public int? QualificationId { get; set; }
         public int? ExamId { get; set; }
+        public int? CategoryId { get; set; }
         public bool? InterestedInIntlExam { get; set; }
     }
 
@@ -120,6 +125,7 @@ namespace UserService.Application.DTOs
     /// - LanguageId: Valid language ID from language data endpoint (e.g., 1, 2, 3)
     /// - QualificationId: Valid qualification ID from language data endpoint (e.g., 1, 2, 3)
     /// - ExamId: Valid exam ID from language data endpoint (e.g., 1, 2, 3)
+    /// - CategoryId: Valid category ID from language data endpoint (e.g., 1, 2, 3)
     /// - InterestedInIntlExam: Boolean flag for international exam preferences (true/false)
     /// - ProfilePhoto: Image file (JPG, JPEG, PNG, GIF, max 10MB)
     /// 
@@ -131,6 +137,7 @@ namespace UserService.Application.DTOs
     /// Dob: "1990-01-15"
     /// StateId: "1"
     /// LanguageId: "1"
+    /// CategoryId: "1"
     /// InterestedInIntlExam: "true"
     /// ProfilePhoto: [binary file data]
     /// ```
@@ -150,6 +157,7 @@ namespace UserService.Application.DTOs
         public int? LanguageId { get; set; }
         public int? QualificationId { get; set; }
         public int? ExamId { get; set; }
+        public int? CategoryId { get; set; }
         public bool? InterestedInIntlExam { get; set; }
         public IFormFile? ProfilePhoto { get; set; }
     }

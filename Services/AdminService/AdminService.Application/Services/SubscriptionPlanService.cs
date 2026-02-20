@@ -2,19 +2,23 @@ using AdminService.Application.DTOs;
 using AdminService.Application.Interfaces;
 using AdminService.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace AdminService.Application.Services
 {
     public class SubscriptionPlanService : ISubscriptionPlanService
     {
         private readonly ISubscriptionPlanRepository _subscriptionPlanRepository;
+        private readonly ISubscriptionServiceClient _subscriptionServiceClient;
         private readonly ILogger<SubscriptionPlanService> _logger;
 
         public SubscriptionPlanService(
             ISubscriptionPlanRepository subscriptionPlanRepository,
+            ISubscriptionServiceClient subscriptionServiceClient,
             ILogger<SubscriptionPlanService> logger)
         {
             _subscriptionPlanRepository = subscriptionPlanRepository;
+            _subscriptionServiceClient = subscriptionServiceClient;
             _logger = logger;
         }
 
@@ -157,9 +161,109 @@ namespace AdminService.Application.Services
                 var allPlans = await _subscriptionPlanRepository.GetAllAsync(1, 10000);
                 
                 var activePlans = allPlans.Count(p => p.IsActive);
-                var monthlyRevenue = allPlans.Where(p => p.IsActive).Sum(p => p.Price);
-                var expiringSoon = 0; // TODO: Implement based on actual subscription end dates
-                var newSubscribers = 0; // TODO: Implement based on actual subscription data
+                
+                // Get all user subscriptions from SubscriptionService
+                var allUserSubscriptions = await _subscriptionServiceClient.GetAllUserSubscriptionsAsync();
+                var expiringSubscriptions = await _subscriptionServiceClient.GetExpiringUserSubscriptionsAsync(30);
+                
+                var now = DateTime.UtcNow;
+                var thirtyDaysAgo = now.AddDays(-30);
+                var thirtyDaysFromNow = now.AddDays(30);
+                
+                // Calculate monthly revenue from active subscriptions created this month
+                decimal monthlyRevenue = 0;
+                int newSubscribers = 0;
+                int expiringSoon = 0;
+                
+                if (allUserSubscriptions != null)
+                {
+                    foreach (var subscription in allUserSubscriptions)
+                    {
+                        // Parse subscription data - System.Text.Json uses PascalCase by default
+                        // Try both PascalCase and camelCase for compatibility
+                        var createdAtKey = subscription.ContainsKey("CreatedAt") ? "CreatedAt" : 
+                                         subscription.ContainsKey("createdAt") ? "createdAt" : null;
+                        
+                        if (createdAtKey != null && subscription.TryGetValue(createdAtKey, out var createdAtObj))
+                        {
+                            DateTime createdAt;
+                            if (createdAtObj is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.String)
+                            {
+                                if (DateTime.TryParse(jsonElement.GetString(), out createdAt))
+                                {
+                                    // Count new subscribers (created in last 30 days)
+                                    if (createdAt >= thirtyDaysAgo)
+                                    {
+                                        newSubscribers++;
+                                    }
+                                }
+                            }
+                            else if (DateTime.TryParse(createdAtObj?.ToString(), out createdAt))
+                            {
+                                // Count new subscribers (created in last 30 days)
+                                if (createdAt >= thirtyDaysAgo)
+                                {
+                                    newSubscribers++;
+                                }
+                            }
+                        }
+                        
+                        // Calculate monthly revenue from active subscriptions created this month
+                        var statusKey = subscription.ContainsKey("Status") ? "Status" : 
+                                      subscription.ContainsKey("status") ? "status" : null;
+                        
+                        if (statusKey != null && subscription.TryGetValue(statusKey, out var statusObj))
+                        {
+                            var statusValue = statusObj?.ToString();
+                            if (statusValue == "Active" || statusValue == "0") // 0 might be enum value
+                            {
+                                if (createdAtKey != null && subscription.TryGetValue(createdAtKey, out var subCreatedAtObj))
+                                {
+                                    DateTime subCreatedAt;
+                                    bool dateParsed = false;
+                                    
+                                    if (subCreatedAtObj is JsonElement dateJsonElement && dateJsonElement.ValueKind == JsonValueKind.String)
+                                    {
+                                        dateParsed = DateTime.TryParse(dateJsonElement.GetString(), out subCreatedAt);
+                                    }
+                                    else
+                                    {
+                                        dateParsed = DateTime.TryParse(subCreatedAtObj?.ToString(), out subCreatedAt);
+                                    }
+                                    
+                                    if (dateParsed && subCreatedAt >= thirtyDaysAgo)
+                                    {
+                                        var finalAmountKey = subscription.ContainsKey("FinalAmount") ? "FinalAmount" : 
+                                                           subscription.ContainsKey("finalAmount") ? "finalAmount" : null;
+                                        
+                                        if (finalAmountKey != null && subscription.TryGetValue(finalAmountKey, out var finalAmountObj))
+                                        {
+                                            decimal finalAmount;
+                                            if (finalAmountObj is JsonElement amountJsonElement)
+                                            {
+                                                if (amountJsonElement.ValueKind == JsonValueKind.Number && 
+                                                    amountJsonElement.TryGetDecimal(out finalAmount))
+                                                {
+                                                    monthlyRevenue += finalAmount;
+                                                }
+                                            }
+                                            else if (decimal.TryParse(finalAmountObj?.ToString(), out finalAmount))
+                                            {
+                                                monthlyRevenue += finalAmount;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Count expiring subscriptions
+                if (expiringSubscriptions != null)
+                {
+                    expiringSoon = expiringSubscriptions.Count;
+                }
 
                 return new SubscriptionPlanStatsDto
                 {

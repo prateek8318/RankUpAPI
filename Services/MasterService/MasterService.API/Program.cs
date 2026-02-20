@@ -39,11 +39,15 @@ builder.Services.AddScoped<IStateRepository, StateRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICmsContentRepository, CmsContentRepository>();
+builder.Services.AddScoped<IQualificationRepository, QualificationRepository>();
+builder.Services.AddScoped<IStreamRepository, StreamRepository>();
 builder.Services.AddScoped<MasterService.Application.Interfaces.ILanguageService, MasterService.Application.Services.LanguageService>();
 builder.Services.AddScoped<IStateService, StateService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICmsContentService, CmsContentService>();
+builder.Services.AddScoped<IQualificationService, QualificationService>();
+builder.Services.AddScoped<IStreamService, StreamService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Common.Services.ILanguageService, Common.Services.LanguageService>();
 builder.Services.AddScoped<Common.Language.ILanguageDataService, Common.Language.LanguageDataService>();
@@ -78,12 +82,62 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        builder.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8080")
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .AllowCredentials();
     });
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo 
+    { 
+        Title = "MasterService API", 
+        Version = "v1",
+        Description = "Comprehensive Master Data Management API with Multi-language Support\n\n**Features:**\n- Category, Qualification, Exam Category, and Stream management\n- State and Country management with multi-language support\n- CMS content management (Terms & Conditions, Privacy Policy, etc.)\n- Language management\n- Multi-language support (English, Hindi, Tamil, Gujarati)\n- JWT token-based authentication\n\n**Base URL:** `http://localhost:5009` or `https://localhost:5009`\n\n**Authentication:** Most endpoints require JWT token in Authorization header: `Bearer {your-jwt-token}`\n\n**Language Support:** All GET endpoints support `language` query parameter (e.g., `?language=hi`). If not provided, language is detected from `X-Language` header or defaults to English.",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "API Support",
+            Email = "support@rankup.com"
+        }
+    });
+    
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme.\n\n**How to use:**\n1. First call authentication endpoints to get a JWT token\n2. Click the 'Authorize' button below\n3. Enter 'Bearer ' followed by your token (without quotes)\n4. Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`\n\n**Note:** Token expires after configured time period",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+    
+    // Include XML Comments
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
+});
 
 var app = builder.Build();
 

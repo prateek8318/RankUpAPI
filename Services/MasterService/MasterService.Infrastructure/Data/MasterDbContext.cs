@@ -1,5 +1,6 @@
 using MasterService.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using StreamEntity = MasterService.Domain.Entities.Stream;
 
 namespace MasterService.Infrastructure.Data
 {
@@ -17,6 +18,10 @@ namespace MasterService.Infrastructure.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<CmsContent> CmsContents { get; set; }
         public DbSet<CmsContentTranslation> CmsContentTranslations { get; set; }
+        public DbSet<Qualification> Qualifications { get; set; }
+        public DbSet<QualificationLanguage> QualificationLanguages { get; set; }
+        public DbSet<StreamEntity> Streams { get; set; }
+        public DbSet<StreamLanguage> StreamLanguages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -114,6 +119,65 @@ namespace MasterService.Infrastructure.Data
                 entity.Property(e => e.LanguageCode).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Content).IsRequired();
+            });
+
+            modelBuilder.Entity<Qualification>(entity =>
+            {
+                entity.HasIndex(e => e.Name);
+                entity.Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+                entity.HasOne<Country>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CountryCode)
+                    .HasPrincipalKey(c => c.Code)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(e => e.Streams)
+                    .WithOne(s => s.Qualification)
+                    .HasForeignKey(s => s.QualificationId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<QualificationLanguage>(entity =>
+            {
+                entity.HasIndex(e => new { e.QualificationId, e.LanguageId }).IsUnique();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+                entity.HasOne(e => e.Qualification)
+                    .WithMany(q => q.QualificationLanguages)
+                    .HasForeignKey(e => e.QualificationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Language)
+                    .WithMany()
+                    .HasForeignKey(e => e.LanguageId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<StreamEntity>(entity =>
+            {
+                entity.HasIndex(e => e.Name);
+                entity.Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+                entity.HasOne(s => s.Qualification)
+                    .WithMany(q => q.Streams)
+                    .HasForeignKey(s => s.QualificationId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<StreamLanguage>(entity =>
+            {
+                entity.HasIndex(e => new { e.StreamId, e.LanguageId }).IsUnique();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+                entity.HasOne(e => e.Stream)
+                    .WithMany(s => s.StreamLanguages)
+                    .HasForeignKey(e => e.StreamId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Language)
+                    .WithMany()
+                    .HasForeignKey(e => e.LanguageId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

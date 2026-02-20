@@ -18,6 +18,23 @@ namespace MasterService.Application.Services
 
         public async Task<StateDto> CreateStateAsync(CreateStateDto createDto)
         {
+            // Validate that at least one language name is provided
+            if (createDto.Names == null || !createDto.Names.Any())
+            {
+                throw new ArgumentException("At least one language name must be provided for the state.");
+            }
+
+            // Check for existing state with same name or code (case-insensitive)
+            var existingStates = await _stateRepository.GetActiveAsync();
+            var duplicateState = existingStates.FirstOrDefault(s => 
+                s.Name.Equals(createDto.Name, StringComparison.OrdinalIgnoreCase) ||
+                (s.Code != null && createDto.Code != null && s.Code.Equals(createDto.Code, StringComparison.OrdinalIgnoreCase)));
+
+            if (duplicateState != null)
+            {
+                throw new InvalidOperationException($"A state with name '{createDto.Name}' or code '{createDto.Code}' already exists.");
+            }
+
             var state = _mapper.Map<State>(createDto);
             state.CreatedAt = DateTime.UtcNow;
             state.IsActive = true;

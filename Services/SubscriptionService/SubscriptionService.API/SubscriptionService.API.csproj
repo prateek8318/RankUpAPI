@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SubscriptionService.Application\SubscriptionService.Application.csproj" />
     <ProjectReference Include="..\SubscriptionService.Infrastructure\SubscriptionService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Common\Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

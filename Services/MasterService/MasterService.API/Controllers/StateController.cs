@@ -2,6 +2,9 @@ using MasterService.Application.DTOs;
 using MasterService.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Common.Services;
+using Common.Language;
+using ILanguageService = Common.Services.ILanguageService;
 
 namespace MasterService.API.Controllers
 {
@@ -11,11 +14,13 @@ namespace MasterService.API.Controllers
     {
         private readonly IStateService _stateService;
         private readonly ILogger<StateController> _logger;
+        private readonly ILanguageService _languageService;
 
-        public StateController(IStateService stateService, ILogger<StateController> logger)
+        public StateController(IStateService stateService, ILogger<StateController> logger, ILanguageService languageService)
         {
             _stateService = stateService;
             _logger = logger;
+            _languageService = languageService;
         }
 
         [HttpGet]
@@ -24,6 +29,12 @@ namespace MasterService.API.Controllers
         {
             try
             {
+                // Get language from header if not provided in query
+                if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+
                 IEnumerable<StateDto> states;
                 
                 if (!string.IsNullOrEmpty(countryCode))
@@ -34,8 +45,11 @@ namespace MasterService.API.Controllers
                 {
                     states = await _stateService.GetAllStatesAsync(languageId);
                 }
+
+                // Filter names array to show only selected language
+                var filteredStates = FilterStatesByLanguage(states, languageId);
                 
-                return Ok(states);
+                return Ok(filteredStates);
             }
             catch (Exception ex)
             {
@@ -50,15 +64,24 @@ namespace MasterService.API.Controllers
         {
             try
             {
+                // Get language from header if not provided in query
+                if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+
                 var state = await _stateService.GetStateByIdAsync(id, languageId);
                 if (state == null)
                     return NotFound();
 
-                return Ok(state);
+                // Filter names array to show only selected language
+                var filteredState = FilterStatesByLanguage(new[] { state }, languageId).FirstOrDefault();
+                
+                return Ok(filteredState);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving state {StateId}", id);
+                _logger.LogError(ex, "Error retrieving state with id {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -75,6 +98,14 @@ namespace MasterService.API.Controllers
                 var state = await _stateService.CreateStateAsync(createDto);
                 return CreatedAtAction(nameof(GetState), new { id = state.Id }, state);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { error = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating state");
@@ -86,14 +117,33 @@ namespace MasterService.API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateState(int id, UpdateStateDto updateDto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             if (id != updateDto.Id)
                 return BadRequest("ID in the URL does not match the ID in the request body.");
 
-            var result = await _stateService.UpdateStateAsync(id, updateDto);
-            if (result == null)
-                return NotFound();
+            try
+            {
+                var result = await _stateService.UpdateStateAsync(id, updateDto);
+                if (result == null)
+                    return NotFound();
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating state with id {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpDelete("{id}")]
@@ -144,12 +194,40 @@ namespace MasterService.API.Controllers
                 return Ok(new { message = $"Deleted {deletedCount} states with empty names" });
             }
             catch (Exception ex)
-
-
             {
                 _logger.LogError(ex, "Error deleting states with empty names");
                 return StatusCode(500, "Internal server error");
             }
+        }
+
+        private int? GetLanguageIdFromHeader()
+        {
+            var languageCode = _languageService.GetCurrentLanguage();
+            return languageCode switch
+            {
+                "en" => 50, // English
+                "hi" => 49, // Hindi
+                "ta" => null, // Tamil - add ID when available
+                "gu" => null, // Gujarati - add ID when available
+                _ => 50 // Default to English
+            };
+        }
+
+        private IEnumerable<StateDto> FilterStatesByLanguage(IEnumerable<StateDto> states, int? languageId)
+        {
+            if (!languageId.HasValue)
+                return states;
+
+            return states.Select(state => new StateDto
+            {
+                Id = state.Id,
+                Name = state.Name,
+                Code = state.Code,
+                CountryCode = state.CountryCode,
+                IsActive = state.IsActive,
+                CreatedAt = state.CreatedAt,
+                Names = state.Names?.Where(n => n.LanguageId == languageId.Value).ToList() ?? new List<StateLanguageDto>()
+            });
         }
     }
 }

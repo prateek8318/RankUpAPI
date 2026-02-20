@@ -79,8 +79,8 @@ builder.Services.AddHttpClient<IExamServiceClient, ExamServiceClient>(client =>
 // HTTP Client for SubscriptionService
 builder.Services.AddHttpClient<ISubscriptionServiceClient, SubscriptionServiceClient>(client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["Services:SubscriptionService:BaseUrl"] ?? "https://localhost:5004");
-    client.Timeout = TimeSpan.FromSeconds(30);
+    client.BaseAddress = new Uri(builder.Configuration["Services:SubscriptionService:BaseUrl"] ?? "https://localhost:56925");
+    client.Timeout = TimeSpan.FromSeconds(60);
 })
 .AddHttpMessageHandler<AuthTokenDelegatingHandler>()
 .AddHttpMessageHandler<LanguageHeaderHandler>();
@@ -130,10 +130,10 @@ builder.Services.AddHttpClient<IMasterServiceClient, MasterServiceClient>(client
 .AddHttpMessageHandler<AuthTokenDelegatingHandler>()
 .AddHttpMessageHandler<LanguageHeaderHandler>();
 
-// HTTP Client for QualificationService
+// HTTP Client for QualificationService (now served by MasterService)
 builder.Services.AddHttpClient<IQualificationServiceClient, QualificationServiceClient>(client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["Services:QualificationService:BaseUrl"] ?? "https://localhost:5010");
+    client.BaseAddress = new Uri(builder.Configuration["Services:QualificationService:BaseUrl"] ?? builder.Configuration["Services:MasterService:BaseUrl"] ?? "http://localhost:5009");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddHttpMessageHandler<AuthTokenDelegatingHandler>()
@@ -189,6 +189,7 @@ builder.Services.AddCors(options =>
     {
         builder.WithOrigins(
                 "http://localhost:5176",
+                "http://localhost:5173",
                 "http://localhost:3000", 
                 "http://localhost:8080",
                 "http://192.168.1.9:5176",
@@ -212,13 +213,18 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = "AdminService API", 
         Version = "v1",
-        Description = "Admin Management API with User Management and System Administration"
+        Description = "Comprehensive Admin Management API with System Administration\n\n**Features:**\n- Admin user management and authentication\n- Role and permission management\n- Dashboard aggregation and analytics\n- Audit logging and export functionality\n- Subscription plan management\n- JWT token-based authentication\n\n**Base URL:** `http://localhost:56923` or `https://localhost:56923`\n\n**Authentication:** All endpoints require JWT token in Authorization header: `Bearer {your-jwt-token}`\n\n**Note:** This service requires Admin role for most operations.",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "API Support",
+            Email = "support@rankup.com"
+        }
     });
     
     // Add JWT Authentication to Swagger
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below. Example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'",
+        Description = "JWT Authorization header using the Bearer scheme.\n\n**How to use:**\n1. First call authentication endpoints to get a JWT token\n2. Click the 'Authorize' button below\n3. Enter 'Bearer ' followed by your token (without quotes)\n4. Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`\n\n**Note:** Token expires after configured time period. Admin role required for most endpoints.",
         Name = "Authorization",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,

@@ -26,6 +26,29 @@ namespace SubscriptionService.Domain.Entities
         public decimal Price { get; set; }
 
         [Required]
+        [MaxLength(3)]
+        public string Currency { get; set; } = "INR";
+
+        [Range(0, int.MaxValue)]
+        public int TestPapersCount { get; set; } = 0;
+
+        [Range(0, double.MaxValue)]
+        public decimal Discount { get; set; } = 0;
+
+        /// <summary>
+        /// Duration value as entered in UI (e.g. 1, 3, 12).
+        /// ValidityDays is still used internally for expiry calculations.
+        /// </summary>
+        [Range(1, int.MaxValue)]
+        public int Duration { get; set; } = 1;
+
+        /// <summary>
+        /// Duration type label like "Monthly", "Yearly" etc. Keep as string for flexibility.
+        /// </summary>
+        [MaxLength(50)]
+        public string DurationType { get; set; } = "Monthly";
+
+        [Required]
         [Range(1, int.MaxValue)]
         public int ValidityDays { get; set; }
 
@@ -39,7 +62,14 @@ namespace SubscriptionService.Domain.Entities
 
         public bool IsPopular { get; set; } = false;
 
+        public bool IsRecommended { get; set; } = false;
+
+        [MaxLength(50)]
+        public string? CardColorTheme { get; set; }
+
         public int SortOrder { get; set; } = 0;
+
+        public ICollection<SubscriptionPlanTranslation> Translations { get; set; } = new List<SubscriptionPlanTranslation>();
 
         // Navigation properties
         public virtual ICollection<UserSubscription> UserSubscriptions { get; set; } = new List<UserSubscription>();

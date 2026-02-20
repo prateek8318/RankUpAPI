@@ -2,6 +2,7 @@ using AutoMapper;
 using ExamService.Application.DTOs;
 using ExamService.Application.Interfaces;
 using ExamService.Domain.Entities;
+using Microsoft.Extensions.Configuration;
 using System.Net.Http;
 using System.Text.Json;
 
@@ -13,17 +14,20 @@ namespace ExamService.Application.Services
         private readonly IExamQualificationRepository _examQualificationRepository;
         private readonly IMapper _mapper;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration? _configuration;
 
         public ExamService(
             IExamRepository examRepository,
             IExamQualificationRepository examQualificationRepository,
             IMapper mapper,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IConfiguration? configuration = null)
         {
             _examRepository = examRepository;
             _examQualificationRepository = examQualificationRepository;
             _mapper = mapper;
             _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
         }
 
         public async Task<ExamDto> CreateExamAsync(CreateExamDto createDto)
@@ -265,7 +269,7 @@ namespace ExamService.Application.Services
         public async Task<int> SeedInternationalExamsAsync()
         {
             var httpClient = _httpClientFactory.CreateClient();
-            var qualificationServiceUrl = "http://localhost:5004"; // QualificationService URL
+            var qualificationServiceUrl = _configuration?["Services:QualificationService:BaseUrl"] ?? _configuration?["Services:MasterService:BaseUrl"] ?? "http://localhost:5009";
             
             try
             {

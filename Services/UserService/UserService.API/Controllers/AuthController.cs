@@ -240,33 +240,7 @@ namespace UserService.API.Controllers
             }
         }
 
-        [HttpGet("profile/{userId}")]
-        [Authorize]
-        public async Task<ActionResult<UserDto>> GetProfile(int userId)
-        {
-            try
-            {
-                var user = await _userService.GetUserByIdAsync(userId);
-                if (user == null)
-                {
-                    return NotFound(ApiResponse.CreateNotFound(
-                        $"User profile with ID {userId} was not found",
-                        ErrorCodes.USER_NOT_FOUND));
-                }
-
-                return Ok(ApiResponse.CreateSuccess(
-                    "User profile retrieved successfully",
-                    user));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error retrieving user profile for ID {userId}: {ex.Message}");
-                return StatusCode(500, ApiResponse.CreateInternalServerError(
-                    "Unable to retrieve user profile. Please try again later.",
-                    ErrorCodes.DATABASE_ERROR));
-            }
-        }
-
+        
         [HttpPut("profile/{userId}")]
         [Authorize]
         public async Task<ActionResult<UserDto>> UpdateProfile(int userId, [FromBody] ProfileUpdateRequest request)

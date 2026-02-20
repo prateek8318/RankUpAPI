@@ -65,6 +65,10 @@ namespace MasterService.API.Controllers
                 var language = await _languageService.CreateLanguageAsync(createDto);
                 return CreatedAtAction(nameof(GetLanguage), new { id = language.Id }, language);
             }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { error = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating language");

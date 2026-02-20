@@ -41,6 +41,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICmsContentRepository, CmsContentRepository>();
 builder.Services.AddScoped<IQualificationRepository, QualificationRepository>();
 builder.Services.AddScoped<IStreamRepository, StreamRepository>();
+builder.Services.AddScoped<IExamRepository, ExamRepository>();
 builder.Services.AddScoped<MasterService.Application.Interfaces.ILanguageService, MasterService.Application.Services.LanguageService>();
 builder.Services.AddScoped<IStateService, StateService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
@@ -48,6 +49,8 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICmsContentService, CmsContentService>();
 builder.Services.AddScoped<IQualificationService, QualificationService>();
 builder.Services.AddScoped<IStreamService, StreamService>();
+builder.Services.AddScoped<IExamService, ExamService>();
+builder.Services.AddScoped<IImageService, MasterService.Infrastructure.Services.ImageService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Common.Services.ILanguageService, Common.Services.LanguageService>();
 builder.Services.AddScoped<Common.Language.ILanguageDataService, Common.Language.LanguageDataService>();
@@ -151,6 +154,7 @@ if (app.Environment.IsDevelopment())
 // Frontend can use HTTP without being redirected
 // app.UseHttpsRedirection();
 
+app.UseStaticFiles(); // Enable serving static files (uploaded images)
 app.UseCors();
 app.UseLanguage();
 app.UseAuthentication();

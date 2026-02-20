@@ -23,6 +23,10 @@ namespace MasterService.Infrastructure.Data
         public DbSet<StreamEntity> Streams { get; set; }
         public DbSet<StreamLanguage> StreamLanguages { get; set; }
 
+        public DbSet<Exam> Exams { get; set; }
+        public DbSet<ExamLanguage> ExamLanguages { get; set; }
+        public DbSet<ExamQualification> ExamQualifications { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -178,6 +182,65 @@ namespace MasterService.Infrastructure.Data
                     .WithMany()
                     .HasForeignKey(e => e.LanguageId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Exam>(entity =>
+            {
+                entity.HasIndex(e => e.Name);
+                entity.Property(e => e.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+                entity.HasOne<Country>()
+                      .WithMany()
+                      .HasForeignKey(e => e.CountryCode)
+                      .HasPrincipalKey(c => c.Code)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ExamLanguage>(entity =>
+            {
+                entity.HasIndex(e => new { e.ExamId, e.LanguageId }).IsUnique();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(150);
+                entity.Property(e => e.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+                entity.HasOne(e => e.Exam)
+                      .WithMany(q => q.ExamLanguages)
+                      .HasForeignKey(e => e.ExamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Language)
+                      .WithMany()
+                      .HasForeignKey(e => e.LanguageId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ExamQualification>(entity =>
+            {
+                entity.HasIndex(e => new { e.ExamId, e.QualificationId, e.StreamId }).IsUnique();
+                entity.Property(e => e.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+                entity.HasOne(e => e.Exam)
+                      .WithMany(e => e.ExamQualifications)
+                      .HasForeignKey(e => e.ExamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Qualification)
+                      .WithMany()
+                      .HasForeignKey(e => e.QualificationId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Stream)
+                      .WithMany()
+                      .HasForeignKey(e => e.StreamId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

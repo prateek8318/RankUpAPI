@@ -30,6 +30,18 @@ namespace MasterService.Application.Mappings
                 .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language.Code))
                 .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language.Name));
 
+            CreateMap<CreateExamDto, Exam>();
+            CreateMap<UpdateExamDto, Exam>();
+            CreateMap<Exam, ExamDto>()
+                .ForMember(dest => dest.Names, opt => opt.MapFrom(src => src.ExamLanguages))
+                .ForMember(dest => dest.QualificationIds,
+                    opt => opt.MapFrom(src => src.ExamQualifications.Select(eq => eq.QualificationId)))
+                .ForMember(dest => dest.StreamIds,
+                    opt => opt.MapFrom(src => src.ExamQualifications.Select(eq => eq.StreamId)));
+            CreateMap<ExamLanguage, ExamLanguageDto>()
+                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language.Code))
+                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language.Name));
+
             CreateMap<CreateStreamDto, StreamEntity>();
             CreateMap<UpdateStreamDto, StreamEntity>();
             CreateMap<StreamEntity, StreamDto>()

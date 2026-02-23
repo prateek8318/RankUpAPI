@@ -277,13 +277,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and queries:
-<<<<<<< HEAD
 - 📧 Email: support@rankup.com
-=======
-- 📧 Email: prateekpandey2580@gmail.com
->>>>>>> bde97e23815154a52a681be00a5f18b8a6c91da8
-- 🐛 Issues: [GitHub Issues](https://github.com/prateek8318/RankUpAPI/issues)
-- 📖 Documentation: [Wiki](https://github.com/prateek8318/RankUpAPI/wiki)
+-  Issues: [GitHub Issues](https://github.com/teknikoglobal1326/RankUpBackend/issues)
+- 📖 Documentation: [Wiki](https://github.com/teknikoglobal1326/RankUpBackend/wiki)
 
 ## 🙏 Acknowledgments
 

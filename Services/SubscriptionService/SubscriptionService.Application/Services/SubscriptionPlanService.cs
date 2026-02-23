@@ -29,7 +29,7 @@ namespace SubscriptionService.Application.Services
             {
                 _logger.LogInformation("Creating new subscription plan: {PlanName}", createPlanDto.Name);
 
-                var duplicate = await _subscriptionPlanRepository.ExistsByNameAsync(createPlanDto.Name, createPlanDto.ExamCategory, createPlanDto.Type);
+                var duplicate = await _subscriptionPlanRepository.ExistsByNameAsync(createPlanDto.Name, createPlanDto.ExamCategory, createPlanDto.Type, examId: createPlanDto.ExamId);
                 if (duplicate)
                     throw new InvalidOperationException($"Subscription plan '{createPlanDto.Name}' already exists for this exam type and duration type.");
 
@@ -93,7 +93,7 @@ namespace SubscriptionService.Application.Services
                     throw new KeyNotFoundException($"Subscription plan with ID {id} not found");
                 }
 
-                var duplicate = await _subscriptionPlanRepository.ExistsByNameAsync(updatePlanDto.Name, updatePlanDto.ExamCategory, updatePlanDto.Type, excludeId: id);
+                var duplicate = await _subscriptionPlanRepository.ExistsByNameAsync(updatePlanDto.Name, updatePlanDto.ExamCategory, updatePlanDto.Type, excludeId: id, examId: updatePlanDto.ExamId);
                 if (duplicate)
                     throw new InvalidOperationException($"Subscription plan '{updatePlanDto.Name}' already exists for this exam type and duration type.");
 
@@ -227,6 +227,22 @@ namespace SubscriptionService.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving subscription plans for exam category: {ExamCategory}", examCategory);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<SubscriptionPlanListDto>> GetPlansByExamIdAsync(int examId, string? language = null)
+        {
+            try
+            {
+                var plans = await _subscriptionPlanRepository.GetByExamIdAsync(examId);
+                var list = _mapper.Map<IEnumerable<SubscriptionPlanListDto>>(plans).ToList();
+                ApplyLocalization(list, plans, language);
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving subscription plans for exam id: {ExamId}", examId);
                 throw;
             }
         }

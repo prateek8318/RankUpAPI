@@ -52,6 +52,14 @@ namespace SubscriptionService.Domain.Entities
         [Range(1, int.MaxValue)]
         public int ValidityDays { get; set; }
 
+        /// <summary>
+        /// Master Service Exam Id - dynamic exam selection from Master Service.
+        /// </summary>
+        public int? ExamId { get; set; }
+
+        /// <summary>
+        /// Exam type/category label (e.g. from Master or UI) - "Select type" in form.
+        /// </summary>
         [MaxLength(100)]
         public string? ExamCategory { get; set; }
 

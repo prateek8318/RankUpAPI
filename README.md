@@ -241,13 +241,19 @@ RankUpAPI/
 ## 🚀 Deployment
 
 ### Docker Deployment
-```bash
-# Build all services
-docker-compose build
 
-# Run all services
-docker-compose up -d
+Full stack (Gateway + SQL Server + all microservices) runs via Docker Compose:
+
+```bash
+# From repo root
+cp docker/.env.example docker/.env
+docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --build
 ```
+
+- **Gateway:** http://localhost:5087  
+- **SQL Server:** localhost:1433 (see `docker/.env` for password)
+
+See **docker/README.md** for details, migrations, and troubleshooting.
 
 ### Production Considerations
 - Configure HTTPS certificates

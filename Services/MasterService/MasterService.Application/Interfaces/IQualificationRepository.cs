@@ -11,6 +11,7 @@ namespace MasterService.Application.Interfaces
         Task<Qualification> AddAsync(Qualification qualification);
         Task UpdateAsync(Qualification qualification);
         Task DeleteAsync(Qualification qualification);
+        Task<bool> HasRelatedStreamsAsync(int qualificationId);
         Task<int> SaveChangesAsync();
     }
 }

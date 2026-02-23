@@ -16,8 +16,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Add Ocelot services
-builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
+// Add Ocelot services (use Docker config when OCELOT_CONFIG env is set)
+var ocelotFile = Environment.GetEnvironmentVariable("OCELOT_CONFIG") ?? "ocelot.json";
+builder.Configuration.AddJsonFile(ocelotFile, optional: false, reloadOnChange: true);
 builder.Services.AddOcelot();
 
 var app = builder.Build();

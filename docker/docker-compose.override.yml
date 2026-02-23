@@ -1,0 +1,12 @@
+# RankUpAPI Docker - Local overrides (e.g. bind mounts, different env)
+# This file is merged with docker-compose.yml when you run:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d
+
+services:
+  # Example: use host SQL Server instead of container (uncomment and set COMPOSE_FILE)
+  # sqlserver:
+  #   profiles:
+  #     - dontstart
+  # gateway:
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Development

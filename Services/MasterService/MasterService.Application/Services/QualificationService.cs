@@ -83,7 +83,21 @@ namespace MasterService.Application.Services
             var qualification = await _qualificationRepository.GetByIdAsync(id);
             if (qualification == null)
                 return false;
-            await _qualificationRepository.DeleteAsync(qualification);
+            
+            // Check if qualification has related streams
+            var hasRelatedStreams = await _qualificationRepository.HasRelatedStreamsAsync(id);
+            if (hasRelatedStreams)
+            {
+                // Soft delete instead of hard delete
+                qualification.IsActive = false;
+                qualification.UpdatedAt = DateTime.UtcNow;
+                await _qualificationRepository.UpdateAsync(qualification);
+            }
+            else
+            {
+                await _qualificationRepository.DeleteAsync(qualification);
+            }
+            
             await _qualificationRepository.SaveChangesAsync();
             return true;
         }

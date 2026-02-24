@@ -241,13 +241,19 @@ RankUpAPI/
 ## 🚀 Deployment
 
 ### Docker Deployment
-```bash
-# Build all services
-docker-compose build
 
-# Run all services
-docker-compose up -d
+Full stack (Gateway + SQL Server + all microservices) runs via Docker Compose:
+
+```bash
+# From repo root
+cp docker/.env.example docker/.env
+docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --build
 ```
+
+- **Gateway:** http://localhost:5087  
+- **SQL Server:** localhost:1433 (see `docker/.env` for password)
+
+See **docker/README.md** for details, migrations, and troubleshooting.
 
 ### Production Considerations
 - Configure HTTPS certificates
@@ -271,13 +277,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and queries:
-<<<<<<< HEAD
 - 📧 Email: support@rankup.com
-=======
-- 📧 Email: prateekpandey2580@gmail.com
->>>>>>> bde97e23815154a52a681be00a5f18b8a6c91da8
-- 🐛 Issues: [GitHub Issues](https://github.com/prateek8318/RankUpAPI/issues)
-- 📖 Documentation: [Wiki](https://github.com/prateek8318/RankUpAPI/wiki)
+-  Issues: [GitHub Issues](https://github.com/teknikoglobal1326/RankUpBackend/issues)
+- 📖 Documentation: [Wiki](https://github.com/teknikoglobal1326/RankUpBackend/wiki)
 
 ## 🙏 Acknowledgments
 

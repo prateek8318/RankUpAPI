@@ -37,6 +37,16 @@ namespace SubscriptionService.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<SubscriptionPlan>> GetByExamIdAsync(int examId)
+        {
+            return await _dbSet
+                .Include(p => p.Translations)
+                .Where(sp => sp.ExamId == examId)
+                .OrderBy(sp => sp.SortOrder)
+                .ThenBy(sp => sp.Name)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<SubscriptionPlan>> GetActivePlansAsync()
         {
             return await _dbSet
@@ -54,10 +64,13 @@ namespace SubscriptionService.Infrastructure.Repositories
                 .FirstOrDefaultAsync(sp => sp.Type == planType && sp.IsActive);
         }
 
-        public async Task<bool> ExistsByNameAsync(string name, string? examCategory, PlanType type, int? excludeId = null)
+        public async Task<bool> ExistsByNameAsync(string name, string? examCategory, PlanType type, int? excludeId = null, int? examId = null)
         {
             var query = _dbSet.AsQueryable();
-            query = query.Where(p => p.Name == name && p.ExamCategory == examCategory && p.Type == type);
+            if (examId.HasValue)
+                query = query.Where(p => p.Name == name && p.ExamId == examId.Value && p.Type == type);
+            else
+                query = query.Where(p => p.Name == name && p.ExamCategory == examCategory && p.Type == type);
             if (excludeId.HasValue)
                 query = query.Where(p => p.Id != excludeId.Value);
 

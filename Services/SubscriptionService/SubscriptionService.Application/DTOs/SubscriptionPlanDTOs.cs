@@ -24,6 +24,7 @@ namespace SubscriptionService.Application.DTOs
         public int Duration { get; set; }
         public string DurationType { get; set; } = "Monthly";
         public int ValidityDays { get; set; }
+        public int? ExamId { get; set; }
         public string? ExamCategory { get; set; }
         public string? ExamType { get; set; } // alias for UI
         public List<string> Features { get; set; } = new();
@@ -75,6 +76,9 @@ namespace SubscriptionService.Application.DTOs
         /// </summary>
         public int ValidityDays { get; set; } = 0;
 
+        /// <summary>Master Service Exam Id - dynamic exam selection from Master Service.</summary>
+        public int? ExamId { get; set; }
+
         [MaxLength(100)]
         public string? ExamCategory { get; set; }
 
@@ -93,7 +97,7 @@ namespace SubscriptionService.Application.DTOs
         public int SortOrder { get; set; } = 0;
 
         /// <summary>
-        /// Optional non-English translations. English fallback comes from Name/Description/Features above.
+        /// Optional non-English translations. LanguageCode should match Master Service Language.Code (multi-language dynamic from Master).
         /// </summary>
         public List<SubscriptionPlanTranslationDto>? Translations { get; set; }
     }
@@ -133,6 +137,9 @@ namespace SubscriptionService.Application.DTOs
         /// </summary>
         public int ValidityDays { get; set; } = 0;
 
+        /// <summary>Master Service Exam Id - dynamic exam from Master Service.</summary>
+        public int? ExamId { get; set; }
+
         [MaxLength(100)]
         public string? ExamCategory { get; set; }
 
@@ -152,6 +159,7 @@ namespace SubscriptionService.Application.DTOs
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>Translations: LanguageCode from Master Service Language.Code.</summary>
         public List<SubscriptionPlanTranslationDto>? Translations { get; set; }
     }
 
@@ -168,6 +176,7 @@ namespace SubscriptionService.Application.DTOs
         public int Duration { get; set; }
         public string DurationType { get; set; } = "Monthly";
         public int ValidityDays { get; set; }
+        public int? ExamId { get; set; }
         public string? ExamCategory { get; set; }
         public string? ExamType { get; set; } // alias for UI
         public List<string> Features { get; set; } = new();

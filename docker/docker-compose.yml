@@ -1,0 +1,201 @@
+# RankUpAPI - Microservices Docker Compose
+# Run from repo root: docker compose -f docker/docker-compose.yml up -d
+
+services:
+  # ---------------------------------------------------------------------------
+  # SQL Server (optional - use when running full stack in Docker)
+  # ---------------------------------------------------------------------------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: rankup-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-RankUp@SecurePass1}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # API Gateway (Ocelot) - single entry point
+  # ---------------------------------------------------------------------------
+  gateway:
+    build:
+      context: ..
+      dockerfile: Services/GatewayAPI/Dockerfile
+    container_name: rankup-gateway
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      OCELOT_CONFIG: ocelot.docker.json
+    ports:
+      - "${GATEWAY_PORT:-5087}:80"
+    depends_on:
+      userservice:
+        condition: service_started
+      examservice:
+        condition: service_started
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Microservices (each listens on port 80 inside container)
+  # ---------------------------------------------------------------------------
+  userservice:
+    build:
+      context: ..
+      dockerfile: Services/UserService/Dockerfile
+    container_name: rankup-userservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__UserServiceConnection: "Server=sqlserver;Database=RankUp_UserDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+    depends_on:
+      - sqlserver
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  examservice:
+    build:
+      context: ..
+      dockerfile: Services/ExamService/Dockerfile
+    container_name: rankup-examservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__ExamServiceConnection: "Server=sqlserver;Database=RankUp_ExamDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+    depends_on:
+      - sqlserver
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  adminservice:
+    build:
+      context: ..
+      dockerfile: Services/AdminService/Dockerfile
+    container_name: rankup-adminservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__AdminServiceConnection: "Server=sqlserver;Database=RankUp_AdminDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+    depends_on:
+      - sqlserver
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  masterservice:
+    build:
+      context: ..
+      dockerfile: Services/MasterService/Dockerfile
+    container_name: rankup-masterservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__QualificationServiceConnection: "Server=sqlserver;Database=RankUp_QualificationDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+    depends_on:
+      - sqlserver
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  questionservice:
+    build:
+      context: ..
+      dockerfile: Services/QuestionService/Dockerfile
+    container_name: rankup-questionservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__QuestionServiceConnection: "Server=sqlserver;Database=RankUp_QuestionDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+    depends_on:
+      - sqlserver
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  quizservice:
+    build:
+      context: ..
+      dockerfile: Services/QuizService/Dockerfile
+    container_name: rankup-quizservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__QuizServiceConnection: "Server=sqlserver;Database=RankUp_QuizDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+    depends_on:
+      - sqlserver
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  subscriptionservice:
+    build:
+      context: ..
+      dockerfile: Services/SubscriptionService/Dockerfile
+    container_name: rankup-subscriptionservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__SubscriptionServiceConnection: "Server=sqlserver;Database=RankUp_SubscriptionDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+    depends_on:
+      - sqlserver
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  paymentservice:
+    build:
+      context: ..
+      dockerfile: Services/PaymentService/Dockerfile
+    container_name: rankup-paymentservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__PaymentServiceConnection: "Server=sqlserver;Database=RankUp_PaymentDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+    depends_on:
+      - sqlserver
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  homedashboardservice:
+    build:
+      context: ..
+      dockerfile: Services/HomeDashboardService/Dockerfile
+    container_name: rankup-homedashboardservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+    depends_on:
+      - userservice
+      - examservice
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+  testservice:
+    build:
+      context: ..
+      dockerfile: Services/TestService/Dockerfile
+    container_name: rankup-testservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:80
+    networks:
+      - rankup-network
+    restart: unless-stopped
+
+networks:
+  rankup-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:

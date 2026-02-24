@@ -16,13 +16,14 @@ namespace SubscriptionService.Domain.Interfaces
     public interface ISubscriptionPlanRepository : ISubscriptionRepository<SubscriptionPlan>
     {
         Task<IEnumerable<SubscriptionPlan>> GetByExamCategoryAsync(string examCategory);
+        Task<IEnumerable<SubscriptionPlan>> GetByExamIdAsync(int examId);
         Task<IEnumerable<SubscriptionPlan>> GetActivePlansAsync();
         Task<SubscriptionPlan?> GetByPlanTypeAsync(PlanType planType);
 
         /// <summary>
-        /// Prevent duplicate plan creation by English name (SubscriptionPlan.Name) within same exam category + type.
+        /// Prevent duplicate plan creation by name within same exam (ExamId or ExamCategory) + type.
         /// </summary>
-        Task<bool> ExistsByNameAsync(string name, string? examCategory, PlanType type, int? excludeId = null);
+        Task<bool> ExistsByNameAsync(string name, string? examCategory, PlanType type, int? excludeId = null, int? examId = null);
     }
 
     public interface IUserSubscriptionRepository : ISubscriptionRepository<UserSubscription>

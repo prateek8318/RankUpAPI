@@ -70,5 +70,10 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await _context.SaveChangesAsync();
         }
+
+        public async Task<bool> HasRelatedStreamsAsync(int qualificationId)
+        {
+            return await _context.Streams.AnyAsync(s => s.QualificationId == qualificationId);
+        }
     }
 }

@@ -43,8 +43,10 @@ namespace SubscriptionService.API.Controllers
         /// <param name="createPlanDto">Plan creation details</param>
         /// <returns>Created plan details</returns>
         [HttpPost]
-        public async Task<ActionResult<SubscriptionPlanDto>> CreatePlan([FromBody] CreateSubscriptionPlanDto createPlanDto)
+        public async Task<ActionResult<SubscriptionPlanDto>> CreatePlan([FromBody] CreateSubscriptionPlanDto? createPlanDto)
         {
+            if (createPlanDto == null)
+                return BadRequest(new { success = false, message = "Request body is required." });
             try
             {
                 var result = await _subscriptionPlanService.CreatePlanAsync(createPlanDto);
@@ -58,7 +60,10 @@ namespace SubscriptionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating subscription plan");
-                return StatusCode(500, "Internal server error");
+                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
+                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
+                    : "Internal server error";
+                return StatusCode(500, new { success = false, message });
             }
         }
 
@@ -89,7 +94,10 @@ namespace SubscriptionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating subscription plan: {PlanId}", id);
-                return StatusCode(500, "Internal server error");
+                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
+                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
+                    : "Internal server error";
+                return StatusCode(500, new { success = false, message });
             }
         }
 
@@ -112,7 +120,10 @@ namespace SubscriptionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting subscription plan: {PlanId}", id);
-                return StatusCode(500, "Internal server error");
+                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
+                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
+                    : "Internal server error";
+                return StatusCode(500, new { success = false, message });
             }
         }
 
@@ -147,16 +158,22 @@ namespace SubscriptionService.API.Controllers
         }
 
         /// <summary>
-        /// Get all subscription plans
+        /// Get all subscription plans. Optionally filter by Master Service ExamId.
         /// </summary>
-        /// <returns>List of all plans</returns>
+        /// <param name="examId">Optional: filter by Master Service Exam Id (dynamic exam from Master Service)</param>
+        /// <param name="language">Optional: language code from Master Service (e.g. en, hi). Default from header.</param>
+        /// <returns>List of plans</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SubscriptionPlanListDto>>> GetAllPlans([FromQuery] string? language = null)
+        public async Task<ActionResult<IEnumerable<SubscriptionPlanListDto>>> GetAllPlans([FromQuery] int? examId = null, [FromQuery] string? language = null)
         {
             try
             {
                 var currentLanguage = language ?? _languageService.GetCurrentLanguage();
-                var result = await _subscriptionPlanService.GetAllPlansAsync(currentLanguage);
+                IEnumerable<SubscriptionPlanListDto> result;
+                if (examId.HasValue)
+                    result = await _subscriptionPlanService.GetPlansByExamIdAsync(examId.Value, currentLanguage);
+                else
+                    result = await _subscriptionPlanService.GetAllPlansAsync(currentLanguage);
                 return Ok(new
                 {
                     success = true,
@@ -167,7 +184,34 @@ namespace SubscriptionService.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving all subscription plans");
+                _logger.LogError(ex, "Error retrieving subscription plans");
+                return StatusCode(500, new { success = false, message = "Error fetching subscription plans" });
+            }
+        }
+
+        /// <summary>
+        /// Get plans by Master Service Exam Id (dynamic exam selection from Master Service).
+        /// </summary>
+        /// <param name="examId">Master Service Exam Id</param>
+        /// <param name="language">Optional: language code (from Master Service)</param>
+        [HttpGet("by-exam-id/{examId:int}")]
+        public async Task<ActionResult<IEnumerable<SubscriptionPlanListDto>>> GetPlansByExamId(int examId, [FromQuery] string? language = null)
+        {
+            try
+            {
+                var currentLanguage = language ?? _languageService.GetCurrentLanguage();
+                var result = await _subscriptionPlanService.GetPlansByExamIdAsync(examId, currentLanguage);
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    language = currentLanguage,
+                    message = "Subscription plans fetched successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving plans for exam id: {ExamId}", examId);
                 return StatusCode(500, new { success = false, message = "Error fetching subscription plans" });
             }
         }

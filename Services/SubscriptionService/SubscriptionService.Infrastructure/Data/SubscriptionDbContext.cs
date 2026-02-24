@@ -39,7 +39,9 @@ namespace SubscriptionService.Infrastructure.Data
                 entity.Property(e => e.Description).IsRequired();
                 entity.Property(e => e.Price).HasPrecision(18, 2);
                 entity.Property(e => e.Discount).HasPrecision(18, 2);
+                entity.Property(e => e.ExamId);
                 entity.Property(e => e.ExamCategory).HasMaxLength(100);
+                entity.HasIndex(e => e.ExamId);
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
                 entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
                 entity.Property(e => e.DurationType).IsRequired().HasMaxLength(50);

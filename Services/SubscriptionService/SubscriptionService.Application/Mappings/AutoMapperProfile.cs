@@ -9,6 +9,7 @@ namespace SubscriptionService.Application.Mappings
         public AutoMapperProfile()
         {
             // SubscriptionPlan mappings
+            CreateMap<SubscriptionPlanTranslation, SubscriptionPlanTranslationDto>();
             CreateMap<SubscriptionPlan, SubscriptionPlanDto>()
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive));
 
@@ -18,12 +19,15 @@ namespace SubscriptionService.Application.Mappings
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.Translations, opt => opt.Ignore())
+                .ForMember(dest => dest.ValidityDays, opt => opt.Ignore()); // set in service from Duration + DurationType
 
             CreateMap<UpdateSubscriptionPlanDto, SubscriptionPlan>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Translations, opt => opt.Ignore());
 
             // UserSubscription mappings
             CreateMap<UserSubscription, UserSubscriptionDto>()

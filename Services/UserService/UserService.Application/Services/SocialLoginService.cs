@@ -35,17 +35,27 @@ namespace UserService.Application.Services
             try
             {
                 _logger.LogInformation($"SocialLogin request received: Email={request.Email}, Name={request.Name}, GoogleId={request.GoogleId}");
-                
-                // Skip token validation for minimal social login
-                // var isValidToken = await ValidateSocialTokenAsync(request.Provider, request.AccessToken);
-                // if (!isValidToken)
-                // {
-                //     return new SocialLoginResponseDto
-                //     {
-                //         Success = false,
-                //         Message = "Invalid social token"
-                //     };
-                // }
+
+                // ✅ Early validation - DB tak null email pahunchne se rokho
+                if (string.IsNullOrWhiteSpace(request.Email))
+                {
+                    _logger.LogWarning("SocialLogin failed: Email is missing in request");
+                    return new SocialLoginResponseDto
+                    {
+                        Success = false,
+                        Message = "Email is required for social login"
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(request.GoogleId))
+                {
+                    _logger.LogWarning("SocialLogin failed: GoogleId is missing in request");
+                    return new SocialLoginResponseDto
+                    {
+                        Success = false,
+                        Message = "GoogleId is required for social login"
+                    };
+                }
 
                 // Use GoogleId as primary identifier, fallback to email lookup
                 UserSocialLogin? existingSocialLogin = null;
@@ -90,7 +100,7 @@ namespace UserService.Application.Services
                         Message = "Login successful",
                         Token = token,
                         RefreshToken = refreshToken,
-                        ExpiresAt = DateTime.UtcNow.AddDays(30), // 30 days expiry
+                        ExpiresAt = DateTime.UtcNow.AddDays(30),
                         User = MapToUserDto(user),
                         IsNewUser = false
                     };
@@ -98,10 +108,9 @@ namespace UserService.Application.Services
                 else
                 {
                     var existingUser = await _userRepository.GetByEmailAsync(request.Email);
-                    
+
                     if (existingUser != null)
                     {
-                        // Convert to SocialLoginRequestDto for linking
                         var socialLoginRequest = new SocialLoginRequestDto
                         {
                             Provider = "Google",
@@ -117,10 +126,9 @@ namespace UserService.Application.Services
                             RefreshToken = request.RefreshToken,
                             ExpiresAt = request.ExpiresAt
                         };
-                        
+
                         await LinkSocialAccountAsync(existingUser.Id, socialLoginRequest);
 
-                        // Update last login info for existing user
                         existingUser.LastLoginAt = DateTime.UtcNow;
                         existingUser.UpdatedAt = DateTime.UtcNow;
                         await _userRepository.UpdateAsync(existingUser);
@@ -135,7 +143,7 @@ namespace UserService.Application.Services
                             Message = "Social account linked successfully",
                             Token = token,
                             RefreshToken = refreshToken,
-                            ExpiresAt = DateTime.UtcNow.AddDays(30), // 30 days expiry
+                            ExpiresAt = DateTime.UtcNow.AddDays(30),
                             User = MapToUserDto(existingUser),
                             IsNewUser = false
                         };
@@ -147,7 +155,7 @@ namespace UserService.Application.Services
                             Email = request.Email,
                             Name = request.Name,
                             ProfilePhoto = request.AvatarUrl,
-                            PhoneNumber = "", // Required field, set to empty string for social login
+                            PhoneNumber = "",
                             IsActive = true,
                             CreatedAt = DateTime.UtcNow,
                         };
@@ -155,13 +163,11 @@ namespace UserService.Application.Services
                         await _userRepository.AddAsync(newUser);
                         await _userRepository.SaveChangesAsync();
 
-                        // Set initial last login time for new social user
                         newUser.LastLoginAt = DateTime.UtcNow;
                         newUser.UpdatedAt = DateTime.UtcNow;
                         await _userRepository.UpdateAsync(newUser);
                         await _userRepository.SaveChangesAsync();
 
-                        // Convert to SocialLoginRequestDto for linking
                         var socialLoginRequest = new SocialLoginRequestDto
                         {
                             Provider = "Google",
@@ -189,7 +195,7 @@ namespace UserService.Application.Services
                             Message = "Account created and logged in successfully",
                             Token = token,
                             RefreshToken = refreshToken,
-                            ExpiresAt = DateTime.UtcNow.AddDays(30), // 30 days expiry
+                            ExpiresAt = DateTime.UtcNow.AddDays(30),
                             User = MapToUserDto(newUser),
                             IsNewUser = true
                         };
@@ -214,7 +220,7 @@ namespace UserService.Application.Services
                 var socialLogin = new UserSocialLogin
                 {
                     UserId = userId,
-                    Provider = "Google", // Default to Google for minimal request
+                    Provider = "Google",
                     GoogleId = request.GoogleId,
                     Email = request.Email,
                     Name = request.Name,
@@ -247,7 +253,7 @@ namespace UserService.Application.Services
                     Message = "Social account linked successfully",
                     Token = token,
                     RefreshToken = refreshToken,
-                    ExpiresAt = DateTime.UtcNow.AddDays(30), // 30 days expiry
+                    ExpiresAt = DateTime.UtcNow.AddDays(30),
                     User = MapToUserDto(user),
                     IsNewUser = false
                 };

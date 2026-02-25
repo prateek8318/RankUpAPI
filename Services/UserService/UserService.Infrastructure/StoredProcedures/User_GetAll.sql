@@ -1,8 +1,4 @@
--- =============================================
--- Author: RankUpAPI Team
--- Create date: 24/02/2026
--- Description: Stored procedure to get all active users
--- =============================================
+
 CREATE PROCEDURE [dbo].[User_GetAll]
 AS
 BEGIN

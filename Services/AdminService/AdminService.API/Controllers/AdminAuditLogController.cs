@@ -7,7 +7,8 @@ namespace AdminService.API.Controllers
 {
     /// <summary>
     /// Admin Audit Log Controller
-    /// Provides access to audit logs
+    
+    
     /// </summary>
     [Route("api/admin/audit-logs")]
     [ApiController]

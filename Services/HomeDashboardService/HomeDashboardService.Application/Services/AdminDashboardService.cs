@@ -30,23 +30,17 @@ namespace HomeDashboardService.Application.Services
                 var yesterday = today.AddDays(-1);
                 var lastWeek = today.AddDays(-7);
 
-                // Total Users (would need to call UserService)
-                int totalUsers = 0; // TODO: Get from UserService
+                int totalUsers = 0;
 
-                // Active Subscriptions (would need to call SubscriptionService)
-                int activeSubscriptions = 0; // TODO: Get from SubscriptionService
+                int activeSubscriptions = 0;
 
-                // Most Attempted Quiz
                 var mostAttemptedQuiz = await GetMostAttemptedQuizAsync();
 
-                // Daily Revenue (would need to call PaymentService)
-                decimal dailyRevenue = 0; // TODO: Get from PaymentService
+                decimal dailyRevenue = 0;
 
-                // Daily Active Users
                 var todayAttempts = await _quizAttemptRepository.FindAsync(a => a.StartedAt.HasValue && a.StartedAt.Value.Date == today);
                 var dau = todayAttempts.Select(a => a.UserId).Distinct().Count();
 
-                // Trends
                 var trends = await GetMetricTrendsAsync();
 
                 return new AdminDashboardMetricsDto

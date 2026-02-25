@@ -12,6 +12,7 @@ namespace UserService.Domain.Entities
         [EmailAddress, MaxLength(100)]
         public string? Email { get; set; }
         
+        [NotMapped]
         [MaxLength(255)]
         public string? PasswordHash { get; set; }
         

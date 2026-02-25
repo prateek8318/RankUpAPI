@@ -44,6 +44,9 @@ builder.Services.AddSingleton<IOtpService, UserService.Application.Services.OtpS
 builder.Services.AddScoped<IImageService, UserService.Infrastructure.Services.ImageService>();
 builder.Services.AddScoped<IUserLanguageService, UserService.Application.Services.UserLanguageService>();
 builder.Services.AddScoped<ILanguageDataService, Common.Language.LanguageDataService>();
+builder.Services.AddScoped<ISocialLoginRepository, SocialLoginRepository>();
+builder.Services.AddScoped<ISocialLoginService, SocialLoginService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);

@@ -39,7 +39,6 @@ namespace ExamService.Application.Services
             await _examRepository.AddAsync(exam);
             await _examRepository.SaveChangesAsync();
 
-            // Handle qualification and stream relationships
             if (createDto.QualificationIds?.Any() == true)
             {
                 var examQualifications = new List<ExamQualification>();
@@ -81,17 +80,14 @@ namespace ExamService.Application.Services
             exam.UpdatedAt = DateTime.UtcNow;
             await _examRepository.UpdateAsync(exam);
 
-            // Update qualification and stream relationships
             if (updateDto.QualificationIds != null)
             {
-                // Remove all existing relationships
                 var existingRelations = exam.ExamQualifications?.ToList() ?? new List<ExamQualification>();
                 foreach (var eq in existingRelations)
                 {
                     await _examQualificationRepository.DeleteAsync(eq);
                 }
 
-                // Add new relationships with streams
                 var streamIds = updateDto.StreamIds ?? new List<int?>();
                 for (int i = 0; i < updateDto.QualificationIds.Count; i++)
                 {
@@ -208,23 +204,19 @@ namespace ExamService.Application.Services
 
         public async Task<IEnumerable<ExamDto>> GetExamsForUserAsync(int userId)
         {
-            // Get user info from UserService to check international exam interest
             var httpClient = _httpClientFactory.CreateClient();
             var userServiceUrl = "http://localhost:5002"; // UserService URL
             
             try
             {
-                // Call UserService to get user profile
                 var response = await httpClient.GetAsync($"{userServiceUrl}/api/users/profile");
                 
-                // Add authentication header
                 httpClient.DefaultRequestHeaders.Authorization = 
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIzNiIsInN1YiI6IjM2IiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbW9iaWxlcGhvbmUiOiIrOTE4ODg4ODg4ODg4Iiwicm9sZSI6IlVzZXIiLCJqdGkiOiI3NDVhZGY5My01N2Y1LTRkOWMtYmQxNi03ZDgzMzE4ZDdmM2YiLCJuYmYiOjE3NjkwNzQ5NzAsImV4cCI6MTc2OTA3ODU3MCwiaWF0IjoxNzY5MDc0OTcwLCJpc3MiOiJSYW5rVXBBUEkiLCJhdWQiOiJSYW5rVXBBUEkifQ.wwjT28Y0TLlzT1Fhn4vMiJoQ8o3WBQQHCKKXjFO6zk8");
                 
                 response = await httpClient.GetAsync($"{userServiceUrl}/api/users/profile");
                 if (!response.IsSuccessStatusCode)
                 {
-                    // If user service fails, return Indian exams only (default behavior)
                     return await GetExamsByInternationalStatus(false);
                 }
 
@@ -242,7 +234,6 @@ namespace ExamService.Application.Services
             }
             catch (Exception ex)
             {
-                // If any error occurs, return Indian exams only (safe default)
                 Console.WriteLine($"Error calling UserService: {ex.Message}");
                 return await GetExamsByInternationalStatus(false);
             }
@@ -273,7 +264,6 @@ namespace ExamService.Application.Services
             
             try
             {
-                // Get all qualifications from QualificationService
                 var response = await httpClient.GetAsync($"{qualificationServiceUrl}/api/qualifications");
                 if (!response.IsSuccessStatusCode)
                 {
@@ -298,16 +288,13 @@ namespace ExamService.Application.Services
                     "Cambridge English", "LSAT", "MCAT", "ACT", "AP Exams", "IB Diploma", "FCE", "CAE"
                 };
 
-                // Create international exams for each qualification
                 foreach (var qualification in qualifications.Where(q => q.IsActive))
                 {
-                    // Check if international exam already exists for this qualification
                     var existingExams = await _examRepository.GetByQualificationIdAsync(qualification.Id);
                     var hasInternationalExam = existingExams.Any(e => e.IsInternational);
                     
                     if (!hasInternationalExam)
                     {
-                        // Create a new international exam
                         var randomExamName = internationalExamNames[createdCount % internationalExamNames.Length];
                         var createDto = new CreateExamDto
                         {
@@ -335,7 +322,6 @@ namespace ExamService.Application.Services
         }
     }
 
-    // Temporary class for UserService response deserialization
     public class UserServiceResponse
     {
         public UserData? Data { get; set; }

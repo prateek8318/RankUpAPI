@@ -28,7 +28,6 @@ namespace MasterService.Application.Services
             {
                 var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
                 
-                // Get all category types in parallel
                 var categoriesTask = GetCategoriesAsync(normalizedLanguage);
                 var qualificationsTask = GetQualificationsAsync(normalizedLanguage);
                 var examCategoriesTask = GetExamCategoriesAsync(normalizedLanguage);
@@ -57,13 +56,11 @@ namespace MasterService.Application.Services
             {
                 var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
 
-                // Primary source: DB categories
                 var categories = await _categoryRepository.GetActiveByTypeAsync("category");
                 var categoryList = categories
                     .Select(c => MapToOptimizedCategoryDto(c, normalizedLanguage))
                     .ToList();
 
-                // If DB empty, fall back to in-memory defaults
                 if (!categoryList.Any())
                 {
                     return GetDefaultCategoriesOptimized(normalizedLanguage);
@@ -90,7 +87,6 @@ namespace MasterService.Application.Services
                     return items.Select(item => MapToOptimizedCategoryDto(item, normalizedLanguage)).ToList();
                 }
 
-                // Fallback to default qualifications
                 return GetDefaultQualificationsOptimized(normalizedLanguage);
             }
             catch (Exception ex)

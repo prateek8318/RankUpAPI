@@ -7,7 +7,7 @@ namespace AdminService.API.Controllers
 {
     /// <summary>
     /// Admin Analytics Controller - FR-ADM-09
-    /// Orchestrates calls to AnalyticsService
+    
     /// </summary>
     [Route("api/admin/analytics")]
     [ApiController]

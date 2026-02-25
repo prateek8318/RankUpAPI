@@ -32,36 +32,32 @@ namespace SubscriptionService.Application.Services
             {
                 _logger.LogInformation("Generating invoice for subscription: {SubscriptionId}", userSubscriptionId);
 
-                // Get user subscription
                 var subscription = await _userSubscriptionRepository.GetByIdAsync(userSubscriptionId);
                 if (subscription == null)
                 {
                     throw new KeyNotFoundException($"User subscription with ID {userSubscriptionId} not found");
                 }
 
-                // Check if invoice already exists
                 var existingInvoice = await _invoiceRepository.GetByUserSubscriptionIdAsync(userSubscriptionId);
                 if (existingInvoice != null)
                 {
                     return _mapper.Map<InvoiceDto>(existingInvoice);
                 }
 
-                // Generate invoice number
                 var invoiceNumber = await _invoiceRepository.GenerateInvoiceNumberAsync();
 
-                // Create invoice
                 var invoice = new Invoice
                 {
                     UserSubscriptionId = userSubscriptionId,
                     InvoiceNumber = invoiceNumber,
                     InvoiceDate = DateTime.UtcNow,
                     Subtotal = subscription.OriginalAmount,
-                    TaxAmount = 0, // Calculate tax based on your requirements
+                    TaxAmount = 0,
                     TotalAmount = subscription.FinalAmount,
                     Currency = "INR",
                     Status = InvoiceStatus.Generated,
-                    CustomerName = $"User {subscription.UserId}", // Get from user service if needed
-                    CustomerEmail = $"user{subscription.UserId}@example.com", // Get from user service if needed
+                    CustomerName = $"User {subscription.UserId}",
+                    CustomerEmail = $"user{subscription.UserId}@example.com",
                     Notes = $"Subscription: {subscription.SubscriptionPlan.Name} - {subscription.SubscriptionPlan.Description}"
                 };
 
@@ -128,7 +124,6 @@ namespace SubscriptionService.Application.Services
             {
                 _logger.LogInformation("Downloading invoice for subscription: {SubscriptionId}", downloadInvoiceDto.SubscriptionId);
 
-                // Get subscription
                 var subscription = await _userSubscriptionRepository.GetByIdAsync(downloadInvoiceDto.SubscriptionId);
                 if (subscription == null || subscription.UserId != downloadInvoiceDto.UserId)
                 {
@@ -139,7 +134,6 @@ namespace SubscriptionService.Application.Services
                     };
                 }
 
-                // Get or generate invoice
                 var domainInvoice = await _invoiceRepository.GetByUserSubscriptionIdAsync(downloadInvoiceDto.SubscriptionId);
                 Invoice invoice;
                 if (domainInvoice == null)
@@ -152,7 +146,6 @@ namespace SubscriptionService.Application.Services
                     invoice = domainInvoice;
                 }
 
-                // Generate PDF (simplified version - in production, use a proper PDF library)
                 var pdfData = await GenerateInvoicePdfAsync(invoice);
 
                 // Update invoice status
@@ -197,7 +190,6 @@ namespace SubscriptionService.Application.Services
                     return false;
                 }
 
-                // Send email (simplified version - in production, use proper email service)
                 // await _emailService.SendInvoiceAsync(invoice);
 
                 // Update invoice status
@@ -233,8 +225,6 @@ namespace SubscriptionService.Application.Services
         {
             try
             {
-                // Simplified PDF generation - in production, use a proper PDF library like iTextSharp or PdfSharp
-                // For now, return a simple text representation as bytes
                 var invoiceContent = $@"
 INVOICE
 =======
@@ -258,7 +248,6 @@ Notes: {invoice.Notes}
 Thank you for your business!
 ";
 
-                // Convert to bytes (simplified - use proper PDF library in production)
                 return System.Text.Encoding.UTF8.GetBytes(invoiceContent);
             }
             catch (Exception ex)

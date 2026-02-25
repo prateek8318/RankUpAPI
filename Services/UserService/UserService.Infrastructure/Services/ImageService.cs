@@ -25,7 +25,6 @@ namespace UserService.Infrastructure.Services
 
             try
             {
-                // Validate file type
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
                 var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
                 
@@ -34,14 +33,12 @@ namespace UserService.Infrastructure.Services
                     throw new InvalidOperationException("Invalid file type. Only JPG, JPEG, PNG, GIF, and WEBP files are allowed.");
                 }
 
-                // Validate file size (max 5MB)
-                const long maxFileSize = 5 * 1024 * 1024; // 5MB
+                const long maxFileSize = 5 * 1024 * 1024;
                 if (imageFile.Length > maxFileSize)
                 {
                     throw new InvalidOperationException("File size too large. Maximum allowed size is 5MB.");
                 }
 
-                // Create uploads directory if it doesn't exist
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles");
                 _logger.LogInformation($"Attempting to create/use directory: {uploadsFolder}");
                 
@@ -63,11 +60,9 @@ namespace UserService.Infrastructure.Services
                     throw new InvalidOperationException("Failed to create uploads directory. Please check server permissions.", ex);
                 }
 
-                // Generate unique filename
                 var fileName = $"user_{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}{fileExtension}";
                 var filePath = Path.Combine(uploadsFolder, fileName);
 
-                // Save the file
                 _logger.LogInformation($"Attempting to save file: {filePath}");
                 try
                 {
@@ -83,7 +78,6 @@ namespace UserService.Infrastructure.Services
                     throw new InvalidOperationException("Failed to save the uploaded file. Please check server permissions and disk space.", ex);
                 }
 
-                // Return relative path
                 var relativePath = Path.Combine("uploads", "profiles", fileName).Replace("\\", "/");
                 _logger.LogInformation($"Profile photo uploaded for user {userId}: {relativePath}");
                 

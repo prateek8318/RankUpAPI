@@ -28,19 +28,16 @@ namespace TestService.Application.Services
 
         public async Task<UserTestAttemptDto> StartTestAsync(int testId, int userId)
         {
-            // Check if test exists and is active
             var test = await _testRepository.GetByIdAsync(testId);
             if (test == null || !test.IsActive)
                 throw new KeyNotFoundException($"Test with ID {testId} not found or inactive");
 
-            // Check if user has an ongoing attempt
             var existingAttempt = (await _userTestAttemptRepository.GetOngoingByUserIdAsync(userId))
                 .FirstOrDefault(a => a.TestId == testId && a.Status == TestAttemptStatus.InProgress);
 
             if (existingAttempt != null)
                 throw new InvalidOperationException("User already has an ongoing attempt for this test");
 
-            // Create new attempt
             var attempt = new UserTestAttempt
             {
                 TestId = testId,
@@ -77,7 +74,6 @@ namespace TestService.Application.Services
             if (attempt.Status != TestAttemptStatus.InProgress)
                 throw new InvalidOperationException("Cannot save answer for a test that is not in progress");
 
-            // Check if test is expired
             if (attempt.StartedAt.HasValue && DateTime.UtcNow > attempt.StartedAt.Value.AddMinutes(attempt.Test.DurationInMinutes))
             {
                 attempt.Status = TestAttemptStatus.Expired;
@@ -87,7 +83,6 @@ namespace TestService.Application.Services
                 throw new InvalidOperationException("Test time has expired");
             }
 
-            // Parse existing answers
             var answers = new Dictionary<int, string>();
             if (!string.IsNullOrEmpty(attempt.AnswersJson))
             {
@@ -101,7 +96,6 @@ namespace TestService.Application.Services
                 }
             }
 
-            // Update answer
             answers[questionId] = answer ?? string.Empty;
             attempt.AnswersJson = JsonSerializer.Serialize(answers);
             attempt.UpdatedAt = DateTime.UtcNow;
@@ -122,10 +116,8 @@ namespace TestService.Application.Services
             if (attempt.Status != TestAttemptStatus.InProgress)
                 throw new InvalidOperationException("Cannot submit a test that is not in progress");
 
-            // Calculate score
             var score = await CalculateScoreAsync(attempt);
             
-            // Update attempt
             attempt.Score = score.TotalScore;
             attempt.Accuracy = score.Accuracy;
             attempt.Status = TestAttemptStatus.Completed;
@@ -176,10 +168,8 @@ namespace TestService.Application.Services
             if (attempt.UserId != userId)
                 throw new UnauthorizedAccessException("User is not authorized to access this attempt");
 
-            // Get test questions
             var testQuestions = await _testQuestionRepository.GetByTestIdAsync(attempt.TestId);
             
-            // Parse user answers
             var answers = new Dictionary<int, string>();
             if (!string.IsNullOrEmpty(attempt.AnswersJson))
             {
@@ -223,7 +213,6 @@ namespace TestService.Application.Services
         {
             var testQuestions = await _testQuestionRepository.GetByTestIdAsync(attempt.TestId);
             
-            // Parse answers
             var answers = new Dictionary<int, string>();
             if (!string.IsNullOrEmpty(attempt.AnswersJson))
             {
@@ -279,20 +268,14 @@ namespace TestService.Application.Services
 
         private bool CheckAnswer(Question question, string userAnswer)
         {
-            // This is a simplified implementation
-            // In a real system, you'd have different question types and answer validation logic
             if (string.IsNullOrEmpty(userAnswer))
                 return false;
 
-            // For multiple choice questions, you'd compare with the correct option
-            // For now, this is a placeholder implementation
             return userAnswer.Trim().Length > 0;
         }
 
         private string GetCorrectAnswer(Question question)
         {
-            // This would need to be implemented based on your question structure
-            // For now, return a placeholder
             return "Correct answer would be here";
         }
     }

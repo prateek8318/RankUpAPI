@@ -26,6 +26,8 @@ namespace MasterService.Infrastructure.Data
         public DbSet<Exam> Exams { get; set; }
         public DbSet<ExamLanguage> ExamLanguages { get; set; }
         public DbSet<ExamQualification> ExamQualifications { get; set; }
+        public DbSet<Subject> Subjects { get; set; }
+        public DbSet<SubjectLanguage> SubjectLanguages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -241,6 +243,68 @@ namespace MasterService.Infrastructure.Data
                       .WithMany()
                       .HasForeignKey(e => e.StreamId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Subject>(entity =>
+            {
+                entity.HasIndex(e => e.IsActive);
+                
+                entity.Property(e => e.Name)
+                      .IsRequired()
+                      .HasMaxLength(100);
+                      
+                entity.Property(e => e.Description)
+                      .HasMaxLength(500);
+                      
+                entity.Property(e => e.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                      
+                entity.Property(e => e.CreatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
+                      
+                entity.Property(e => e.UpdatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasMany(e => e.SubjectLanguages)
+                      .WithOne(sl => sl.Subject)
+                      .HasForeignKey(sl => sl.SubjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<SubjectLanguage>(entity =>
+            {
+                entity.HasIndex(e => new { e.SubjectId, e.LanguageId }).IsUnique();
+                entity.HasIndex(e => e.SubjectId);
+                entity.HasIndex(e => e.LanguageId);
+                entity.HasIndex(e => e.IsActive);
+                
+                entity.Property(e => e.Name)
+                      .IsRequired()
+                      .HasMaxLength(100);
+                      
+                entity.Property(e => e.Description)
+                      .HasMaxLength(500);
+                      
+                entity.Property(e => e.IsActive)
+                      .HasDefaultValue(true)
+                      .ValueGeneratedNever();
+                      
+                entity.Property(e => e.CreatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
+                      
+                entity.Property(e => e.UpdatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(e => e.Subject)
+                      .WithMany(s => s.SubjectLanguages)
+                      .HasForeignKey(e => e.SubjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Language)
+                      .WithMany()
+                      .HasForeignKey(e => e.LanguageId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

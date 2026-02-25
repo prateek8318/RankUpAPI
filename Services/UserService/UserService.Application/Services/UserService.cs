@@ -56,7 +56,6 @@ namespace UserService.Application.Services
 
         {
 
-            // Use full phone number for lookup and storage
 
             var fullPhoneNumber = string.IsNullOrWhiteSpace(countryCode) 
 
@@ -84,7 +83,7 @@ namespace UserService.Application.Services
 
                     PhoneNumber = fullPhoneNumber,
 
-                    CountryCode = countryCode ?? "+91", // Default to India if not provided
+                    CountryCode = countryCode ?? "+91",
 
                     Name = $"User{fullPhoneNumber}",
 
@@ -108,7 +107,6 @@ namespace UserService.Application.Services
 
             {
 
-                // Update country code if it's different
 
                 user.CountryCode = countryCode;
 
@@ -124,7 +122,7 @@ namespace UserService.Application.Services
 
             var userDto = _mapper.Map<UserDto>(user);
 
-            userDto.IsNewUser = isNewUser; // Set the flag
+            userDto.IsNewUser = isNewUser;
 
             return userDto;
 
@@ -147,8 +145,6 @@ namespace UserService.Application.Services
                 user.UpdatedAt = DateTime.UtcNow;
 
                 await _userRepository.UpdateAsync(user);
-
-                await _userRepository.SaveChangesAsync();
 
             }
 
@@ -322,13 +318,11 @@ namespace UserService.Application.Services
 
 
 
-            // Handle profile photo upload
 
             if (formData.ProfilePhoto != null)
 
             {
 
-                // Delete old profile photo if exists
 
                 if (!string.IsNullOrWhiteSpace(user.ProfilePhoto))
 
@@ -340,7 +334,6 @@ namespace UserService.Application.Services
 
 
 
-                // Upload new profile photo
 
                 var newPhotoPath = await _imageService.UploadProfilePhotoAsync(formData.ProfilePhoto, userId);
 
@@ -356,7 +349,6 @@ namespace UserService.Application.Services
 
 
 
-            // Update other fields
 
             if (!string.IsNullOrWhiteSpace(formData.FullName))
 

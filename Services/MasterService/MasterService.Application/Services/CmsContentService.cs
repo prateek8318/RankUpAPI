@@ -159,7 +159,8 @@ namespace MasterService.Application.Services
             if (existing == null)
                 return false;
 
-            await _repository.DeleteAsync(existing);
+            existing.IsActive = false;
+            existing.UpdatedAt = DateTime.UtcNow;
             await _repository.SaveChangesAsync();
             return true;
         }

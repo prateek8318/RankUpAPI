@@ -30,7 +30,7 @@ builder.Services.AddDbContext<QuizDbContext>(options =>
     });
 });
 
-builder.Services.AddScoped<ITestSeriesRepository, TestSeriesRepository>();
+builder.Services.AddScoped<ITestSeriesRepository, TestSeriesDapperRepository>();
 builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
 builder.Services.AddScoped<IChapterRepository, ChapterRepository>();
 builder.Services.AddScoped<TestSeriesService>();
@@ -137,7 +137,9 @@ try
     logger.LogInformation("Initializing QuizService database...");
     if (await context.Database.CanConnectAsync())
     {
-        await context.Database.MigrateAsync();
+        logger.LogInformation("Database connection verified.");
+        // No automatic migrations - using stored procedures
+        
         logger.LogInformation("Database initialization completed.");
     }
 }

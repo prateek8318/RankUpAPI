@@ -85,11 +85,15 @@ namespace UserService.Infrastructure.Repositories
         {
             try
             {
-                // Use LINQ instead of stored procedure so EF maps whatever columns
-                // exist in the current Users table without requiring every property.
+                var parameters = new[]
+                {
+                    new SqlParameter("@PhoneNumber", phoneNumber)
+                };
+
                 return await _context.Users
+                    .FromSqlRaw("EXEC [dbo].[User_GetByPhoneNumber] @PhoneNumber", parameters)
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber && u.IsActive);
+                    .FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -102,9 +106,15 @@ namespace UserService.Infrastructure.Repositories
         {
             try
             {
+                var parameters = new[]
+                {
+                    new SqlParameter("@Email", email)
+                };
+
                 return await _context.Users
+                    .FromSqlRaw("EXEC [dbo].[User_GetByEmail] @Email", parameters)
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+                    .FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {

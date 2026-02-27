@@ -450,6 +450,8 @@ namespace UserService.Application.DTOs
 
     /// - deviceType: Device platform ("android", "ios", "web")
 
+    /// - deviceName: Device name or model (e.g., "Samsung", "iPhone 14", "Pixel 7")
+
     /// </remarks>
 
     public class OtpVerificationRequest
@@ -467,6 +469,8 @@ namespace UserService.Application.DTOs
         public string? DeviceId { get; set; } // Optional device identifier
 
         public string? DeviceType { get; set; } // Optional device type (android, ios, web)
+
+        public string? DeviceName { get; set; } // Optional device name (e.g., Samsung, iPhone, Pixel)
 
     }
 

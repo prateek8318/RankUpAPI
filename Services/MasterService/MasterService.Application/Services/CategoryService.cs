@@ -181,7 +181,8 @@ namespace MasterService.Application.Services
                 return false;
             }
 
-            await _categoryRepository.DeleteAsync(existing);
+            existing.IsActive = false;
+            existing.UpdatedAt = DateTime.UtcNow;
             await _categoryRepository.SaveChangesAsync();
 
             return true;

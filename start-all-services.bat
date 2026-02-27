@@ -17,10 +17,10 @@ start "AdminService" cmd /k "cd /d Services\AdminService\AdminService.API && dot
 
 timeout /t 3 /nobreak >nul
 
-echo Starting QuestionService...
-start "QuestionService" cmd /k "cd /d Services\QuestionService\QuestionService.API && dotnet run"
+@REM echo Starting QuestionService...
+@REM start "QuestionService" cmd /k "cd /d Services\QuestionService\QuestionService.API && dotnet run"
 
-timeout /t 3 /nobreak >nul
+@REM timeout /t 3 /nobreak >nul
 
 @REM echo Starting QuizService...
 @REM start "QuizService" cmd /k "cd /d Services\QuizService\QuizService.API && dotnet run"

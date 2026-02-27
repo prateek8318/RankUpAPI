@@ -1,6 +1,7 @@
 using ExamService.Application.Interfaces;
 using ExamService.Domain.Entities;
 using ExamService.Infrastructure.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExamService.Infrastructure.Repositories
@@ -16,7 +17,12 @@ namespace ExamService.Infrastructure.Repositories
 
         public async Task<Exam?> GetByIdAsync(int id)
         {
-            return await _context.Exams.FindAsync(id);
+            var parameters = new[] { new SqlParameter("@Id", id) };
+            
+            return await _context.Exams
+                .FromSqlRaw("EXEC [dbo].[Exam_GetById] @Id", parameters)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Exam?> GetByIdWithQualificationsAsync(int id)
@@ -28,13 +34,17 @@ namespace ExamService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Exam>> GetAllAsync()
         {
-            return await _context.Exams.ToListAsync();
+            return await _context.Exams
+                .FromSqlRaw("EXEC [dbo].[Exam_GetAll]")
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Exam>> GetActiveAsync()
         {
             return await _context.Exams
-                .Where(e => e.IsActive)
+                .FromSqlRaw("EXEC [dbo].[Exam_GetActive]")
+                .AsNoTracking()
                 .ToListAsync();
         }
 
@@ -48,24 +58,16 @@ namespace ExamService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Exam>> GetByQualificationAndStreamAsync(int qualificationId, int? streamId)
         {
-            var query = _context.Exams
-                .Include(e => e.ExamQualifications)
-                .Where(e => e.IsActive);
-
-            if (streamId.HasValue)
+            var parameters = new[]
             {
-                // Get exams that match both qualification and stream
-                query = query.Where(e => e.ExamQualifications.Any(eq => 
-                    eq.QualificationId == qualificationId && eq.StreamId == streamId.Value));
-            }
-            else
-            {
-                // If streamId is null, get all exams for this qualification (regardless of stream)
-                query = query.Where(e => e.ExamQualifications.Any(eq => 
-                    eq.QualificationId == qualificationId));
-            }
+                new SqlParameter("@QualificationId", qualificationId),
+                new SqlParameter("@StreamId", (object?)streamId ?? DBNull.Value)
+            };
 
-            return await query.ToListAsync();
+            return await _context.Exams
+                .FromSqlRaw("EXEC [dbo].[Exam_GetByQualificationAndStream] @QualificationId, @StreamId", parameters)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<Exam> AddAsync(Exam exam)

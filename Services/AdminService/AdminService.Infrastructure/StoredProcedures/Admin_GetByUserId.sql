@@ -1,0 +1,19 @@
+CREATE PROCEDURE [dbo].[Admin_GetByUserId]
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SELECT 
+            Id, UserId, Name, Email, PhoneNumber, IsActive,
+            CreatedAt, UpdatedAt
+        FROM Admins
+        WHERE UserId = @UserId;
+    END TRY
+    BEGIN CATCH
+        SELECT NULL AS Id, 
+               ERROR_MESSAGE() AS Message,
+               ERROR_NUMBER() AS ErrorNumber;
+    END CATCH
+END

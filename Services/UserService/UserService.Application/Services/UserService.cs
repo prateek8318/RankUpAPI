@@ -85,7 +85,7 @@ namespace UserService.Application.Services
 
                     CountryCode = countryCode ?? "+91",
 
-                    Name = $"User{fullPhoneNumber}",
+                    Name = $"User[fullPhoneNumber]",
 
                     Email = null,
 

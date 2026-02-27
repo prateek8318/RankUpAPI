@@ -26,5 +26,15 @@ namespace QuizService.Domain.Entities
 
         public int DisplayOrder { get; set; } = 0;
         public bool IsLocked { get; set; } = false;
+
+        // Backward compatibility properties
+        public string Title => Name;
+        public int Duration => DurationInMinutes;
+        public decimal Price { get; set; } = 0;
+        public decimal DiscountPrice { get; set; } = 0;
+        public string? ImageUrl { get; set; }
+        public string? ThumbnailUrl { get; set; }
+        public string Difficulty { get; set; } = "Medium";
+        public string Tags { get; set; } = string.Empty;
     }
 }

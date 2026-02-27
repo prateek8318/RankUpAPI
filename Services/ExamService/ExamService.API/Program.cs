@@ -39,12 +39,12 @@ builder.Services.AddDbContext<ExamDbContext>(options =>
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorNumbersToAdd: null);
         sqlServerOptions.CommandTimeout(60);
-        sqlServerOptions.MigrationsAssembly(typeof(ExamDbContext).Assembly.GetName().Name);
+        // No migrations - using stored procedures
     });
 });
 
 // Register Repositories
-builder.Services.AddScoped<IExamRepository, ExamRepository>();
+builder.Services.AddScoped<IExamRepository, ExamDapperRepository>();
 builder.Services.AddScoped<IExamQualificationRepository, ExamQualificationRepository>();
 
 // Register Application Services

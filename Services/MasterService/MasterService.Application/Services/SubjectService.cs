@@ -185,7 +185,8 @@ namespace MasterService.Application.Services
                     return false;
                 }
 
-                await _subjectRepository.DeleteAsync(subject);
+                subject.IsActive = false;
+                subject.UpdatedAt = DateTime.UtcNow;
                 await _subjectRepository.SaveChangesAsync();
 
                 return true;

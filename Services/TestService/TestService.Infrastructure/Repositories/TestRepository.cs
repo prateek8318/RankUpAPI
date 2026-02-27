@@ -1,4 +1,6 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using TestService.Domain.Entities;
 using TestService.Domain.Interfaces;
 using TestService.Infrastructure.Data;
@@ -13,12 +15,15 @@ namespace TestService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Test>> GetByExamAndPracticeModeAsync(int examId, int practiceModeId)
         {
-            return await _dbSet
-                .Include(t => t.Exam)
-                .Include(t => t.PracticeMode)
-                .Include(t => t.Series)
-                .Include(t => t.Subject)
-                .Where(t => t.ExamId == examId && t.PracticeModeId == practiceModeId)
+            var parameters = new[]
+            {
+                new SqlParameter("@ExamId", examId),
+                new SqlParameter("@PracticeModeId", practiceModeId)
+            };
+
+            return await _context.Tests
+                .FromSqlRaw("EXEC Test_GetByExamAndPracticeMode @ExamId, @PracticeModeId", parameters)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
@@ -29,46 +34,47 @@ namespace TestService.Infrastructure.Repositories
             int? subjectId = null, 
             int? year = null)
         {
-            var query = _dbSet
-                .Include(t => t.Exam)
-                .Include(t => t.PracticeMode)
-                .Include(t => t.Series)
-                .Include(t => t.Subject)
-                .Where(t => t.ExamId == examId && t.PracticeModeId == practiceModeId);
+            var parameters = new[]
+            {
+                new SqlParameter("@ExamId", examId),
+                new SqlParameter("@PracticeModeId", practiceModeId),
+                new SqlParameter("@SeriesId", (object?)seriesId ?? DBNull.Value),
+                new SqlParameter("@SubjectId", (object?)subjectId ?? DBNull.Value),
+                new SqlParameter("@Year", (object?)year ?? DBNull.Value)
+            };
 
-            if (seriesId.HasValue)
-                query = query.Where(t => t.SeriesId == seriesId);
-
-            if (subjectId.HasValue)
-                query = query.Where(t => t.SubjectId == subjectId);
-
-            if (year.HasValue)
-                query = query.Where(t => t.Year == year);
-
-            return await query.OrderBy(t => t.DisplayOrder).ToListAsync();
+            return await _context.Tests
+                .FromSqlRaw("EXEC Test_GetByExamAndPracticeModeWithFilters @ExamId, @PracticeModeId, @SeriesId, @SubjectId, @Year", parameters)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<Test?> GetByIdWithQuestionsAsync(int id)
         {
-            return await _dbSet
-                .Include(t => t.Exam)
-                .Include(t => t.PracticeMode)
-                .Include(t => t.Series)
-                .Include(t => t.Subject)
-                .Include(t => t.TestQuestions)
-                    .ThenInclude(tq => tq.Question)
-                .FirstOrDefaultAsync(t => t.Id == id);
+            var testParam = new SqlParameter("@Id", id);
+            
+            var test = await _context.Tests
+                .FromSqlRaw("EXEC Test_GetByIdWithQuestions @Id", testParam)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+            
+            if (test != null)
+            {
+                var questionsParam = new SqlParameter("@Id", id);
+                test.TestQuestions = await _context.TestQuestions
+                    .FromSqlRaw("EXEC Test_GetByIdWithQuestions @Id", questionsParam)
+                    .AsNoTracking()
+                    .ToListAsync();
+            }
+            
+            return test;
         }
 
         public async Task<IEnumerable<Test>> GetActiveTestsAsync()
         {
-            return await _dbSet
-                .Include(t => t.Exam)
-                .Include(t => t.PracticeMode)
-                .Include(t => t.Series)
-                .Include(t => t.Subject)
-                .Where(t => t.IsActive)
-                .OrderBy(t => t.DisplayOrder)
+            return await _context.Tests
+                .FromSqlRaw("EXEC Test_GetActiveTests")
+                .AsNoTracking()
                 .ToListAsync();
         }
     }

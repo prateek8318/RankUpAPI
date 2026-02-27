@@ -68,14 +68,14 @@ builder.Services.AddDbContext<TestDbContext>(options =>
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-// Repositories
-builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped<ITestRepository, TestRepository>();
-builder.Services.AddScoped<ITestSeriesRepository, TestSeriesRepository>();
-builder.Services.AddScoped<IPracticeModeRepository, PracticeModeRepository>();
-builder.Services.AddScoped<IExamRepository, ExamRepository>();
-builder.Services.AddScoped<IUserTestAttemptRepository, UserTestAttemptRepository>();
-builder.Services.AddScoped<ITestQuestionRepository, TestQuestionRepository>();
+// Repositories - using Dapper implementations
+builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericDapperRepository<>));
+builder.Services.AddScoped<ITestRepository, TestDapperRepository>();
+builder.Services.AddScoped<ITestSeriesRepository, TestSeriesDapperRepository>();
+builder.Services.AddScoped<IPracticeModeRepository, PracticeModeDapperRepository>();
+builder.Services.AddScoped<IExamRepository, ExamDapperRepository>();
+builder.Services.AddScoped<IUserTestAttemptRepository, UserTestAttemptDapperRepository>();
+builder.Services.AddScoped<ITestQuestionRepository, TestQuestionDapperRepository>();
 
 // Services
 builder.Services.AddScoped<TestServiceAppService>();
@@ -137,11 +137,20 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Ensure database is created
+// Ensure database connection - no automatic migrations
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<TestDbContext>();
-    await context.Database.MigrateAsync();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
+    logger.LogInformation("Initializing TestService database...");
+    if (await context.Database.CanConnectAsync())
+    {
+        logger.LogInformation("Database connection verified.");
+        // No automatic migrations - using stored procedures
+        
+        logger.LogInformation("Database initialization completed.");
+    }
 }
 
 app.Run();

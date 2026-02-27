@@ -116,10 +116,12 @@ namespace UserService.API.Controllers
                 {
                     ["token"] = token,
                     ["userId"] = userDto.Id,
-                    ["userName"] = userDto.Name,
+                    //["userName"] = userDto.Name,
                     ["isNewUser"] = userDto.IsNewUser,
-                    ["isProfileComplete"] = !string.IsNullOrWhiteSpace(userDto.Name) && 
-                                           userDto.Name != $"User{userDto.PhoneNumber}",
+                    //["isProfileComplete"] = !string.IsNullOrWhiteSpace(userDto.Name) && 
+                    //                       userDto.Name != $"User{userDto.PhoneNumber}",
+                    ["isProfileComplete"] = !string.IsNullOrWhiteSpace(userDto.Name) &&
+                                           userDto.Name != $"UserName",
                     ["phoneNumber"] = fullPhoneNumber,
                     ["isPhoneVerified"] = userDto.IsPhoneVerified
                 };
@@ -130,6 +132,8 @@ namespace UserService.API.Controllers
                     responseData["deviceId"] = request.DeviceId;
                 if (!string.IsNullOrWhiteSpace(request.DeviceType))
                     responseData["deviceType"] = request.DeviceType;
+                if (!string.IsNullOrWhiteSpace(request.DeviceName))
+                    responseData["deviceName"] = request.DeviceName;
 
                 return Ok(ApiResponse.CreateSuccess(
                     "Login successful! Welcome back.",

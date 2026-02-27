@@ -1,6 +1,7 @@
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using MasterService.Infrastructure.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace MasterService.Infrastructure.Repositories
@@ -16,25 +17,37 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<Category?> GetByIdAsync(int id)
         {
-            return await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
+            var parameters = new[] { new SqlParameter("@Id", id) };
+            
+            return await _context.Categories
+                .FromSqlRaw("EXEC [dbo].[Category_GetById] @Id", parameters)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<Category>> GetAllAsync()
         {
-            return await _context.Categories.ToListAsync();
+            return await _context.Categories
+                .FromSqlRaw("EXEC [dbo].[Category_GetAll]")
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Category>> GetActiveAsync()
         {
             return await _context.Categories
-                .Where(c => c.IsActive)
+                .FromSqlRaw("EXEC [dbo].[Category_GetActive]")
+                .AsNoTracking()
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<Category>> GetActiveByTypeAsync(string type)
         {
+            var parameters = new[] { new SqlParameter("@Type", type) };
+            
             return await _context.Categories
-                .Where(c => c.IsActive && c.Type == type)
+                .FromSqlRaw("EXEC [dbo].[Category_GetActiveByType] @Type", parameters)
+                .AsNoTracking()
                 .ToListAsync();
         }
 

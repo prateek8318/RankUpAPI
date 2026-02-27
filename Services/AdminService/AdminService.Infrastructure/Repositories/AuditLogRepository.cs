@@ -1,6 +1,7 @@
 using AdminService.Domain.Entities;
 using AdminService.Domain.Interfaces;
 using AdminService.Infrastructure.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace AdminService.Infrastructure.Repositories
@@ -22,26 +23,19 @@ namespace AdminService.Infrastructure.Repositories
 
         public async Task<IEnumerable<AuditLog>> GetAuditLogsAsync(int? adminId = null, string? serviceName = null, DateTime? startDate = null, DateTime? endDate = null, int page = 1, int pageSize = 50)
         {
-            var query = _context.AuditLogs
-                .Include(a => a.Admin)
-                .AsQueryable();
+            var parameters = new[]
+            {
+                new SqlParameter("@AdminId", (object?)adminId ?? DBNull.Value),
+                new SqlParameter("@ServiceName", (object?)serviceName ?? DBNull.Value),
+                new SqlParameter("@StartDate", (object?)startDate ?? DBNull.Value),
+                new SqlParameter("@EndDate", (object?)endDate ?? DBNull.Value),
+                new SqlParameter("@Page", page),
+                new SqlParameter("@PageSize", pageSize)
+            };
 
-            if (adminId.HasValue)
-                query = query.Where(a => a.AdminId == adminId.Value);
-
-            if (!string.IsNullOrEmpty(serviceName))
-                query = query.Where(a => a.ServiceName == serviceName);
-
-            if (startDate.HasValue)
-                query = query.Where(a => a.CreatedAt >= startDate.Value);
-
-            if (endDate.HasValue)
-                query = query.Where(a => a.CreatedAt <= endDate.Value);
-
-            return await query
-                .OrderByDescending(a => a.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+            return await _context.AuditLogs
+                .FromSqlRaw("EXEC [dbo].[AuditLog_GetAuditLogs] @AdminId, @ServiceName, @StartDate, @EndDate, @Page, @PageSize", parameters)
+                .AsNoTracking()
                 .ToListAsync();
         }
 

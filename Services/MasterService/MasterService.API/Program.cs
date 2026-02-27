@@ -37,7 +37,7 @@ builder.Services.AddDbContext<MasterDbContext>(options =>
 builder.Services.AddScoped<ILanguageRepository, LanguageRepository>();
 builder.Services.AddScoped<IStateRepository, StateRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryDapperRepository>();
 builder.Services.AddScoped<ICmsContentRepository, CmsContentRepository>();
 builder.Services.AddScoped<IQualificationRepository, QualificationRepository>();
 builder.Services.AddScoped<IStreamRepository, StreamRepository>();
@@ -173,7 +173,9 @@ try
     logger.LogInformation("Initializing MasterService database...");
     if (await context.Database.CanConnectAsync())
     {
-        await context.Database.MigrateAsync();
+        logger.LogInformation("Database connection verified.");
+        // No automatic migrations - using stored procedures
+        
         logger.LogInformation("Database initialization completed.");
     }
 }

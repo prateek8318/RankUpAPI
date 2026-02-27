@@ -84,7 +84,9 @@ namespace MasterService.Application.Services
             var stream = await _streamRepository.GetByIdAsync(id);
             if (stream == null)
                 return false;
-            await _streamRepository.DeleteAsync(stream);
+            
+            stream.IsActive = false;
+            stream.UpdatedAt = DateTime.UtcNow;
             await _streamRepository.SaveChangesAsync();
             return true;
         }

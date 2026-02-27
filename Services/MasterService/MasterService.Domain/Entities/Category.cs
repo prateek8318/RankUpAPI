@@ -18,6 +18,16 @@ namespace MasterService.Domain.Entities
         [Required]
         [MaxLength(50)]
         public string Type { get; set; } = string.Empty;
+
+        // For backward compatibility with existing code
+        public string Name => NameEn;
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        public int DisplayOrder { get; set; } = 0;
+
+        public bool IsActive { get; set; } = true;
     }
 }
 

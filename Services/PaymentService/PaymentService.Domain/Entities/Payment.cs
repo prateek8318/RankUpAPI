@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace PaymentService.Domain.Entities
 {
@@ -38,8 +39,26 @@ namespace PaymentService.Domain.Entities
         public decimal? DiscountAmount { get; set; }
         public decimal FinalAmount { get; set; }
 
+        [MaxLength(3)]
+        public string Currency { get; set; } = "INR";
+
         public PaymentMethod Method { get; set; }
         public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
+
+        // Backward compatibility properties
+        public PaymentMethod PaymentMethod => Method;
+
+        [MaxLength(100)]
+        public string Provider { get; set; } = "Razorpay";
+
+        [MaxLength(100)]
+        public string? ProviderTransactionId { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [MaxLength(1000)]
+        public string? Metadata { get; set; }
 
         [MaxLength(500)]
         public string? FailureReason { get; set; }

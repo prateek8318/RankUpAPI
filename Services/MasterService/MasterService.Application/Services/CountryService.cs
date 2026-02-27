@@ -157,7 +157,9 @@ namespace MasterService.Application.Services
                 if (country == null)
                     return false;
 
-                await _countryRepository.DeleteAsync(country);
+                country.IsActive = false;
+                country.UpdatedAt = DateTime.UtcNow;
+
                 await _countryRepository.SaveChangesAsync();
 
                 return true;

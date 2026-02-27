@@ -1,6 +1,7 @@
 using AdminService.Application.Interfaces;
 using AdminService.Domain.Entities;
 using AdminService.Infrastructure.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace AdminService.Infrastructure.Repositories
@@ -16,12 +17,22 @@ namespace AdminService.Infrastructure.Repositories
 
         public async Task<Admin?> GetByIdAsync(int id)
         {
-            return await _context.Admins.FindAsync(id);
+            var parameters = new[] { new SqlParameter("@Id", id) };
+            
+            return await _context.Admins
+                .FromSqlRaw("EXEC [dbo].[Admin_GetById] @Id", parameters)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Admin?> GetByUserIdAsync(int userId)
         {
-            return await _context.Admins.FirstOrDefaultAsync(a => a.UserId == userId);
+            var parameters = new[] { new SqlParameter("@UserId", userId) };
+            
+            return await _context.Admins
+                .FromSqlRaw("EXEC [dbo].[Admin_GetByUserId] @UserId", parameters)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Admin?> GetByIdWithRolesAsync(int id)
@@ -36,7 +47,10 @@ namespace AdminService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Admin>> GetAllAsync()
         {
-            return await _context.Admins.ToListAsync();
+            return await _context.Admins
+                .FromSqlRaw("EXEC [dbo].[Admin_GetAll]")
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<Admin> AddAsync(Admin admin)

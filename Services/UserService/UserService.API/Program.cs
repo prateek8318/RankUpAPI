@@ -38,13 +38,13 @@ builder.Services.AddDbContext<UserDbContext>(options =>
     });
 });
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserRepository, UserDapperRepository>();
 builder.Services.AddScoped<IUserService, UserService.Application.Services.UserService>();
 builder.Services.AddSingleton<IOtpService, UserService.Application.Services.OtpService>();
 builder.Services.AddScoped<IImageService, UserService.Infrastructure.Services.ImageService>();
 builder.Services.AddScoped<IUserLanguageService, UserService.Application.Services.UserLanguageService>();
 builder.Services.AddScoped<ILanguageDataService, Common.Language.LanguageDataService>();
-builder.Services.AddScoped<ISocialLoginRepository, SocialLoginRepository>();
+builder.Services.AddScoped<ISocialLoginRepository, SocialLoginDapperRepository>();
 builder.Services.AddScoped<ISocialLoginService, SocialLoginService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
@@ -175,57 +175,11 @@ try
     logger.LogInformation("Initializing UserService database...");
     if (await context.Database.CanConnectAsync())
     {
-        await context.Database.MigrateAsync();
+        logger.LogInformation("Database connection verified.");
+    // No automatic migrations - using stored procedures
+    // No seeding - using stored procedures
         
-        // Seed sample data if no users exist
-        if (!await context.Users.AnyAsync())
-        {
-            logger.LogInformation("Seeding sample users...");
-            var otpService = scope.ServiceProvider.GetRequiredService<IOtpService>();
-            
-            var sampleUsers = new[]
-            {
-                new UserService.Domain.Entities.User
-                {
-                    Name = "John Doe",
-                    Email = "john.doe@example.com",
-                    PhoneNumber = "1234567890",
-                    IsActive = true,
-                    IsPhoneVerified = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    LastLoginAt = DateTime.UtcNow.AddHours(-2)
-                },
-                new UserService.Domain.Entities.User
-                {
-                    Name = "Jane Smith",
-                    Email = "jane.smith@example.com",
-                    PhoneNumber = "9876543210",
-                    IsActive = true,
-                    IsPhoneVerified = false,
-                    CreatedAt = DateTime.UtcNow.AddDays(-1),
-                    UpdatedAt = DateTime.UtcNow.AddDays(-1),
-                    LastLoginAt = DateTime.UtcNow.AddDays(-1)
-                },
-                new UserService.Domain.Entities.User
-                {
-                    Name = "Bob Johnson",
-                    Email = "bob.johnson@example.com",
-                    PhoneNumber = "5555555555",
-                    IsActive = false,
-                    IsPhoneVerified = true,
-                    CreatedAt = DateTime.UtcNow.AddDays(-5),
-                    UpdatedAt = DateTime.UtcNow.AddDays(-5),
-                    LastLoginAt = DateTime.UtcNow.AddDays(-3)
-                }
-            };
-            
-            await context.Users.AddRangeAsync(sampleUsers);
-            await context.SaveChangesAsync();
-            logger.LogInformation("Sample users seeded successfully.");
-        }
-        
-        logger.LogInformation("Database initialization completed.");
+    logger.LogInformation("Database initialization completed.");
     }
 }
 catch (Exception ex)

@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PaymentService.Application.Interfaces;
 using PaymentService.Domain.Entities;
@@ -16,24 +17,39 @@ namespace PaymentService.Infrastructure.Repositories
 
         public async Task<Payment?> GetByIdAsync(int id)
         {
-            return await _context.Payments.FindAsync(id);
+            var parameters = new[] { new SqlParameter("@Id", id) };
+            
+            return await _context.Payments
+                .FromSqlRaw("EXEC [dbo].[Payment_GetById] @Id", parameters)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Payment?> GetByTransactionIdAsync(string transactionId)
         {
+            var parameters = new[] { new SqlParameter("@TransactionId", transactionId) };
+            
             return await _context.Payments
-                .FirstOrDefaultAsync(p => p.TransactionId == transactionId);
+                .FromSqlRaw("EXEC [dbo].[Payment_GetByTransactionId] @TransactionId", parameters)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<Payment>> GetAllAsync()
         {
-            return await _context.Payments.Where(p => p.IsActive).ToListAsync();
+            return await _context.Payments
+                .FromSqlRaw("EXEC [dbo].[Payment_GetAll]")
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Payment>> GetByUserIdAsync(int userId)
         {
+            var parameters = new[] { new SqlParameter("@UserId", userId) };
+            
             return await _context.Payments
-                .Where(p => p.UserId == userId && p.IsActive)
+                .FromSqlRaw("EXEC [dbo].[Payment_GetByUserId] @UserId", parameters)
+                .AsNoTracking()
                 .ToListAsync();
         }
 

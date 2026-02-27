@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using QuizService.Application.Interfaces;
 using QuizService.Domain.Entities;
@@ -16,7 +17,12 @@ namespace QuizService.Infrastructure.Repositories
 
         public async Task<Subject?> GetByIdAsync(int id)
         {
-            return await _context.Subjects.FindAsync(id);
+            var parameters = new[] { new SqlParameter("@Id", id) };
+            
+            return await _context.Subjects
+                .FromSqlRaw("EXEC [dbo].[Subject_GetById] @Id", parameters)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Subject?> GetByIdWithChaptersAsync(int id)
@@ -28,13 +34,19 @@ namespace QuizService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Subject>> GetAllAsync()
         {
-            return await _context.Subjects.Where(s => s.IsActive).ToListAsync();
+            return await _context.Subjects
+                .FromSqlRaw("EXEC [dbo].[Subject_GetAll]")
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Subject>> GetByExamIdAsync(int examId)
         {
+            var parameters = new[] { new SqlParameter("@ExamId", examId) };
+            
             return await _context.Subjects
-                .Where(s => s.ExamId == examId && s.IsActive)
+                .FromSqlRaw("EXEC [dbo].[Subject_GetByExamId] @ExamId", parameters)
+                .AsNoTracking()
                 .ToListAsync();
         }
 

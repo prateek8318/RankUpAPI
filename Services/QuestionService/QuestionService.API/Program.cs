@@ -30,7 +30,7 @@ builder.Services.AddDbContext<QuestionDbContext>(options =>
     });
 });
 
-builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<IQuestionRepository, QuestionDapperRepository>();
 builder.Services.AddScoped<QuestionApplicationService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -135,7 +135,9 @@ try
     logger.LogInformation("Initializing QuestionService database...");
     if (await context.Database.CanConnectAsync())
     {
-        await context.Database.MigrateAsync();
+        logger.LogInformation("Database connection verified.");
+        // No automatic migrations - using stored procedures
+        
         logger.LogInformation("Database initialization completed.");
     }
 }

@@ -104,7 +104,8 @@ namespace MasterService.Application.Services
             if (state == null)
                 return false;
 
-            await _stateRepository.DeleteAsync(state);
+            state.IsActive = false;
+            state.UpdatedAt = DateTime.UtcNow;
             await _stateRepository.SaveChangesAsync();
             return true;
         }

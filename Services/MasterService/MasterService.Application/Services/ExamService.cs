@@ -131,7 +131,8 @@ namespace MasterService.Application.Services
             if (exam == null)
                 return false;
 
-            await _examRepository.DeleteAsync(exam);
+            exam.IsActive = false;
+            exam.UpdatedAt = DateTime.UtcNow;
             await _examRepository.SaveChangesAsync();
             return true;
         }

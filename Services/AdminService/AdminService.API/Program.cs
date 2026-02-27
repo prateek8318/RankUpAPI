@@ -39,15 +39,15 @@ builder.Services.AddDbContext<AdminDbContext>(options =>
     {
         sqlServerOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
         sqlServerOptions.CommandTimeout(60);
-        sqlServerOptions.MigrationsAssembly(typeof(AdminDbContext).Assembly.GetName().Name);
+        // No migrations - using stored procedures
     });
 });
 
 // Repositories
-builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IAdminRepository, AdminDapperRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
-builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogDapperRepository>();
 builder.Services.AddScoped<IExportLogRepository, ExportLogRepository>();
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 

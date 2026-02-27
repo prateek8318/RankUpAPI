@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using QuestionService.Application.Interfaces;
 using QuestionService.Domain.Entities;
@@ -16,18 +17,29 @@ namespace QuestionService.Infrastructure.Repositories
 
         public async Task<Question?> GetByIdAsync(int id)
         {
-            return await _context.Questions.FindAsync(id);
+            var parameters = new[] { new SqlParameter("@Id", id) };
+            
+            return await _context.Questions
+                .FromSqlRaw("EXEC [dbo].[Question_GetById] @Id", parameters)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<Question>> GetAllAsync()
         {
-            return await _context.Questions.Where(q => q.IsActive).ToListAsync();
+            return await _context.Questions
+                .FromSqlRaw("EXEC [dbo].[Question_GetAll]")
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Question>> GetByChapterIdAsync(int chapterId)
         {
+            var parameters = new[] { new SqlParameter("@ChapterId", chapterId) };
+            
             return await _context.Questions
-                .Where(q => q.ChapterId == chapterId && q.IsActive)
+                .FromSqlRaw("EXEC [dbo].[Question_GetByChapterId] @ChapterId", parameters)
+                .AsNoTracking()
                 .ToListAsync();
         }
 

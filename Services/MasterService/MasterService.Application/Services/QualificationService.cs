@@ -84,21 +84,11 @@ namespace MasterService.Application.Services
             if (qualification == null)
                 return false;
             
-            // Check if qualification has related streams
-            var hasRelatedStreams = await _qualificationRepository.HasRelatedStreamsAsync(id);
-            if (hasRelatedStreams)
-            {
-                // Soft delete instead of hard delete
-                qualification.IsActive = false;
-                qualification.UpdatedAt = DateTime.UtcNow;
-                await _qualificationRepository.UpdateAsync(qualification);
-            }
-            else
-            {
-                await _qualificationRepository.DeleteAsync(qualification);
-            }
-            
+            // Always soft delete
+            qualification.IsActive = false;
+            qualification.UpdatedAt = DateTime.UtcNow;
             await _qualificationRepository.SaveChangesAsync();
+            
             return true;
         }
 

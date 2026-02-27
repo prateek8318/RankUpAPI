@@ -106,5 +106,16 @@ namespace QuestionService.Domain.Entities
         public decimal NegativeMarks { get; set; } = 0;
         public int EstimatedTimeInSeconds { get; set; } = 120;
         public bool IsMcq { get; set; } = true;
+
+        // Backward compatibility properties
+        public string QuestionType => Type.ToString();
+        public int? SubjectId { get; set; }
+        public int? ExamId { get; set; }
+        public string Explanation => ExplanationEnglish ?? string.Empty;
+        public string ImageUrl => QuestionImageUrlEnglish ?? string.Empty;
+        public string VideoUrl => QuestionVideoUrlEnglish ?? string.Empty;
+        public string Tags { get; set; } = string.Empty;
+        public int Points => Marks;
+        public int TimeLimit => EstimatedTimeInSeconds;
     }
 }

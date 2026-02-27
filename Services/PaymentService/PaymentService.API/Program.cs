@@ -30,7 +30,7 @@ builder.Services.AddDbContext<PaymentDbContext>(options =>
     });
 });
 
-builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentDapperRepository>();
 builder.Services.AddScoped<PaymentApplicationService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -135,7 +135,9 @@ try
     logger.LogInformation("Initializing PaymentService database...");
     if (await context.Database.CanConnectAsync())
     {
-        await context.Database.MigrateAsync();
+        logger.LogInformation("Database connection verified.");
+        // No automatic migrations - using stored procedures
+        
         logger.LogInformation("Database initialization completed.");
     }
 }

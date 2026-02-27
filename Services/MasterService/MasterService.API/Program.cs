@@ -34,16 +34,16 @@ builder.Services.AddDbContext<MasterDbContext>(options =>
     });
 });
 
-builder.Services.AddScoped<ILanguageRepository, LanguageRepository>();
-builder.Services.AddScoped<IStateRepository, StateRepository>();
-builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+builder.Services.AddScoped<ILanguageRepository, LanguageDapperRepository>();
+builder.Services.AddScoped<IStateRepository, StateDapperRepository>();
+builder.Services.AddScoped<ICountryRepository, CountryDapperRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryDapperRepository>();
-builder.Services.AddScoped<ICmsContentRepository, CmsContentRepository>();
-builder.Services.AddScoped<IQualificationRepository, QualificationRepository>();
-builder.Services.AddScoped<IStreamRepository, StreamRepository>();
-builder.Services.AddScoped<IExamRepository, ExamRepository>();
-builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
-builder.Services.AddScoped<ISubjectLanguageRepository, SubjectLanguageRepository>();
+builder.Services.AddScoped<ICmsContentRepository, CmsContentDapperRepository>();
+builder.Services.AddScoped<IQualificationRepository, QualificationDapperRepository>();
+builder.Services.AddScoped<IStreamRepository, StreamDapperRepository>();
+builder.Services.AddScoped<IExamRepository, ExamDapperRepository>();
+builder.Services.AddScoped<ISubjectRepository, SubjectDapperRepository>();
+builder.Services.AddScoped<ISubjectLanguageRepository, SubjectLanguageDapperRepository>();
 builder.Services.AddScoped<MasterService.Application.Interfaces.ILanguageService, MasterService.Application.Services.LanguageService>();
 builder.Services.AddScoped<IStateService, StateService>();
 builder.Services.AddScoped<ICountryService, CountryService>();

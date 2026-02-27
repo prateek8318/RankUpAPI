@@ -224,7 +224,7 @@ namespace UserService.Application.Services
                     GoogleId = request.GoogleId,
                     Email = request.Email,
                     Name = request.Name,
-                    AvatarUrl = request.AvatarUrl,
+                    // AvatarUrl = request.AvatarUrl,
                     AccessToken = request.AccessToken,
                     RefreshToken = request.RefreshToken,
                     ExpiresAt = request.ExpiresAt,

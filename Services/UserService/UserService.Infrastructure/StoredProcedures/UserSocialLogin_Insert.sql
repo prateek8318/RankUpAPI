@@ -4,7 +4,10 @@ CREATE PROCEDURE [dbo].[UserSocialLogin_Insert]
     @GoogleId NVARCHAR(255),
     @AvatarUrl NVARCHAR(500) = NULL,
     @Email NVARCHAR(255),
-    @Name NVARCHAR(255)
+    @Name NVARCHAR(255),
+    @AccessToken NVARCHAR(1000) = NULL,
+    @RefreshToken NVARCHAR(1000) = NULL,
+    @ExpiresAt DATETIME2 = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -12,11 +15,13 @@ BEGIN
     BEGIN TRY
         INSERT INTO UserSocialLogins (
             UserId, Provider, GoogleId, AvatarUrl,
-            Email, Name, CreatedAt, UpdatedAt
+            Email, Name, AccessToken, RefreshToken, ExpiresAt,
+            CreatedAt, UpdatedAt
         )
         VALUES (
             @UserId, @Provider, @GoogleId, @AvatarUrl,
-            @Email, @Name, GETUTCDATE(), GETUTCDATE()
+            @Email, @Name, @AccessToken, @RefreshToken, @ExpiresAt,
+            GETUTCDATE(), GETUTCDATE()
         );
         
         SELECT SCOPE_IDENTITY() AS Id;

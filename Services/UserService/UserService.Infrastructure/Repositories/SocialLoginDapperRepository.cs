@@ -45,9 +45,21 @@ namespace UserService.Infrastructure.Repositories
             await connection.OpenAsync();
 
             var sql = @"EXEC [dbo].[UserSocialLogin_Insert] 
-                    @UserId, @Provider, @GoogleId, @AvatarUrl, @Email, @Name";
+                    @UserId, @Provider, @GoogleId, @AvatarUrl, @Email, @Name, 
+                    @AccessToken, @RefreshToken, @ExpiresAt";
 
-            await connection.ExecuteAsync(sql, socialLogin);
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", socialLogin.UserId);
+            parameters.Add("@Provider", socialLogin.Provider);
+            parameters.Add("@GoogleId", socialLogin.GoogleId);
+            parameters.Add("@AvatarUrl", socialLogin.AvatarUrl);
+            parameters.Add("@Email", socialLogin.Email);
+            parameters.Add("@Name", socialLogin.Name);
+            parameters.Add("@AccessToken", socialLogin.AccessToken);
+            parameters.Add("@RefreshToken", socialLogin.RefreshToken);
+            parameters.Add("@ExpiresAt", socialLogin.ExpiresAt);
+
+            await connection.ExecuteAsync(sql, parameters);
             return socialLogin;
         }
 

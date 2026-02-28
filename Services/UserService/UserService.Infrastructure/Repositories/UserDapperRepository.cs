@@ -76,38 +76,37 @@ namespace UserService.Infrastructure.Repositories
         }
 
         public async Task<User> AddAsync(User user)
-{
-    using var connection = GetConnection();
-    await connection.OpenAsync();
+        {
+            using var connection = GetConnection();
+            await connection.OpenAsync();
 
-    var sql = @"EXEC [dbo].[User_Create] 
-            @Name, @Email, @PhoneNumber, @PasswordHash, 
-            @ProfileImageUrl, @EmailVerified, @IsActive, 
-            @PreferredLanguage, @CreatedAt, @UpdatedAt, @UserId OUTPUT";
+            var sql = @"EXEC [dbo].[User_Create] 
+                    @Name, @Email, @PhoneNumber, @PasswordHash, 
+                    @ProfilePhoto, @IsActive, 
+                    @PreferredLanguage, @CreatedAt, @UpdatedAt, @UserId OUTPUT";
 
-    var parameters = new DynamicParameters();
-    parameters.Add("@Name", user.Name);
-    parameters.Add("@Email", user.Email);
-    parameters.Add("@PhoneNumber", user.PhoneNumber);
-    parameters.Add("@PasswordHash", user.PasswordHash);
-    parameters.Add("@ProfileImageUrl", user.ProfilePhoto);
-    parameters.Add("@EmailVerified", false);
-    parameters.Add("@IsActive", user.IsActive);
-    parameters.Add("@PreferredLanguage", user.PreferredLanguage ?? "en");
-    parameters.Add("@CreatedAt", DateTime.UtcNow);
-    parameters.Add("@UpdatedAt", DateTime.UtcNow);
-    parameters.Add("@UserId", dbType: DbType.Int32, direction: ParameterDirection.Output);
+            var parameters = new DynamicParameters();
+            parameters.Add("@Name", user.Name);
+            parameters.Add("@Email", user.Email);
+            parameters.Add("@PhoneNumber", user.PhoneNumber);
+            parameters.Add("@PasswordHash", user.PasswordHash);
+            parameters.Add("@ProfilePhoto", user.ProfilePhoto);
+            parameters.Add("@IsActive", user.IsActive);
+            parameters.Add("@PreferredLanguage", user.PreferredLanguage ?? "en");
+            parameters.Add("@CreatedAt", DateTime.UtcNow);
+            parameters.Add("@UpdatedAt", DateTime.UtcNow);
+            parameters.Add("@UserId", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-    
-    var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, parameters);
+            await connection.ExecuteAsync(sql, parameters);
 
-    if (result != null && result.UserId > 0)
-    {
-        user.Id = (int)result.UserId;
-    }
+            var userId = parameters.Get<int>("@UserId");
+            if (userId > 0)
+            {
+                user.Id = userId;
+            }
 
-    return user;
-}
+            return user;
+        }
 
         public async Task UpdateAsync(User user)
         {

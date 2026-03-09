@@ -1,4 +1,5 @@
-
+USE [RankUp_MasterDB];
+GO
 
 -- Language_GetAll
 IF OBJECT_ID('dbo.Language_GetAll', 'P') IS NOT NULL DROP PROCEDURE dbo.Language_GetAll;
@@ -87,11 +88,6 @@ BEGIN
     DELETE FROM dbo.Languages WHERE Id = @Id;
 END
 GO
-
-
-
--- COUNTRY STORED PROCEDURES
-
 
 -- Country_GetAll
 IF OBJECT_ID('dbo.Country_GetAll', 'P') IS NOT NULL DROP PROCEDURE dbo.Country_GetAll;
@@ -189,11 +185,6 @@ BEGIN
     DELETE FROM dbo.Countries WHERE Id = @Id;
 END
 GO
-
-
-
--- STATE STORED PROCEDURES
-
 
 -- State_GetAll
 IF OBJECT_ID('dbo.State_GetAll', 'P') IS NOT NULL DROP PROCEDURE dbo.State_GetAll;
@@ -309,11 +300,6 @@ BEGIN
     WHERE Name IS NULL OR Name = '';
 END
 GO
-
-
-
--- QUALIFICATION STORED PROCEDURES
-
 
 -- Qualification_GetAll
 IF OBJECT_ID('dbo.Qualification_GetAll', 'P') IS NOT NULL DROP PROCEDURE dbo.Qualification_GetAll;
@@ -431,11 +417,6 @@ BEGIN
 END
 GO
 
-
-
--- STREAM STORED PROCEDURES
-
-
 -- Stream_GetAll
 IF OBJECT_ID('dbo.Stream_GetAll', 'P') IS NOT NULL DROP PROCEDURE dbo.Stream_GetAll;
 GO
@@ -538,3 +519,134 @@ BEGIN
 END
 GO
 
+-- Exam_GetAll
+IF OBJECT_ID('dbo.Exam_GetAll', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_GetAll;
+GO
+CREATE PROCEDURE dbo.Exam_GetAll
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, Name, Description, CountryCode, MinAge, MaxAge,
+           ImageUrl, IsInternational, IsActive, CreatedAt, UpdatedAt
+    FROM dbo.Exams
+    ORDER BY Name;
+END
+GO
+
+-- Exam_GetActive
+IF OBJECT_ID('dbo.Exam_GetActive', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_GetActive;
+GO
+CREATE PROCEDURE dbo.Exam_GetActive
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, Name, Description, CountryCode, MinAge, MaxAge,
+           ImageUrl, IsInternational, IsActive, CreatedAt, UpdatedAt
+    FROM dbo.Exams
+    WHERE IsActive = 1
+    ORDER BY Name;
+END
+GO
+
+-- Exam_GetById
+IF OBJECT_ID('dbo.Exam_GetById', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_GetById;
+GO
+CREATE PROCEDURE dbo.Exam_GetById
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, Name, Description, CountryCode, MinAge, MaxAge,
+           ImageUrl, IsInternational, IsActive, CreatedAt, UpdatedAt
+    FROM dbo.Exams
+    WHERE Id = @Id;
+END
+GO
+
+-- Exam_GetByFilter
+IF OBJECT_ID('dbo.Exam_GetByFilter', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_GetByFilter;
+GO
+CREATE PROCEDURE dbo.Exam_GetByFilter
+    @CountryCode     NVARCHAR(10) = NULL,
+    @QualificationId INT = NULL,
+    @StreamId        INT = NULL,
+    @MinAge          INT = NULL,
+    @MaxAge          INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT DISTINCT
+        e.Id, e.Name, e.Description, e.CountryCode, e.MinAge, e.MaxAge,
+        e.ImageUrl, e.IsInternational, e.IsActive, e.CreatedAt, e.UpdatedAt
+    FROM dbo.Exams e
+    LEFT JOIN dbo.ExamQualifications eq ON e.Id = eq.ExamId
+    WHERE e.IsActive = 1
+    AND (@CountryCode IS NULL OR e.CountryCode = @CountryCode)
+    AND (@MinAge IS NULL OR e.MinAge IS NULL OR e.MinAge <= @MinAge)
+    AND (@MaxAge IS NULL OR e.MaxAge IS NULL OR e.MaxAge >= @MaxAge)
+    AND (@QualificationId IS NULL OR eq.QualificationId = @QualificationId)
+    AND (@StreamId IS NULL OR EXISTS (
+        SELECT 1 FROM dbo.ExamQualifications eq2
+        WHERE eq2.ExamId = e.Id AND eq2.StreamId = @StreamId
+    ))
+    ORDER BY e.Name;
+END
+GO
+
+-- Exam_Create
+IF OBJECT_ID('dbo.Exam_Create', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_Create;
+GO
+CREATE PROCEDURE dbo.Exam_Create
+    @Name        NVARCHAR(150),
+    @CountryCode NVARCHAR(10) = NULL,
+    @MinAge      INT = NULL,
+    @MaxAge      INT = NULL,
+    @IsActive    BIT = 1,
+    @CreatedAt   DATETIME2,
+    @UpdatedAt   DATETIME2,
+    @Id          INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.Exams (Name, CountryCode, MinAge, MaxAge, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@Name, @CountryCode, @MinAge, @MaxAge, @IsActive, @CreatedAt, @UpdatedAt);
+    SET @Id = SCOPE_IDENTITY();
+END
+GO
+
+-- Exam_Update
+IF OBJECT_ID('dbo.Exam_Update', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_Update;
+GO
+CREATE PROCEDURE dbo.Exam_Update
+    @Id          INT,
+    @Name        NVARCHAR(150),
+    @CountryCode NVARCHAR(10) = NULL,
+    @MinAge      INT = NULL,
+    @MaxAge      INT = NULL,
+    @IsActive    BIT,
+    @UpdatedAt   DATETIME2
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Exams
+    SET Name = @Name,
+        CountryCode = @CountryCode,
+        MinAge = @MinAge,
+        MaxAge = @MaxAge,
+        IsActive = @IsActive,
+        UpdatedAt = @UpdatedAt
+    WHERE Id = @Id;
+END
+GO
+
+-- Exam_Delete
+IF OBJECT_ID('dbo.Exam_Delete', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_Delete;
+GO
+CREATE PROCEDURE dbo.Exam_Delete
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE FROM dbo.Exams WHERE Id = @Id;
+END
+GO

@@ -38,6 +38,12 @@ namespace MasterService.Application.DTOs
 
         /// <summary>At least one translation required. "en" is mandatory, others optional.</summary>
         public List<CmsContentTranslationDto> Translations { get; set; } = new();
+
+        // Support for direct language properties (backward compatibility)
+        public string? TitleEn { get; set; }
+        public string? TitleHi { get; set; }
+        public string? ContentEn { get; set; }
+        public string? ContentHi { get; set; }
     }
 
     public class UpdateCmsContentDto
@@ -45,6 +51,12 @@ namespace MasterService.Application.DTOs
         public string Key { get; set; } = string.Empty;
         public List<CmsContentTranslationDto> Translations { get; set; } = new();
         public CmsContentStatus Status { get; set; } = CmsContentStatus.Active;
+
+        // Support for direct language properties (backward compatibility)
+        public string? TitleEn { get; set; }
+        public string? TitleHi { get; set; }
+        public string? ContentEn { get; set; }
+        public string? ContentHi { get; set; }
     }
 
     /// <summary>Schema for status update - use enum directly. PATCH api/cms/{id}/status</summary>

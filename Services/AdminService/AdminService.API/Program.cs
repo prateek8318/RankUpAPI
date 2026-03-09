@@ -45,18 +45,14 @@ builder.Services.AddDbContext<AdminDbContext>(options =>
 
 // Repositories
 builder.Services.AddScoped<IAdminRepository, AdminDapperRepository>();
-builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogDapperRepository>();
-builder.Services.AddScoped<IExportLogRepository, ExportLogRepository>();
-builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+builder.Services.AddScoped<IExportLogRepository, ExportLogDapperRepository>();
 
 // Application Services
 builder.Services.AddScoped<IAdminService, AdminService.Application.Services.AdminService>();
 builder.Services.AddScoped<IDashboardAggregationService, DashboardAggregationService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IExportService, ExportService>();
-builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 
 // HTTP Client for UserService
 builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>

@@ -43,6 +43,11 @@ namespace UserService.Infrastructure.Repositories
         {
             using var connection = GetConnection();
             await connection.OpenAsync();
+            
+            // Set proper QUOTED_IDENTIFIER setting for stored procedures
+            using var setCommand = connection.CreateCommand();
+            setCommand.CommandText = "SET QUOTED_IDENTIFIER ON";
+            await setCommand.ExecuteNonQueryAsync();
 
             var sql = @"EXEC [dbo].[UserSocialLogin_Insert] 
                     @UserId, @Provider, @GoogleId, @AvatarUrl, @Email, @Name, 

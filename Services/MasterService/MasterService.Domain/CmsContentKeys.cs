@@ -34,7 +34,7 @@ namespace MasterService.Domain
         /// <summary>Error message listing allowed keys.</summary>
         public static string InvalidKeyMessage(string? suppliedKey)
         {
-            return $"Invalid CMS key: '{suppliedKey}'. Allowed keys (exact match): {string.Join(", ", All)}.";
+            return $"Invalid CMS key: '{suppliedKey}'. Please use a valid CMS key.";
         }
 
         /// <summary>Error message when key is already used.</summary>

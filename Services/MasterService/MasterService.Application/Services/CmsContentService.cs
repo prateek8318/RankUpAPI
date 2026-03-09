@@ -5,6 +5,7 @@ using MasterService.Application.Interfaces;
 using MasterService.Domain;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace MasterService.Application.Services
 {
@@ -68,7 +69,44 @@ namespace MasterService.Application.Services
             if (!CmsContentKeys.IsValid(key))
                 throw new CmsContentKeyInvalidException(key, CmsContentKeys.InvalidKeyMessage(createDto.Key));
 
-            var enTranslation = createDto.Translations.FirstOrDefault(t =>
+            // Create translations list from direct properties if translations array is empty
+            var translations = createDto.Translations.ToList();
+            
+            // Add English translation from direct properties if not already present
+            if (!string.IsNullOrEmpty(createDto.TitleEn) || !string.IsNullOrEmpty(createDto.ContentEn))
+            {
+                var existingEn = translations.FirstOrDefault(t => 
+                    string.Equals(t.LanguageCode, LanguageConstants.English, StringComparison.OrdinalIgnoreCase));
+                
+                if (existingEn == null)
+                {
+                    translations.Add(new CmsContentTranslationDto
+                    {
+                        LanguageCode = LanguageConstants.English,
+                        Title = createDto.TitleEn ?? "",
+                        Content = createDto.ContentEn ?? ""
+                    });
+                }
+            }
+
+            // Add Hindi translation from direct properties if not already present
+            if (!string.IsNullOrEmpty(createDto.TitleHi) || !string.IsNullOrEmpty(createDto.ContentHi))
+            {
+                var existingHi = translations.FirstOrDefault(t => 
+                    string.Equals(t.LanguageCode, LanguageConstants.Hindi, StringComparison.OrdinalIgnoreCase));
+                
+                if (existingHi == null)
+                {
+                    translations.Add(new CmsContentTranslationDto
+                    {
+                        LanguageCode = LanguageConstants.Hindi,
+                        Title = createDto.TitleHi ?? "",
+                        Content = createDto.ContentHi ?? ""
+                    });
+                }
+            }
+
+            var enTranslation = translations.FirstOrDefault(t =>
                 string.Equals(t.LanguageCode, LanguageConstants.English, StringComparison.OrdinalIgnoreCase));
             if (enTranslation == null)
                 throw new InvalidOperationException("At least one 'en' (English) translation is required.");
@@ -87,7 +125,7 @@ namespace MasterService.Application.Services
                     CreatedAt = DateTime.UtcNow
                 };
 
-                foreach (var t in createDto.Translations)
+                foreach (var t in translations)
                 {
                     var code = t.LanguageCode?.Trim().ToLowerInvariant() ?? "";
                     if (string.IsNullOrEmpty(code) || !LanguageConstants.SupportedLanguages.Contains(code))
@@ -126,9 +164,46 @@ namespace MasterService.Application.Services
             existing.IsActive = updateDto.Status == CmsContentStatus.Active;
             existing.UpdatedAt = DateTime.UtcNow;
 
+            // Create translations list from direct properties if translations array is empty
+            var translations = updateDto.Translations.ToList();
+            
+            // Add English translation from direct properties if not already present
+            if (!string.IsNullOrEmpty(updateDto.TitleEn) || !string.IsNullOrEmpty(updateDto.ContentEn))
+            {
+                var existingEn = translations.FirstOrDefault(t => 
+                    string.Equals(t.LanguageCode, LanguageConstants.English, StringComparison.OrdinalIgnoreCase));
+                
+                if (existingEn == null)
+                {
+                    translations.Add(new CmsContentTranslationDto
+                    {
+                        LanguageCode = LanguageConstants.English,
+                        Title = updateDto.TitleEn ?? "",
+                        Content = updateDto.ContentEn ?? ""
+                    });
+                }
+            }
+
+            // Add Hindi translation from direct properties if not already present
+            if (!string.IsNullOrEmpty(updateDto.TitleHi) || !string.IsNullOrEmpty(updateDto.ContentHi))
+            {
+                var existingHi = translations.FirstOrDefault(t => 
+                    string.Equals(t.LanguageCode, LanguageConstants.Hindi, StringComparison.OrdinalIgnoreCase));
+                
+                if (existingHi == null)
+                {
+                    translations.Add(new CmsContentTranslationDto
+                    {
+                        LanguageCode = LanguageConstants.Hindi,
+                        Title = updateDto.TitleHi ?? "",
+                        Content = updateDto.ContentHi ?? ""
+                    });
+                }
+            }
+
             // Replace translations
             existing.Translations.Clear();
-            foreach (var t in updateDto.Translations)
+            foreach (var t in translations)
             {
                 var code = t.LanguageCode?.Trim().ToLowerInvariant() ?? "";
                 if (string.IsNullOrEmpty(code) || !LanguageConstants.SupportedLanguages.Contains(code))

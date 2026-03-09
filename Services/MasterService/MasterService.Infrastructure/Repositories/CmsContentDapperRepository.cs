@@ -11,6 +11,7 @@ namespace MasterService.Infrastructure.Repositories
     public class CmsContentDapperRepository : ICmsContentRepository
     {
         private readonly MasterDbContext _context;
+        private SqlTransaction? _currentTransaction;
 
         public CmsContentDapperRepository(MasterDbContext context)
         {
@@ -25,71 +26,151 @@ namespace MasterService.Infrastructure.Repositories
             throw new InvalidOperationException("Database connection is not a SqlConnection");
         }
 
+        private async Task EnsureOpenAsync(SqlConnection connection)
+        {
+            if (connection.State != ConnectionState.Open)
+                await connection.OpenAsync();
+        }
+
         public async Task<CmsContent?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
+
+            var sql = @"
+                SELECT c.Id, c.[Key], c.IsActive, c.CreatedAt, c.UpdatedAt
+                FROM dbo.CmsContents c
+                WHERE c.Id = @Id;
+                
+                SELECT t.Id, t.CmsContentId, t.LanguageCode, t.Title, t.Content
+                FROM dbo.CmsContentTranslations t
+                WHERE t.CmsContentId = @Id";
             
-            var sql = "EXEC [dbo].[CmsContent_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<CmsContent>(sql, new { Id = id });
+            using var multi = await connection.QueryMultipleAsync(sql, new { Id = id }, transaction: _currentTransaction);
+            
+            var content = await multi.ReadFirstOrDefaultAsync<CmsContent>();
+            if (content != null)
+            {
+                var translations = await multi.ReadAsync<CmsContentTranslation>();
+                content.Translations = translations.ToList();
+            }
+
+            return content;
         }
 
         public async Task<CmsContent?> GetByKeyAsync(string key)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
+
+            var sql = @"
+                SELECT c.Id, c.[Key], c.IsActive, c.CreatedAt, c.UpdatedAt
+                FROM dbo.CmsContents c
+                WHERE c.[Key] = @Key;
+                
+                SELECT t.Id, t.CmsContentId, t.LanguageCode, t.Title, t.Content
+                FROM dbo.CmsContentTranslations t
+                WHERE t.CmsContentId IN (SELECT Id FROM dbo.CmsContents WHERE [Key] = @Key)";
             
-            var sql = "EXEC [dbo].[CmsContent_GetByKey] @Key";
-            return await connection.QueryFirstOrDefaultAsync<CmsContent>(sql, new { Key = key });
+            using var multi = await connection.QueryMultipleAsync(sql, new { Key = key }, transaction: _currentTransaction);
+            
+            var content = await multi.ReadFirstOrDefaultAsync<CmsContent>();
+            if (content != null)
+            {
+                var translations = await multi.ReadAsync<CmsContentTranslation>();
+                content.Translations = translations.ToList();
+            }
+
+            return content;
         }
 
         public async Task<bool> ExistsByKeyAsync(string key)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
+
             var sql = "EXEC [dbo].[CmsContent_ExistsByKey] @Key";
-            var result = await connection.QueryFirstOrDefaultAsync<int>(sql, new { Key = key });
+            var result = await connection.QueryFirstOrDefaultAsync<int>(
+                sql,
+                new { Key = key },
+                transaction: _currentTransaction
+            );
             return result > 0;
         }
 
         public async Task<bool> ExistsByKeyExceptIdAsync(string key, int excludeId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
+
             var sql = "EXEC [dbo].[CmsContent_ExistsByKeyExceptId] @Key, @ExcludeId";
-            var result = await connection.QueryFirstOrDefaultAsync<int>(sql, new { Key = key, ExcludeId = excludeId });
+            var result = await connection.QueryFirstOrDefaultAsync<int>(
+                sql,
+                new { Key = key, ExcludeId = excludeId },
+                transaction: _currentTransaction
+            );
             return result > 0;
         }
 
         public async Task<IEnumerable<CmsContent>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
+
+            var sql = @"
+                SELECT c.Id, c.[Key], c.IsActive, c.CreatedAt, c.UpdatedAt
+                FROM dbo.CmsContents c;
+                
+                SELECT t.Id, t.CmsContentId, t.LanguageCode, t.Title, t.Content
+                FROM dbo.CmsContentTranslations t
+                WHERE t.CmsContentId IN (SELECT Id FROM dbo.CmsContents)";
             
-            var sql = "EXEC [dbo].[CmsContent_GetAll]";
-            return await connection.QueryAsync<CmsContent>(sql);
+            using var multi = await connection.QueryMultipleAsync(sql, transaction: _currentTransaction);
+            
+            var contents = (await multi.ReadAsync<CmsContent>()).ToList();
+            var translations = (await multi.ReadAsync<CmsContentTranslation>()).ToList();
+            
+            foreach (var content in contents)
+            {
+                content.Translations = translations.Where(t => t.CmsContentId == content.Id).ToList();
+            }
+
+            return contents;
         }
 
         public async Task<IEnumerable<CmsContent>> GetActiveAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
+
+            var sql = @"
+                SELECT c.Id, c.[Key], c.IsActive, c.CreatedAt, c.UpdatedAt
+                FROM dbo.CmsContents c
+                WHERE c.IsActive = 1;
+                
+                SELECT t.Id, t.CmsContentId, t.LanguageCode, t.Title, t.Content
+                FROM dbo.CmsContentTranslations t
+                WHERE t.CmsContentId IN (SELECT Id FROM dbo.CmsContents WHERE IsActive = 1);";
             
-            var sql = "EXEC [dbo].[CmsContent_GetActive]";
-            return await connection.QueryAsync<CmsContent>(sql);
+            using var multi = await connection.QueryMultipleAsync(sql, transaction: _currentTransaction);
+            
+            var contents = (await multi.ReadAsync<CmsContent>()).ToList();
+            var translations = (await multi.ReadAsync<CmsContentTranslation>()).ToList();
+            
+            foreach (var content in contents)
+            {
+                content.Translations = translations.Where(t => t.CmsContentId == content.Id).ToList();
+            }
+
+            return contents;
         }
 
         public async Task<CmsContent> AddAsync(CmsContent content)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = @"
-                EXEC [dbo].[CmsContent_Create] 
-                    @Key, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
 
+            var sql = @"EXEC [dbo].[CmsContent_Create] @Key, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
             var parameters = new DynamicParameters();
             parameters.Add("@Key", content.Key);
             parameters.Add("@IsActive", content.IsActive);
@@ -97,68 +178,105 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await connection.ExecuteAsync(sql, parameters);
-            
-            if (parameters.Get<int>("@Id") > 0)
+            await connection.ExecuteAsync(sql, parameters, transaction: _currentTransaction);
+            content.Id = parameters.Get<int>("@Id");
+
+            foreach (var translation in content.Translations)
             {
-                content.Id = parameters.Get<int>("@Id");
+                translation.CmsContentId = content.Id;
+                var tranSql = @"EXEC [dbo].[CmsContentTranslation_Create] 
+                    @CmsContentId, @LanguageCode, @Title, @Content, @Id OUTPUT";
+
+                var tranParams = new DynamicParameters();
+                tranParams.Add("@CmsContentId", translation.CmsContentId);
+                tranParams.Add("@LanguageCode", translation.LanguageCode);
+                tranParams.Add("@Title", translation.Title);
+                tranParams.Add("@Content", translation.Content);
+                tranParams.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await connection.ExecuteAsync(tranSql, tranParams, transaction: _currentTransaction);
+                translation.Id = tranParams.Get<int>("@Id");
             }
 
             return content;
         }
 
-        public Task UpdateAsync(CmsContent content)
+        public async Task UpdateAsync(CmsContent content)
         {
-            using var connection = GetConnection();
-            connection.Open();
-            
-            var sql = @"
-                EXEC [dbo].[CmsContent_Update] 
-                    @Id, @Key, @IsActive, @UpdatedAt";
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
 
+            var sql = @"EXEC [dbo].[CmsContent_Update] @Id, @Key, @IsActive, @UpdatedAt";
             var parameters = new DynamicParameters();
             parameters.Add("@Id", content.Id);
             parameters.Add("@Key", content.Key);
             parameters.Add("@IsActive", content.IsActive);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            connection.Execute(sql, parameters);
-            return Task.CompletedTask;
+            await connection.ExecuteAsync(sql, parameters, transaction: _currentTransaction);
+
+            await connection.ExecuteAsync(
+                "EXEC [dbo].[CmsContentTranslation_DeleteByCmsContentId] @CmsContentId",
+                new { CmsContentId = content.Id },
+                transaction: _currentTransaction
+            );
+
+            foreach (var translation in content.Translations)
+            {
+                translation.CmsContentId = content.Id;
+                var tranSql = @"EXEC [dbo].[CmsContentTranslation_Create] 
+                    @CmsContentId, @LanguageCode, @Title, @Content, @Id OUTPUT";
+
+                var tranParams = new DynamicParameters();
+                tranParams.Add("@CmsContentId", translation.CmsContentId);
+                tranParams.Add("@LanguageCode", translation.LanguageCode);
+                tranParams.Add("@Title", translation.Title);
+                tranParams.Add("@Content", translation.Content);
+                tranParams.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await connection.ExecuteAsync(tranSql, tranParams, transaction: _currentTransaction);
+            }
         }
 
-        public Task DeleteAsync(CmsContent content)
+        public async Task DeleteAsync(CmsContent content)
         {
-            using var connection = GetConnection();
-            connection.Open();
-            
-            var sql = "EXEC [dbo].[CmsContent_Delete] @Id";
-            connection.Execute(sql, new { Id = content.Id });
-            return Task.CompletedTask;
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
+
+            await connection.ExecuteAsync(
+                "EXEC [dbo].[CmsContent_Delete] @Id",
+                new { Id = content.Id },
+                transaction: _currentTransaction
+            );
         }
 
         public async Task<int> SaveChangesAsync()
         {
-            return await _context.SaveChangesAsync();
+            return await Task.FromResult(1);
         }
 
         public async Task<TResult> ExecuteInTransactionAsync<TResult>(Func<Task<TResult>> operation)
         {
-            var strategy = _context.Database.CreateExecutionStrategy();
-            return await strategy.ExecuteAsync(async () =>
+            var connection = GetConnection();
+            await EnsureOpenAsync(connection);
+
+            using var transaction = connection.BeginTransaction();
+            _currentTransaction = transaction;
+            try
             {
-                using var transaction = await _context.Database.BeginTransactionAsync();
-                try
-                {
-                    var result = await operation();
-                    await transaction.CommitAsync();
-                    return result;
-                }
-                catch
-                {
-                    await transaction.RollbackAsync();
-                    throw;
-                }
-            });
+                var result = await operation();
+                transaction.Commit();
+                return result;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+            finally
+            {
+                _currentTransaction = null;
+            }
         }
     }
 }

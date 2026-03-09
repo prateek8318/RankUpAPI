@@ -89,6 +89,7 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(builder =>
     {
         builder.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8080")
+               .SetIsOriginAllowed(origin => true) // Allow any origin for network access
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();

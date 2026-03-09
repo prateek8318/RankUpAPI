@@ -155,7 +155,7 @@ namespace UserService.Application.Services
                             Email = request.Email,
                             Name = request.Name,
                             ProfilePhoto = request.AvatarUrl,
-                            PhoneNumber = "",
+                            PhoneNumber = "SOCIAL", // Placeholder since column is NOT NULL (max 15 chars)
                             IsActive = true,
                             CreatedAt = DateTime.UtcNow,
                         };

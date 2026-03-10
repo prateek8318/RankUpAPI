@@ -1,6 +1,5 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System.Data;
 using ExamService.Application.Interfaces;
 using ExamService.Domain.Entities;
@@ -17,7 +16,7 @@ namespace ExamService.Infrastructure.Repositories
             _context = context;
         }
 
-        private SqlConnection GetConnection()
+        protected SqlConnection GetConnection()
         {
             var connection = _context.Database.GetDbConnection();
             if (connection is SqlConnection sqlConnection)
@@ -36,8 +35,11 @@ namespace ExamService.Infrastructure.Repositories
 
         public async Task<Exam?> GetByIdWithQualificationsAsync(int id)
         {
-            // For complex queries with includes, create separate SPs
-            return await GetByIdAsync(id);
+            using var connection = GetConnection();
+            await connection.OpenAsync();
+            
+            var sql = "EXEC [dbo].[Exam_GetByIdWithQualifications] @Id";
+            return await connection.QueryFirstOrDefaultAsync<Exam>(sql, new { Id = id });
         }
 
         public async Task<IEnumerable<Exam>> GetAllAsync()
@@ -76,29 +78,47 @@ namespace ExamService.Infrastructure.Repositories
             return await connection.QueryAsync<Exam>(sql, new { QualificationId = qualificationId, StreamId = streamId });
         }
 
-        public async Task<Exam> AddAsync(Exam exam)
+        public async Task AddAsync(Exam exam)
         {
             using var connection = GetConnection();
             await connection.OpenAsync();
             
             var sql = @"
-                EXEC [dbo].[Exam_Insert] 
+                EXEC [dbo].[Exam_Create] 
                     @Name, @Description, @IsActive, @DisplayOrder, @CreatedAt, @UpdatedAt";
 
             await connection.ExecuteAsync(sql, exam);
-            return exam;
         }
 
-        public Task UpdateAsync(Exam exam)
+        public async Task UpdateAsync(Exam exam)
         {
-            // For updates, create separate SP if needed
-            return Task.CompletedTask;
+            using var connection = GetConnection();
+            await connection.OpenAsync();
+            
+            var sql = @"
+                EXEC [dbo].[Exam_Update] 
+                    @Id, @Name, @Description, @IsActive, @DisplayOrder, @UpdatedAt";
+
+            await connection.ExecuteAsync(sql, exam);
         }
 
-        public Task DeleteAsync(Exam exam)
+        public async Task DeleteAsync(Exam exam)
         {
-            // For deletes, create separate SP if needed
-            return Task.CompletedTask;
+            using var connection = GetConnection();
+            await connection.OpenAsync();
+            
+            var sql = "EXEC [dbo].[Exam_Delete] @Id";
+            await connection.ExecuteAsync(sql, new { Id = exam.Id });
+        }
+
+        public async Task<bool> HardDeleteByIdAsync(int id)
+        {
+            using var connection = GetConnection();
+            await connection.OpenAsync();
+            
+            var sql = "EXEC [dbo].[Exam_HardDeleteById] @Id";
+            var affectedRows = await connection.ExecuteAsync(sql, new { Id = id });
+            return affectedRows > 0;
         }
 
         public async Task<int> SaveChangesAsync()

@@ -12,27 +12,18 @@ namespace MasterService.Infrastructure.Repositories
     public class ExamDapperRepository : IExamRepository
     {
         private readonly MasterDbContext _context;
+        private readonly IDbConnection _connection;
 
-        public ExamDapperRepository(MasterDbContext context)
+        public ExamDapperRepository(MasterDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            var connectionString = _context.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException("Database connection string is not initialized in MasterDbContext");
-                
-            return new SqlConnection(connectionString);
-        }
 
         public async Task<Exam?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            using var multi = await connection.QueryMultipleAsync(
+            using var multi = await _connection.QueryMultipleAsync(
                 "[dbo].[Exam_GetByIdWithRelations]",
                 new { Id = id },
                 commandType: CommandType.StoredProcedure);
@@ -48,10 +39,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<Exam?> GetByIdLocalizedAsync(int id, string? languageCode)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
-            using var multi = await connection.QueryMultipleAsync(
+            using var multi = await _connection.QueryMultipleAsync(
                 "[dbo].[Exam_GetByIdWithRelationsLocalized]",
                 new { Id = id, LanguageCode = languageCode },
                 commandType: CommandType.StoredProcedure);
@@ -67,30 +55,21 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Exam>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            return await connection.QueryAsync<Exam>(
+            return await _connection.QueryAsync<Exam>(
                 "[dbo].[Exam_GetAll]",
                 commandType: CommandType.StoredProcedure);
         }
 
         public async Task<IEnumerable<Exam>> GetActiveAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            return await connection.QueryAsync<Exam>(
+            return await _connection.QueryAsync<Exam>(
                 "[dbo].[Exam_GetActive]",
                 commandType: CommandType.StoredProcedure);
         }
 
         public async Task<IEnumerable<Exam>> GetActiveLocalizedAsync(string? languageCode)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
-            return await connection.QueryAsync<Exam>(
+            return await _connection.QueryAsync<Exam>(
                 "[dbo].[Exam_GetActiveLocalized]",
                 new { LanguageCode = languageCode },
                 commandType: CommandType.StoredProcedure);
@@ -98,9 +77,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Exam>> GetByFilterAsync(string? countryCode, int? qualificationId, int? streamId, int? minAge, int? maxAge)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var parameters = new DynamicParameters();
             parameters.Add("@CountryCode", countryCode);
             parameters.Add("@QualificationId", qualificationId);
@@ -108,7 +84,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@MinAge", minAge);
             parameters.Add("@MaxAge", maxAge);
 
-            return await connection.QueryAsync<Exam>(
+            return await _connection.QueryAsync<Exam>(
                 "[dbo].[Exam_GetByFilter]",
                 parameters,
                 commandType: CommandType.StoredProcedure);
@@ -116,9 +92,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Exam>> GetByFilterLocalizedAsync(string? languageCode, string? countryCode, int? qualificationId, int? streamId, int? minAge, int? maxAge)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
             var parameters = new DynamicParameters();
             parameters.Add("@LanguageCode", languageCode);
             parameters.Add("@CountryCode", countryCode);
@@ -127,7 +100,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@MinAge", minAge);
             parameters.Add("@MaxAge", maxAge);
 
-            return await connection.QueryAsync<Exam>(
+            return await _connection.QueryAsync<Exam>(
                 "[dbo].[Exam_GetByFilterLocalized]",
                 parameters,
                 commandType: CommandType.StoredProcedure);
@@ -135,9 +108,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<Exam> AddAsync(Exam exam)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var namesJson = exam.ExamLanguages != null && exam.ExamLanguages.Any()
                 ? JsonSerializer.Serialize(exam.ExamLanguages.Select(x => new { x.LanguageId, x.Name, x.Description }))
                 : null;
@@ -161,7 +131,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await connection.ExecuteAsync(
+            await _connection.ExecuteAsync(
                 "[dbo].[Exam_Create]",
                 parameters,
                 commandType: CommandType.StoredProcedure);
@@ -176,9 +146,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task UpdateAsync(Exam exam)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var namesJson = exam.ExamLanguages != null && exam.ExamLanguages.Any()
                 ? JsonSerializer.Serialize(exam.ExamLanguages.Select(x => new { x.LanguageId, x.Name, x.Description }))
                 : null;
@@ -201,7 +168,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@RelationsJson", relationsJson);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            await connection.ExecuteAsync(
+            await _connection.ExecuteAsync(
                 "[dbo].[Exam_Update]",
                 parameters,
                 commandType: CommandType.StoredProcedure);
@@ -209,10 +176,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public Task DeleteAsync(Exam exam)
         {
-            using var connection = GetConnection();
-            connection.Open();
-            
-            connection.Execute(
+            _connection.Execute(
                 "[dbo].[Exam_Delete]",
                 new { Id = exam.Id },
                 commandType: CommandType.StoredProcedure);
@@ -221,10 +185,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<bool> SoftDeleteByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
-            var affected = await connection.ExecuteAsync(
+            var affected = await _connection.ExecuteAsync(
                 "[dbo].[Exam_SoftDelete]",
                 new { Id = id },
                 commandType: CommandType.StoredProcedure);
@@ -234,10 +195,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<bool> SetActiveAsync(int id, bool isActive)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
-            var affected = await connection.ExecuteAsync(
+            var affected = await _connection.ExecuteAsync(
                 "[dbo].[Exam_SetActive]",
                 new { Id = id, IsActive = isActive },
                 commandType: CommandType.StoredProcedure);

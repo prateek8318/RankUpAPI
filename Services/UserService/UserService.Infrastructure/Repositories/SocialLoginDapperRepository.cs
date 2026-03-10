@@ -2,6 +2,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
+using System.Data.Common; // Added missing using directive for DbCommand
 using UserService.Application.Interfaces;
 using UserService.Domain.Entities;
 
@@ -9,45 +10,32 @@ namespace UserService.Infrastructure.Repositories
 {
     public class SocialLoginDapperRepository : ISocialLoginRepository
     {
-        private readonly string _connectionString;
+        private readonly IDbConnection _connection;
 
-        public SocialLoginDapperRepository(IConfiguration configuration)
+        public SocialLoginDapperRepository(IDbConnection connection)
         {
-            _connectionString = configuration.GetConnectionString("UserServiceConnection")!;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            return new SqlConnection(_connectionString);
-        }
 
         public async Task<UserSocialLogin?> GetByProviderAndGoogleIdAsync(string provider, string googleId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
             var sql = "EXEC [dbo].[UserSocialLogin_GetByProviderAndGoogleId] @Provider, @GoogleId";
-            return await connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { Provider = provider, GoogleId = googleId });
+            return await _connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { Provider = provider, GoogleId = googleId });
         }
 
         public async Task<UserSocialLogin?> GetByUserIdAndProviderAsync(int userId, string provider)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
             var sql = "EXEC [dbo].[UserSocialLogin_GetByUserIdAndProvider] @UserId, @Provider";
-            return await connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { UserId = userId, Provider = provider });
+            return await _connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { UserId = userId, Provider = provider });
         }
 
         public async Task<UserSocialLogin> AddAsync(UserSocialLogin socialLogin)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             // Set proper QUOTED_IDENTIFIER setting for stored procedures
-            using var setCommand = connection.CreateCommand();
+            using var setCommand = _connection.CreateCommand();
             setCommand.CommandText = "SET QUOTED_IDENTIFIER ON";
-            await setCommand.ExecuteNonQueryAsync();
+            await ((DbCommand)setCommand).ExecuteNonQueryAsync();
 
             var sql = @"EXEC [dbo].[UserSocialLogin_Insert] 
                     @UserId, @Provider, @GoogleId, @AvatarUrl, @Email, @Name, 
@@ -64,7 +52,7 @@ namespace UserService.Infrastructure.Repositories
             parameters.Add("@RefreshToken", socialLogin.RefreshToken);
             parameters.Add("@ExpiresAt", socialLogin.ExpiresAt);
 
-            await connection.ExecuteAsync(sql, parameters);
+            await _connection.ExecuteAsync(sql, parameters);
             return socialLogin;
         }
 

@@ -11,53 +11,35 @@ namespace MasterService.Infrastructure.Repositories
     public class CountryDapperRepository : ICountryRepository
     {
         private readonly MasterDbContext _context;
+        private readonly IDbConnection _connection;
 
-        public CountryDapperRepository(MasterDbContext context)
+        public CountryDapperRepository(MasterDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            var connectionString = _context.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException("Database connection string is not initialized in MasterDbContext");
-                
-            return new SqlConnection(connectionString);
-        }
 
         public async Task<Country?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Country_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<Country>(sql, new { Id = id });
+            return await _connection.QueryFirstOrDefaultAsync<Country>(sql, new { Id = id });
         }
 
         public async Task<IEnumerable<Country>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Country_GetAll]";
-            return await connection.QueryAsync<Country>(sql);
+            return await _connection.QueryAsync<Country>(sql);
         }
 
         public async Task<Country?> GetByCodeAsync(string code)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Country_GetByCode] @Code";
-            return await connection.QueryFirstOrDefaultAsync<Country>(sql, new { Code = code });
+            return await _connection.QueryFirstOrDefaultAsync<Country>(sql, new { Code = code });
         }
 
         public async Task<Country> AddAsync(Country country)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[Country_Create] 
                     @Name, @Code, @SubdivisionLabelEn, @SubdivisionLabelHi, 
@@ -73,7 +55,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await connection.ExecuteAsync(sql, parameters);
+            await _connection.ExecuteAsync(sql, parameters);
             
             if (parameters.Get<int>("@Id") > 0)
             {
@@ -85,9 +67,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<Country> UpdateAsync(Country country)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[Country_Update] 
                     @Id, @Name, @Code, @SubdivisionLabelEn, @SubdivisionLabelHi, 
@@ -102,17 +81,14 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@IsActive", country.IsActive);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            await connection.ExecuteAsync(sql, parameters);
+            await _connection.ExecuteAsync(sql, parameters);
             return country;
         }
 
         public async Task DeleteAsync(Country country)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Country_Delete] @Id";
-            await connection.ExecuteAsync(sql, new { Id = country.Id });
+            await _connection.ExecuteAsync(sql, new { Id = country.Id });
             await Task.CompletedTask;
         }
 

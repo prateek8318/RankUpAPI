@@ -10,6 +10,8 @@ using System.Text;
 using Common.Middleware;
 using Common.Services;
 using Common.Language;
+using System.Data;
+using Microsoft.Data.SqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,14 @@ builder.Services.AddDbContext<MasterDbContext>(options =>
         sqlServerOptions.CommandTimeout(60);
         sqlServerOptions.MigrationsAssembly("MasterService.API");
     });
+});
+
+// Add IDbConnection for Dapper repositories
+builder.Services.AddScoped<IDbConnection>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("MasterServiceConnection");
+    return new SqlConnection(connectionString);
 });
 
 builder.Services.AddScoped<ILanguageRepository, LanguageDapperRepository>();

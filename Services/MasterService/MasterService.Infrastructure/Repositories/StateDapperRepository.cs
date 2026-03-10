@@ -1,38 +1,35 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
+using System.Data.Common;
+using System.Text.Json;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using MasterService.Infrastructure.Data;
-using System.Data;
-using System.Text.Json;
 
 namespace MasterService.Infrastructure.Repositories
 {
     public class StateDapperRepository : IStateRepository
     {
         private readonly MasterDbContext _context;
+        private readonly IDbConnection _connection;
 
-        public StateDapperRepository(MasterDbContext context)
+        public StateDapperRepository(MasterDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
+        private IDbConnection GetConnection()
         {
-            var connectionString = _context.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException("Database connection string is not initialized in MasterDbContext");
-                
-            return new SqlConnection(connectionString);
+            return _connection;
         }
+
 
         public async Task<State?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            return await connection.QueryFirstOrDefaultAsync<State>(
+            return await _connection.QueryFirstOrDefaultAsync<State>(
                 "[dbo].[State_GetById]",
                 new { Id = id },
                 commandType: CommandType.StoredProcedure);
@@ -40,10 +37,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<State?> GetByIdLocalizedAsync(int id, string? languageCode)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
-            return await connection.QueryFirstOrDefaultAsync<State>(
+            return await _connection.QueryFirstOrDefaultAsync<State>(
                 "[dbo].[State_GetByIdLocalized]",
                 new { Id = id, LanguageCode = languageCode },
                 commandType: CommandType.StoredProcedure);
@@ -51,20 +45,14 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<IEnumerable<State>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            return await connection.QueryAsync<State>(
+            return await _connection.QueryAsync<State>(
                 "[dbo].[State_GetAll]",
                 commandType: CommandType.StoredProcedure);
         }
 
         public async Task<IEnumerable<State>> GetActiveAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var states = await connection.QueryAsync<State>(
+            var states = await _connection.QueryAsync<State>(
                 "[dbo].[State_GetActive]",
                 commandType: CommandType.StoredProcedure);
 
@@ -72,7 +60,7 @@ namespace MasterService.Infrastructure.Repositories
             var stateList = states.ToList();
             foreach (var state in stateList)
             {
-                var languages = await connection.QueryAsync<StateLanguage>(
+                var languages = await _connection.QueryAsync<StateLanguage>(
                     "SELECT sl.*, l.Code as LanguageCode, l.Name as LanguageName FROM StateLanguages sl " +
                     "LEFT JOIN Languages l ON sl.LanguageId = l.Id " +
                     "WHERE sl.StateId = @StateId AND sl.IsActive = 1",
@@ -87,7 +75,7 @@ namespace MasterService.Infrastructure.Repositories
         public async Task<IEnumerable<State>> GetActiveLocalizedAsync(string? languageCode)
         {
             using var connection = GetConnection();
-            await connection.OpenAsync();
+            await ((DbConnection)connection).OpenAsync();
 
             return await connection.QueryAsync<State>(
                 "[dbo].[State_GetActiveLocalized]",
@@ -97,10 +85,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<IEnumerable<State>> GetActiveByCountryCodeAsync(string countryCode)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            return await connection.QueryAsync<State>(
+            return await _connection.QueryAsync<State>(
                 "[dbo].[State_GetActiveByCountryCode]",
                 new { CountryCode = countryCode },
                 commandType: CommandType.StoredProcedure);
@@ -108,10 +93,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<IEnumerable<State>> GetActiveByCountryCodeLocalizedAsync(string countryCode, string? languageCode)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
-            return await connection.QueryAsync<State>(
+            return await _connection.QueryAsync<State>(
                 "[dbo].[State_GetActiveByCountryCodeLocalized]",
                 new { CountryCode = countryCode, LanguageCode = languageCode },
                 commandType: CommandType.StoredProcedure);
@@ -119,9 +101,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<State> AddAsync(State state)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var namesJson = state.StateLanguages != null && state.StateLanguages.Any()
                 ? JsonSerializer.Serialize(state.StateLanguages.Select(x => new { x.LanguageId, x.Name }))
                 : null;
@@ -136,7 +115,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await connection.ExecuteAsync(
+            await _connection.ExecuteAsync(
                 "[dbo].[State_Create]",
                 parameters,
                 commandType: CommandType.StoredProcedure);
@@ -151,9 +130,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task UpdateAsync(State state)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var namesJson = state.StateLanguages != null && state.StateLanguages.Any()
                 ? JsonSerializer.Serialize(state.StateLanguages.Select(x => new { x.LanguageId, x.Name }))
                 : null;
@@ -167,7 +143,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@NamesJson", namesJson);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            await connection.ExecuteAsync(
+            await _connection.ExecuteAsync(
                 "[dbo].[State_Update]",
                 parameters,
                 commandType: CommandType.StoredProcedure);
@@ -175,10 +151,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public Task DeleteAsync(State state)
         {
-            using var connection = GetConnection();
-            connection.Open();
-            
-            connection.Execute(
+            _connection.Execute(
                 "[dbo].[State_Delete]",
                 new { Id = state.Id },
                 commandType: CommandType.StoredProcedure);
@@ -187,10 +160,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<bool> SoftDeleteByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
-            var affected = await connection.ExecuteAsync(
+            var affected = await _connection.ExecuteAsync(
                 "[dbo].[State_SoftDelete]",
                 new { Id = id },
                 commandType: CommandType.StoredProcedure);
@@ -200,10 +170,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<bool> SetActiveAsync(int id, bool isActive)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-
-            var affected = await connection.ExecuteAsync(
+            var affected = await _connection.ExecuteAsync(
                 "[dbo].[State_SetActive]",
                 new { Id = id, IsActive = isActive },
                 commandType: CommandType.StoredProcedure);
@@ -220,7 +187,7 @@ namespace MasterService.Infrastructure.Repositories
         public async Task<IEnumerable<State>> GetStatesWithEmptyNamesAsync()
         {
             using var connection = GetConnection();
-            await connection.OpenAsync();
+            await ((DbConnection)connection).OpenAsync();
             
             return await connection.QueryAsync<State>(
                 "[dbo].[State_GetWithEmptyNames]",

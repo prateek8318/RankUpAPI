@@ -48,7 +48,7 @@ namespace HomeDashboardService.Infrastructure.Repositories
             throw new NotImplementedException("Use specific repository methods with stored procedures for complex queries");
         }
 
-        public virtual async Task<T> AddAsync(T entity)
+        public virtual async Task AddAsync(T entity)
         {
             using var connection = GetConnection();
             await connection.OpenAsync();
@@ -76,11 +76,9 @@ namespace HomeDashboardService.Infrastructure.Repositories
             {
                 entity.Id = parameters.Get<int>("@Id");
             }
-            
-            return entity;
         }
 
-        public virtual async Task<T> UpdateAsync(T entity)
+        public virtual async Task UpdateAsync(T entity)
         {
             using var connection = GetConnection();
             await connection.OpenAsync();
@@ -102,18 +100,16 @@ namespace HomeDashboardService.Infrastructure.Repositories
             var sql = $"EXEC [dbo].[{entityName}_Update] {string.Join(", ", parameterNames)}";
             
             await connection.ExecuteAsync(sql, parameters);
-            return await Task.FromResult(entity);
         }
 
-        public virtual async Task<bool> DeleteAsync(int id)
+        public virtual async Task DeleteAsync(T entity)
         {
             using var connection = GetConnection();
             await connection.OpenAsync();
             
             var entityName = typeof(T).Name;
             var sql = $"EXEC [dbo].[{entityName}_Delete] @Id";
-            await connection.ExecuteAsync(sql, new { Id = id });
-            return true;
+            await connection.ExecuteAsync(sql, new { Id = entity.Id });
         }
 
         public virtual async Task<int> SaveChangesAsync()

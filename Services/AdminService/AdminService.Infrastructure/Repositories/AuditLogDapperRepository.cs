@@ -11,39 +11,28 @@ namespace AdminService.Infrastructure.Repositories
     public class AuditLogDapperRepository : IAuditLogRepository
     {
         private readonly AdminDbContext _context;
-        
-        public AuditLogDapperRepository(AdminDbContext context)
+        private readonly IDbConnection _connection;
+
+        public AuditLogDapperRepository(AdminDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            var connection = _context.Database.GetDbConnection();
-            if (connection is SqlConnection sqlConnection)
-                return sqlConnection;
-            throw new InvalidOperationException("Database connection is not a SqlConnection");
-        }
 
         public async Task<AuditLog> AddAsync(AuditLog auditLog)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[AuditLog_Insert] 
                     @AdminId, @ServiceName, @Action, @EntityType, @EntityId,
                     @OldValues, @NewValues, @IpAddress, @UserAgent, @CreatedAt";
 
-            await connection.ExecuteAsync(sql, auditLog);
+            await _connection.ExecuteAsync(sql, auditLog);
             return auditLog;
         }
 
         public async Task<IEnumerable<AuditLog>> GetAuditLogsAsync(int? adminId = null, string? serviceName = null, DateTime? startDate = null, DateTime? endDate = null, int page = 1, int pageSize = 50)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[AuditLog_GetAuditLogs] @AdminId, @ServiceName, @StartDate, @EndDate, @Page, @PageSize";
             
             var parameters = new
@@ -56,7 +45,7 @@ namespace AdminService.Infrastructure.Repositories
                 PageSize = pageSize
             };
 
-            return await connection.QueryAsync<AuditLog>(sql, parameters);
+            return await _connection.QueryAsync<AuditLog>(sql, parameters);
         }
 
         public async Task<int> SaveChangesAsync()

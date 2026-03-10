@@ -11,30 +11,17 @@ namespace AdminService.Infrastructure.Repositories
     public class ExportLogDapperRepository : IExportLogRepository
     {
         private readonly AdminDbContext _context;
+        private readonly IDbConnection _connection;
 
-        public ExportLogDapperRepository(AdminDbContext context)
+        public ExportLogDapperRepository(AdminDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            var connectionString = _context.Database.GetDbConnection().ConnectionString;
-            var connection = new SqlConnection(connectionString);
-            connection.Open();
-            
-            // Set proper QUOTED_IDENTIFIER setting for stored procedures
-            using var command = connection.CreateCommand();
-            command.CommandText = "SET QUOTED_IDENTIFIER ON";
-            command.ExecuteNonQuery();
-            
-            return connection;
-        }
 
         public async Task<ExportLog> AddAsync(ExportLog exportLog)
         {
-            using var connection = GetConnection();
-            
             var sql = @"EXEC [dbo].[ExportLog_Insert]
                     @AdminId, @ExportType, @FileName, @Format, @Status,
                     @RecordCount, @FilePath, @ErrorMessage,
@@ -53,7 +40,7 @@ namespace AdminService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", exportLog.UpdatedAt);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await connection.ExecuteAsync(sql, parameters);
+            await _connection.ExecuteAsync(sql, parameters);
 
             var id = parameters.Get<int>("@Id");
             if (id > 0)
@@ -66,21 +53,16 @@ namespace AdminService.Infrastructure.Repositories
 
         public async Task<ExportLog?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            
-            var sql = @"EXEC [dbo].[ExportLog_GetById] @Id";
-            
+            var sql = "EXEC [dbo].[ExportLog_GetById] @Id";
             var parameters = new { Id = id };
             
-            var result = await connection.QueryFirstOrDefaultAsync<ExportLog>(sql, parameters);
+            var result = await _connection.QueryFirstOrDefaultAsync<ExportLog>(sql, parameters);
             
             return result;
         }
 
         public async Task<IEnumerable<ExportLog>> GetExportLogsAsync(int? adminId = null, int page = 1, int pageSize = 50)
         {
-            using var connection = GetConnection();
-            
             var sql = @"EXEC [dbo].[ExportLog_GetAuditLogs]
                     @AdminId, @Page, @PageSize";
 
@@ -91,7 +73,7 @@ namespace AdminService.Infrastructure.Repositories
                 PageSize = pageSize
             };
             
-            var result = await connection.QueryAsync<ExportLog>(sql, parameters);
+            var result = await _connection.QueryAsync<ExportLog>(sql, parameters);
             
             return result;
         }

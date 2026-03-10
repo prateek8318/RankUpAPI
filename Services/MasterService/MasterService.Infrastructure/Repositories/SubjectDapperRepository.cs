@@ -11,34 +11,25 @@ namespace MasterService.Infrastructure.Repositories
     public class SubjectDapperRepository : ISubjectRepository
     {
         private readonly MasterDbContext _context;
+        private readonly IDbConnection _connection;
 
-        public SubjectDapperRepository(MasterDbContext context)
+        public SubjectDapperRepository(MasterDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            var connectionString = _context.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException("Database connection string is not initialized in MasterDbContext");
-                
-            return new SqlConnection(connectionString);
-        }
 
         public async Task<IEnumerable<Subject>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Subject_GetAll]";
-            var subjects = await connection.QueryAsync<Subject>(sql);
+            var subjects = await _connection.QueryAsync<Subject>(sql);
 
             // Load SubjectLanguages for each subject
             var subjectList = subjects.ToList();
             foreach (var subject in subjectList)
             {
-                var languages = await connection.QueryAsync<SubjectLanguage>(
+                var languages = await _connection.QueryAsync<SubjectLanguage>(
                     "SELECT sl.*, l.Code as LanguageCode, l.Name as LanguageName FROM SubjectLanguages sl " +
                     "LEFT JOIN Languages l ON sl.LanguageId = l.Id " +
                     "WHERE sl.SubjectId = @SubjectId AND sl.IsActive = 1",
@@ -52,27 +43,18 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<Subject> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Subject_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<Subject>(sql, new { Id = id }) ?? new Subject();
+            return await _connection.QueryFirstOrDefaultAsync<Subject>(sql, new { Id = id }) ?? new Subject();
         }
 
         public async Task<IEnumerable<Subject>> GetActiveSubjectsAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Subject_GetActive]";
-            return await connection.QueryAsync<Subject>(sql);
+            return await _connection.QueryAsync<Subject>(sql);
         }
 
         public async Task<Subject> AddAsync(Subject subject)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[Subject_Create] 
                     @Name, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
@@ -84,7 +66,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await connection.ExecuteAsync(sql, parameters);
+            await _connection.ExecuteAsync(sql, parameters);
             
             if (parameters.Get<int>("@Id") > 0)
             {
@@ -96,9 +78,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public Task<Subject> UpdateAsync(Subject subject)
         {
-            using var connection = GetConnection();
-            connection.Open();
-            
             var sql = @"
                 EXEC [dbo].[Subject_Update] 
                     @Id, @Name, @IsActive, @UpdatedAt";
@@ -109,27 +88,21 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@IsActive", subject.IsActive);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            connection.Execute(sql, parameters);
+            _connection.Execute(sql, parameters);
             return Task.FromResult(subject);
         }
 
         public Task DeleteAsync(Subject subject)
         {
-            using var connection = GetConnection();
-            connection.Open();
-            
             var sql = "EXEC [dbo].[Subject_Delete] @Id";
-            connection.Execute(sql, new { Id = subject.Id });
+            _connection.Execute(sql, new { Id = subject.Id });
             return Task.CompletedTask;
         }
 
         public async Task<bool> ExistsAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Subject_Exists] @Id";
-            var result = await connection.QueryFirstOrDefaultAsync<int>(sql, new { Id = id });
+            var result = await _connection.QueryFirstOrDefaultAsync<int>(sql, new { Id = id });
             return result > 0;
         }
 

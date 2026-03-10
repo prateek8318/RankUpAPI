@@ -11,36 +11,25 @@ namespace AdminService.Infrastructure.Repositories
     public class AdminDapperRepository : IAdminRepository
     {
         private readonly AdminDbContext _context;
-        
-        public AdminDapperRepository(AdminDbContext context)
+        private readonly IDbConnection _connection;
+
+        public AdminDapperRepository(AdminDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            var connection = _context.Database.GetDbConnection();
-            if (connection is SqlConnection sqlConnection)
-                return sqlConnection;
-            throw new InvalidOperationException("Database connection is not a SqlConnection");
-        }
 
         public async Task<Admin?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Admin_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<Admin>(sql, new { Id = id });
+            return await _connection.QueryFirstOrDefaultAsync<Admin>(sql, new { Id = id });
         }
 
         public async Task<Admin?> GetByUserIdAsync(int userId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Admin_GetByUserId] @UserId";
-            return await connection.QueryFirstOrDefaultAsync<Admin>(sql, new { UserId = userId });
+            return await _connection.QueryFirstOrDefaultAsync<Admin>(sql, new { UserId = userId });
         }
 
         public async Task<Admin?> GetByIdWithRolesAsync(int id)
@@ -52,23 +41,17 @@ namespace AdminService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Admin>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Admin_GetAll]";
-            return await connection.QueryAsync<Admin>(sql);
+            return await _connection.QueryAsync<Admin>(sql);
         }
 
         public async Task<Admin> AddAsync(Admin admin)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[Admin_Insert] 
                     @UserId, @Name, @Email, @PhoneNumber, @IsActive, @CreatedAt, @UpdatedAt";
 
-            await connection.ExecuteAsync(sql, admin);
+            await _connection.ExecuteAsync(sql, admin);
             return admin;
         }
 

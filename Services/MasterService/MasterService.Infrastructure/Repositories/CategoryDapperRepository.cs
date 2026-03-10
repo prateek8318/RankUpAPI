@@ -11,30 +11,21 @@ namespace MasterService.Infrastructure.Repositories
     public class CategoryDapperRepository : ICategoryRepository
     {
         private readonly MasterDbContext _context;
+        private readonly IDbConnection _connection;
 
-        public CategoryDapperRepository(MasterDbContext context)
+        public CategoryDapperRepository(MasterDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            var connectionString = _context.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException("Database connection string is not initialized in MasterDbContext");
-                
-            return new SqlConnection(connectionString);
-        }
 
         public async Task<Category?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             try
             {
                 var sql = "EXEC [dbo].[Category_GetById] @Id";
-                return await connection.QueryFirstOrDefaultAsync<Category>(sql, new { Id = id });
+                return await _connection.QueryFirstOrDefaultAsync<Category>(sql, new { Id = id });
             }
             catch (Exception ex)
             {
@@ -44,36 +35,24 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Category>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Category_GetAll]";
-            return await connection.QueryAsync<Category>(sql);
+            return await _connection.QueryAsync<Category>(sql);
         }
 
         public async Task<IEnumerable<Category>> GetActiveAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Category_GetActive]";
-            return await connection.QueryAsync<Category>(sql);
+            return await _connection.QueryAsync<Category>(sql);
         }
 
         public async Task<IEnumerable<Category>> GetActiveByTypeAsync(string type)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Category_GetActiveByType] @Type";
-            return await connection.QueryAsync<Category>(sql, new { Type = type });
+            return await _connection.QueryAsync<Category>(sql, new { Type = type });
         }
 
         public async Task<Category> AddAsync(Category category)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[Category_Create] 
                     @NameEn, @NameHi, @Key, @Type, @Description, 
@@ -91,7 +70,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await connection.ExecuteAsync(sql, parameters);
+            await _connection.ExecuteAsync(sql, parameters);
             
             if (parameters.Get<int>("@Id") > 0)
             {
@@ -103,9 +82,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task UpdateAsync(Category category)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             try
             {
                 var sql = @"
@@ -133,7 +109,7 @@ namespace MasterService.Infrastructure.Repositories
                 parameters.Add("@DisplayOrderParam", category.DisplayOrder);
                 parameters.Add("@IsActiveParam", category.IsActive);
 
-                await connection.ExecuteAsync(sql, parameters);
+                await _connection.ExecuteAsync(sql, parameters);
             }
             catch (Exception ex)
             {
@@ -143,9 +119,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task DeleteAsync(Category category)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             try
             {
                 var sql = @"
@@ -155,7 +128,7 @@ namespace MasterService.Infrastructure.Repositories
                         UpdatedAt = GETUTCDATE()
                     WHERE Id = @Id";
 
-                await connection.ExecuteAsync(sql, new { Id = category.Id });
+                await _connection.ExecuteAsync(sql, new { Id = category.Id });
             }
             catch (Exception ex)
             {

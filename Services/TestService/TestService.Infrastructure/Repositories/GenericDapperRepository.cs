@@ -48,7 +48,7 @@ namespace TestService.Infrastructure.Repositories
             throw new NotImplementedException("Use specific repository methods with stored procedures for complex queries");
         }
 
-        public virtual async Task<T> AddAsync(T entity)
+        public virtual async Task AddAsync(T entity)
         {
             using var connection = GetConnection();
             await connection.OpenAsync();
@@ -76,8 +76,6 @@ namespace TestService.Infrastructure.Repositories
             {
                 entity.Id = parameters.Get<int>("@Id");
             }
-            
-            return entity;
         }
 
         public virtual async Task UpdateAsync(T entity)

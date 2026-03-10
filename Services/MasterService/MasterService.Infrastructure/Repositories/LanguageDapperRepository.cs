@@ -11,52 +11,35 @@ namespace MasterService.Infrastructure.Repositories
     public class LanguageDapperRepository : ILanguageRepository
     {
         private readonly MasterDbContext _context;
+        private readonly IDbConnection _connection;
 
-        public LanguageDapperRepository(MasterDbContext context)
+        public LanguageDapperRepository(MasterDbContext context, IDbConnection connection)
         {
             _context = context;
+            _connection = connection;
         }
 
-        private SqlConnection GetConnection()
-        {
-            var connection = _context.Database.GetDbConnection();
-            if (connection is SqlConnection sqlConnection)
-                return sqlConnection;
-            throw new InvalidOperationException("Database connection is not a SqlConnection");
-        }
 
         public async Task<Language?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Language_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<Language>(sql, new { Id = id });
+            return await _connection.QueryFirstOrDefaultAsync<Language>(sql, new { Id = id });
         }
 
         public async Task<IEnumerable<Language>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Language_GetAll]";
-            return await connection.QueryAsync<Language>(sql);
+            return await _connection.QueryAsync<Language>(sql);
         }
 
         public async Task<IEnumerable<Language>> GetActiveAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[Language_GetActive]";
-            return await connection.QueryAsync<Language>(sql);
+            return await _connection.QueryAsync<Language>(sql);
         }
 
         public async Task<Language> AddAsync(Language language)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[Language_Create] 
                     @Name, @Code, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
@@ -69,7 +52,7 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await connection.ExecuteAsync(sql, parameters);
+            await _connection.ExecuteAsync(sql, parameters);
             
             if (parameters.Get<int>("@Id") > 0)
             {
@@ -81,9 +64,6 @@ namespace MasterService.Infrastructure.Repositories
 
         public Task UpdateAsync(Language language)
         {
-            using var connection = GetConnection();
-            connection.Open();
-            
             var sql = @"
                 EXEC [dbo].[Language_Update] 
                     @Id, @Name, @Code, @IsActive, @UpdatedAt";
@@ -95,17 +75,14 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@IsActive", language.IsActive);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            connection.Execute(sql, parameters);
+            _connection.Execute(sql, parameters);
             return Task.CompletedTask;
         }
 
         public Task DeleteAsync(Language language)
         {
-            using var connection = GetConnection();
-            connection.Open();
-            
             var sql = "EXEC [dbo].[Language_Delete] @Id";
-            connection.Execute(sql, new { Id = language.Id });
+            _connection.Execute(sql, new { Id = language.Id });
             return Task.CompletedTask;
         }
 

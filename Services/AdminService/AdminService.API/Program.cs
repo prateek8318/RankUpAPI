@@ -12,6 +12,8 @@ using System.Text;
 using Common.Middleware;
 using Common.Services;
 using Common.HttpClient;
+using System.Data;
+using Microsoft.Data.SqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +43,14 @@ builder.Services.AddDbContext<AdminDbContext>(options =>
         sqlServerOptions.CommandTimeout(60);
         // No migrations - using stored procedures
     });
+});
+
+// Add IDbConnection for Dapper repositories
+builder.Services.AddScoped<IDbConnection>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("AdminServiceConnection");
+    return new SqlConnection(connectionString);
 });
 
 // Repositories

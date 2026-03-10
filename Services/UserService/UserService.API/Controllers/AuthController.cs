@@ -108,6 +108,13 @@ namespace UserService.API.Controllers
                 }
 
                 await _userService.UpdateUserLoginInfoAsync(userDto.Id);
+                
+                // Update device information if provided
+                if (!string.IsNullOrWhiteSpace(request.DeviceId) || !string.IsNullOrWhiteSpace(request.DeviceType) || !string.IsNullOrWhiteSpace(request.DeviceName))
+                {
+                    await _userService.UpdateUserDeviceInfoAsync(userDto.Id, request.DeviceId, request.DeviceType, request.DeviceName);
+                }
+                
                 _otpService.RemoveOtp(fullPhoneNumber);
 
                 var token = GenerateJwtToken(userDto.Id.ToString(), userDto.PhoneNumber);

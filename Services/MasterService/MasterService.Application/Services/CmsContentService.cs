@@ -236,7 +236,7 @@ namespace MasterService.Application.Services
 
             existing.IsActive = false;
             existing.UpdatedAt = DateTime.UtcNow;
-            await _repository.SaveChangesAsync();
+            await _repository.UpdateAsync(existing);
             return true;
         }
 

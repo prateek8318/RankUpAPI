@@ -26,24 +26,30 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories([FromQuery] string? language = null)
+        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryDto>>>> GetCategories([FromQuery] string? language = null)
         {
             try
             {
                 var currentLanguage = language ?? _languageService.GetCurrentLanguage();
                 var categories = await _categoryService.GetCategoriesAsync(currentLanguage);
-                return Ok(new
+                
+                return Ok(new ApiResponse<IEnumerable<CategoryDto>>
                 {
-                    success = true,
-                    data = categories,
-                    language = currentLanguage,
-                    message = "Categories fetched successfully"
+                    Success = true,
+                    Data = categories,
+                    Language = currentLanguage,
+                    Message = "Categories fetched successfully"
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving categories");
-                return StatusCode(500, new { success = false, message = "Error fetching categories" });
+                return StatusCode(500, new ApiResponse<IEnumerable<CategoryDto>>
+                {
+                    Success = false,
+                    Message = "Error fetching categories",
+                    Error = ex.Message
+                });
             }
         }
 
@@ -177,106 +183,227 @@ namespace MasterService.API.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<ActionResult<CategoryDto>> GetCategory(int id, [FromQuery] string? language = null)
+        public async Task<ActionResult<ApiResponse<CategoryDto>>> GetCategory(int id, [FromQuery] string? language = null)
         {
             try
             {
                 var currentLanguage = language ?? _languageService.GetCurrentLanguage();
                 var category = await _categoryService.GetCategoryAsync(id, currentLanguage);
                 if (category == null)
-                    return NotFound();
-
-                return Ok(new
                 {
-                    success = true,
-                    data = category,
-                    language = currentLanguage,
-                    message = "Category fetched successfully"
+                    return NotFound(new ApiResponse<CategoryDto>
+                    {
+                        Success = false,
+                        Message = "Category not found",
+                        Error = $"Category with ID {id} not found"
+                    });
+                }
+
+                return Ok(new ApiResponse<CategoryDto>
+                {
+                    Success = true,
+                    Data = category,
+                    Language = currentLanguage,
+                    Message = "Category fetched successfully"
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving category");
-                return StatusCode(500, new { success = false, message = "Error fetching category" });
+                return StatusCode(500, new ApiResponse<CategoryDto>
+                {
+                    Success = false,
+                    Message = "Error fetching category",
+                    Error = ex.Message
+                });
             }
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<CategoryDto>> CreateCategory(CreateCategoryDto createDto)
+        public async Task<ActionResult<ApiResponse<CategoryDto>>> CreateCategory(CreateCategoryDto createDto)
         {
             try
             {
                 if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+                {
+                    return BadRequest(new ApiResponse<CategoryDto>
+                    {
+                        Success = false,
+                        Message = "Invalid model data",
+                        Error = string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage))
+                    });
+                }
 
                 var category = await _categoryService.CreateCategoryAsync(createDto);
-                return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
+                
+                return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, new ApiResponse<CategoryDto>
+                {
+                    Success = true,
+                    Data = category,
+                    Language = _languageService.GetCurrentLanguage(),
+                    Message = "Category created successfully"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponse<CategoryDto>
+                {
+                    Success = false,
+                    Message = "Validation failed",
+                    Error = ex.Message
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating category");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new ApiResponse<CategoryDto>
+                {
+                    Success = false,
+                    Message = "Error creating category",
+                    Error = ex.Message
+                });
             }
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateCategory(int id, UpdateCategoryDto updateDto)
+        public async Task<ActionResult<ApiResponse<CategoryDto>>> UpdateCategory(int id, UpdateCategoryDto updateDto)
         {
             try
             {
                 if (id != updateDto.Id)
-                    return BadRequest("ID in URL does not match the ID in the request body.");
+                {
+                    return BadRequest(new ApiResponse<CategoryDto>
+                    {
+                        Success = false,
+                        Message = "ID mismatch",
+                        Error = "ID in URL does not match the ID in the request body"
+                    });
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<CategoryDto>
+                    {
+                        Success = false,
+                        Message = "Invalid model data",
+                        Error = string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage))
+                    });
+                }
 
                 var result = await _categoryService.UpdateCategoryAsync(id, updateDto);
                 if (result == null)
-                    return NotFound();
+                {
+                    return NotFound(new ApiResponse<CategoryDto>
+                    {
+                        Success = false,
+                        Message = "Category not found",
+                        Error = $"Category with ID {id} not found"
+                    });
+                }
 
-                return NoContent();
+                return Ok(new ApiResponse<CategoryDto>
+                {
+                    Success = true,
+                    Data = result,
+                    Language = _languageService.GetCurrentLanguage(),
+                    Message = "Category updated successfully"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponse<CategoryDto>
+                {
+                    Success = false,
+                    Message = "Validation failed",
+                    Error = ex.Message
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating category");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new ApiResponse<CategoryDto>
+                {
+                    Success = false,
+                    Message = "Error updating category",
+                    Error = ex.Message
+                });
             }
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> DeleteCategory(int id)
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteCategory(int id)
         {
             try
             {
                 var result = await _categoryService.DeleteCategoryAsync(id);
                 if (!result)
-                    return NotFound();
+                {
+                    return NotFound(new ApiResponse<bool>
+                    {
+                        Success = false,
+                        Message = "Category not found",
+                        Error = $"Category with ID {id} not found"
+                    });
+                }
 
-                return NoContent();
+                return Ok(new ApiResponse<bool>
+                {
+                    Success = true,
+                    Data = true,
+                    Language = _languageService.GetCurrentLanguage(),
+                    Message = "Category deleted successfully"
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting category");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Error deleting category",
+                    Error = ex.Message
+                });
             }
         }
 
         [HttpPatch("{id}/status")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateCategoryStatus(int id, [FromBody] bool isActive)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateCategoryStatus(int id, [FromBody] bool isActive)
         {
             try
             {
                 var result = await _categoryService.ToggleCategoryStatusAsync(id, isActive);
                 if (!result)
-                    return NotFound();
+                {
+                    return NotFound(new ApiResponse<bool>
+                    {
+                        Success = false,
+                        Message = "Category not found",
+                        Error = $"Category with ID {id} not found"
+                    });
+                }
 
-                return NoContent();
+                var message = isActive ? "Category activated successfully" : "Category deactivated successfully";
+                return Ok(new ApiResponse<bool>
+                {
+                    Success = true,
+                    Data = true,
+                    Language = _languageService.GetCurrentLanguage(),
+                    Message = message
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating category status");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Error updating category status",
+                    Error = ex.Message
+                });
             }
         }
     }

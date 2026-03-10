@@ -85,7 +85,7 @@ namespace UserService.Application.Services
 
                     CountryCode = countryCode ?? "+91",
 
-                    Name = $"User[fullPhoneNumber]",
+                    Name = "User",
 
                     Email = null,
 
@@ -148,6 +148,23 @@ namespace UserService.Application.Services
 
             }
 
+        }
+        
+        public async Task UpdateUserDeviceInfoAsync(int userId, string? deviceId = null, string? deviceType = null, string? deviceName = null)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user != null)
+            {
+                if (!string.IsNullOrWhiteSpace(deviceId))
+                    user.DeviceId = deviceId;
+                if (!string.IsNullOrWhiteSpace(deviceType))
+                    user.DeviceType = deviceType;
+                if (!string.IsNullOrWhiteSpace(deviceName))
+                    user.DeviceName = deviceName;
+                    
+                user.UpdatedAt = DateTime.UtcNow;
+                await _userRepository.UpdateAsync(user);
+            }
         }
 
 

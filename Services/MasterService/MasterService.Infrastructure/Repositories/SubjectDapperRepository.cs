@@ -19,10 +19,11 @@ namespace MasterService.Infrastructure.Repositories
 
         private SqlConnection GetConnection()
         {
-            var connection = _context.Database.GetDbConnection();
-            if (connection is SqlConnection sqlConnection)
-                return sqlConnection;
-            throw new InvalidOperationException("Database connection is not a SqlConnection");
+            var connectionString = _context.ConnectionString;
+            if (string.IsNullOrEmpty(connectionString))
+                throw new InvalidOperationException("Database connection string is not initialized in MasterDbContext");
+                
+            return new SqlConnection(connectionString);
         }
 
         public async Task<IEnumerable<Subject>> GetAllAsync()
@@ -31,7 +32,22 @@ namespace MasterService.Infrastructure.Repositories
             await connection.OpenAsync();
             
             var sql = "EXEC [dbo].[Subject_GetAll]";
-            return await connection.QueryAsync<Subject>(sql);
+            var subjects = await connection.QueryAsync<Subject>(sql);
+
+            // Load SubjectLanguages for each subject
+            var subjectList = subjects.ToList();
+            foreach (var subject in subjectList)
+            {
+                var languages = await connection.QueryAsync<SubjectLanguage>(
+                    "SELECT sl.*, l.Code as LanguageCode, l.Name as LanguageName FROM SubjectLanguages sl " +
+                    "LEFT JOIN Languages l ON sl.LanguageId = l.Id " +
+                    "WHERE sl.SubjectId = @SubjectId AND sl.IsActive = 1",
+                    new { SubjectId = subject.Id });
+                
+                subject.SubjectLanguages = languages.ToList();
+            }
+
+            return subjectList;
         }
 
         public async Task<Subject> GetByIdAsync(int id)

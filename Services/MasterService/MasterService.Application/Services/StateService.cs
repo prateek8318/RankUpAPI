@@ -1,7 +1,10 @@
 using AutoMapper;
+using Common.Language;
 using MasterService.Application.DTOs;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
+using Microsoft.Extensions.Logging;
+using ILanguageDataService = Common.Language.ILanguageDataService;
 
 namespace MasterService.Application.Services
 {
@@ -9,11 +12,15 @@ namespace MasterService.Application.Services
     {
         private readonly IStateRepository _stateRepository;
         private readonly IMapper _mapper;
+        private readonly ILanguageDataService _languageDataService;
+        private readonly ILogger<StateService> _logger;
 
-        public StateService(IStateRepository stateRepository, IMapper mapper)
+        public StateService(IStateRepository stateRepository, IMapper mapper, ILanguageDataService languageDataService, ILogger<StateService> logger)
         {
             _stateRepository = stateRepository;
             _mapper = mapper;
+            _languageDataService = languageDataService;
+            _logger = logger;
         }
 
         public async Task<StateDto> CreateStateAsync(CreateStateDto createDto)
@@ -100,14 +107,7 @@ namespace MasterService.Application.Services
 
         public async Task<bool> DeleteStateAsync(int id)
         {
-            var state = await _stateRepository.GetByIdAsync(id);
-            if (state == null)
-                return false;
-
-            state.IsActive = false;
-            state.UpdatedAt = DateTime.UtcNow;
-            await _stateRepository.SaveChangesAsync();
-            return true;
+            return await _stateRepository.SoftDeleteByIdAsync(id);
         }
 
         public async Task<StateDto?> GetStateByIdAsync(int id, int? languageId = null)
@@ -156,6 +156,159 @@ namespace MasterService.Application.Services
             return stateDtos;
         }
 
+        public async Task<IEnumerable<StateDto>> GetAllStatesAsync(string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                
+                var states = await _stateRepository.GetActiveLocalizedAsync(normalizedLanguage);
+                var stateList = states
+                    .Select(s => MapToOptimizedStateDto(s, normalizedLanguage))
+                    .ToList();
+
+                if (!stateList.Any())
+                {
+                    return await GetDefaultStatesOptimized(normalizedLanguage);
+                }
+
+                return stateList;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting states for language {Language}", language);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<StateDto>> GetStatesByCountryCodeAsync(string countryCode, string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                
+                var states = await _stateRepository.GetActiveByCountryCodeLocalizedAsync(countryCode, normalizedLanguage);
+                var stateList = states
+                    .Select(s => MapToOptimizedStateDto(s, normalizedLanguage))
+                    .ToList();
+
+                return stateList;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting states by country code for language {Language}", language);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Maps State entity to optimized DTO with language support
+        /// </summary>
+        private StateDto MapToOptimizedStateDto(Domain.Entities.State state, string language)
+        {
+            var useHindi = language == LanguageConstants.Hindi;
+
+            // For now, use the main Name field since State doesn't have NameEn/NameHi
+            // This can be enhanced later to support NameEn/NameHi like Category
+            var localizedName = state.Name;
+
+            // Map StateLanguages to Names collection
+            var names = state.StateLanguages?.Select(sl => new StateLanguageDto
+            {
+                LanguageId = sl.LanguageId,
+                LanguageCode = sl.Language?.Code ?? string.Empty,
+                LanguageName = sl.Language?.Name ?? string.Empty,
+                Name = sl.Name
+            }).ToList() ?? new List<StateLanguageDto>();
+
+            return new StateDto
+            {
+                Id = state.Id,
+                Name = localizedName,
+                Code = state.Code,
+                CountryCode = state.CountryCode,
+                IsActive = state.IsActive,
+                CreatedAt = state.CreatedAt,
+                UpdatedAt = state.UpdatedAt,
+                Names = names
+            };
+        }
+
+        /// <summary>
+        /// Gets default states from language data service
+        /// Used when database has no states
+        /// </summary>
+        private async Task<IEnumerable<StateDto>> GetDefaultStatesOptimized(string language)
+        {
+            try
+            {
+                var data = await _languageDataService.GetLocalizedDataAsync(language, "states");
+                
+                if (data.TryGetValue("states", out var statesData) && statesData is IEnumerable<object> items)
+                {
+                    return items.Select(item => MapToOptimizedStateDto(item, language)).ToList();
+                }
+
+                return new List<StateDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting default states for language {Language}", language);
+                return new List<StateDto>();
+            }
+        }
+
+        /// <summary>
+        /// Maps object to optimized State DTO (for language data service)
+        /// </summary>
+        private StateDto MapToOptimizedStateDto(object item, string language)
+        {
+            try
+            {
+                _logger.LogInformation("Mapping state item of type: {ItemType}", item?.GetType().Name);
+                
+                // Handle JsonElement from System.Text.Json
+                if (item is System.Text.Json.JsonElement element)
+                {
+                    var id = element.GetProperty("id").GetInt32();
+                    var name = element.GetProperty("name").GetString();
+                    var code = element.TryGetProperty("code", out var codeProp) ? codeProp.GetString() : null;
+                    var countryCode = element.TryGetProperty("countryCode", out var ccProp) ? ccProp.GetString() : null;
+
+                    return new StateDto
+                    {
+                        Id = id,
+                        Name = name,
+                        Code = code,
+                        CountryCode = countryCode,
+                        IsActive = true
+                    };
+                }
+
+                // Handle dynamic objects
+                if (item is System.Dynamic.ExpandoObject expando)
+                {
+                    var dict = (IDictionary<string, object>)expando;
+                    return new StateDto
+                    {
+                        Id = dict.ContainsKey("id") ? Convert.ToInt32(dict["id"]) : 0,
+                        Name = dict.ContainsKey("name") ? dict["name"]?.ToString() : "",
+                        Code = dict.ContainsKey("code") ? dict["code"]?.ToString() : null,
+                        CountryCode = dict.ContainsKey("countryCode") ? dict["countryCode"]?.ToString() : null,
+                        IsActive = true
+                    };
+                }
+
+                _logger.LogWarning("Unsupported state item type: {ItemType}", item?.GetType().Name);
+                return new StateDto { IsActive = true };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error mapping state item: {Item}", item);
+                return new StateDto { IsActive = true };
+            }
+        }
+
         public async Task<IEnumerable<StateDto>> GetStatesByCountryCodeAsync(string countryCode, int? languageId = null)
         {
             var states = await _stateRepository.GetActiveByCountryCodeAsync(countryCode);
@@ -183,15 +336,7 @@ namespace MasterService.Application.Services
 
         public async Task<bool> ToggleStateStatusAsync(int id, bool isActive)
         {
-            var state = await _stateRepository.GetByIdAsync(id);
-            if (state == null)
-                return false;
-
-            state.IsActive = isActive;
-            state.UpdatedAt = DateTime.UtcNow;
-            await _stateRepository.UpdateAsync(state);
-            await _stateRepository.SaveChangesAsync();
-            return true;
+            return await _stateRepository.SetActiveAsync(id, isActive);
         }
 
         public async Task SeedStateLanguagesAsync()

@@ -8,8 +8,10 @@ namespace MasterService.Application.Interfaces
         Task<StreamDto?> UpdateStreamAsync(int id, UpdateStreamDto updateDto);
         Task<bool> DeleteStreamAsync(int id);
         Task<StreamDto?> GetStreamByIdAsync(int id, int? languageId = null);
+        Task<IEnumerable<StreamDto>> GetAllStreamsAsync(string language);
         Task<IEnumerable<StreamDto>> GetAllStreamsAsync(int? languageId = null);
         Task<IEnumerable<StreamDto>> GetStreamsByQualificationIdAsync(int qualificationId, int? languageId = null);
+        Task<IEnumerable<StreamDto>> GetStreamsByQualificationIdAsync(int qualificationId, string language);
         Task<bool> ToggleStreamStatusAsync(int id, bool isActive);
     }
 }

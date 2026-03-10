@@ -19,10 +19,11 @@ namespace MasterService.Infrastructure.Repositories
 
         private SqlConnection GetConnection()
         {
-            var connection = _context.Database.GetDbConnection();
-            if (connection is SqlConnection sqlConnection)
-                return sqlConnection;
-            throw new InvalidOperationException("Database connection is not a SqlConnection");
+            var connectionString = _context.ConnectionString;
+            if (string.IsNullOrEmpty(connectionString))
+                throw new InvalidOperationException("Database connection string is not initialized in MasterDbContext");
+                
+            return new SqlConnection(connectionString);
         }
 
         public async Task<Country?> GetByIdAsync(int id)

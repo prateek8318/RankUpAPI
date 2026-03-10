@@ -24,16 +24,42 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<QualificationDto>>> GetQualifications([FromQuery] int? languageId = null, [FromQuery] string? countryCode = null)
+        public async Task<ActionResult<IEnumerable<QualificationDto>>> GetQualifications([FromQuery] string? language = null, [FromQuery] int? languageId = null, [FromQuery] string? countryCode = null)
         {
             try
             {
-                if (!languageId.HasValue)
+                // Priority: language parameter > languageId > header
+                string? selectedLanguage = null;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    selectedLanguage = language;
+                }
+                else if (!languageId.HasValue)
+                {
                     languageId = GetLanguageIdFromHeader();
+                }
+                else
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
 
-                IEnumerable<QualificationDto> list = string.IsNullOrEmpty(countryCode)
-                    ? await _qualificationService.GetAllQualificationsAsync(languageId)
-                    : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, languageId);
+                IEnumerable<QualificationDto> list;
+                
+                if (!string.IsNullOrEmpty(selectedLanguage))
+                {
+                    // Use new language-based method
+                    list = string.IsNullOrEmpty(countryCode)
+                        ? await _qualificationService.GetAllQualificationsAsync(selectedLanguage)
+                        : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, selectedLanguage);
+                }
+                else
+                {
+                    // Use existing languageId-based method
+                    list = string.IsNullOrEmpty(countryCode)
+                        ? await _qualificationService.GetAllQualificationsAsync(languageId)
+                        : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, languageId);
+                }
 
                 var filtered = FilterByLanguage(list, languageId);
                 return Ok(filtered);

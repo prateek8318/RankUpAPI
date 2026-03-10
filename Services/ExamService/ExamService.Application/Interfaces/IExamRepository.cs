@@ -13,6 +13,7 @@ namespace ExamService.Application.Interfaces
         Task<Exam> AddAsync(Exam exam);
         Task UpdateAsync(Exam exam);
         Task DeleteAsync(Exam exam);
+        Task<bool> HardDeleteByIdAsync(int id);
         Task<int> SaveChangesAsync();
     }
 }

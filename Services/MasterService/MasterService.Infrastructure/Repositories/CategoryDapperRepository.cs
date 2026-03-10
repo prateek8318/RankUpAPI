@@ -19,10 +19,11 @@ namespace MasterService.Infrastructure.Repositories
 
         private SqlConnection GetConnection()
         {
-            var connection = _context.Database.GetDbConnection();
-            if (connection is SqlConnection sqlConnection)
-                return sqlConnection;
-            throw new InvalidOperationException("Database connection is not a SqlConnection");
+            var connectionString = _context.ConnectionString;
+            if (string.IsNullOrEmpty(connectionString))
+                throw new InvalidOperationException("Database connection string is not initialized in MasterDbContext");
+                
+            return new SqlConnection(connectionString);
         }
 
         public async Task<Category?> GetByIdAsync(int id)
@@ -30,8 +31,15 @@ namespace MasterService.Infrastructure.Repositories
             using var connection = GetConnection();
             await connection.OpenAsync();
             
-            var sql = "EXEC [dbo].[Category_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<Category>(sql, new { Id = id });
+            try
+            {
+                var sql = "EXEC [dbo].[Category_GetById] @Id";
+                return await connection.QueryFirstOrDefaultAsync<Category>(sql, new { Id = id });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting category by ID {id}: {ex.Message}", ex);
+            }
         }
 
         public async Task<IEnumerable<Category>> GetAllAsync()
@@ -68,15 +76,15 @@ namespace MasterService.Infrastructure.Repositories
             
             var sql = @"
                 EXEC [dbo].[Category_Create] 
-                    @Name, @NameEn, @NameHi, @Type, @Description, 
+                    @NameEn, @NameHi, @Key, @Type, @Description, 
                     @DisplayOrder, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
 
             var parameters = new DynamicParameters();
-            parameters.Add("@Name", category.Name);
             parameters.Add("@NameEn", category.NameEn);
-            parameters.Add("@NameHi", category.NameHi);
+            parameters.Add("@NameHi", category.NameHi ?? (object?)null);
+            parameters.Add("@Key", category.Key);
             parameters.Add("@Type", category.Type);
-            parameters.Add("@Description", category.Description);
+            parameters.Add("@Description", category.Description ?? (object?)null);
             parameters.Add("@DisplayOrder", category.DisplayOrder);
             parameters.Add("@IsActive", category.IsActive);
             parameters.Add("@CreatedAt", DateTime.UtcNow);
@@ -98,23 +106,39 @@ namespace MasterService.Infrastructure.Repositories
             using var connection = GetConnection();
             await connection.OpenAsync();
             
-            var sql = @"
-                EXEC [dbo].[Category_Update] 
-                    @Id, @Name, @NameEn, @NameHi, @Type, @Description, 
-                    @DisplayOrder, @IsActive, @UpdatedAt";
+            try
+            {
+                var sql = @"
+                    DECLARE @Id INT = @IdParam;
+                    DECLARE @NameEn NVARCHAR(100) = @NameEnParam;
+                    DECLARE @NameHi NVARCHAR(100) = @NameHiParam;
+                    DECLARE @Key NVARCHAR(50) = @KeyParam;
+                    DECLARE @Type NVARCHAR(50) = @TypeParam;
+                    DECLARE @Description NVARCHAR(500) = @DescriptionParam;
+                    DECLARE @DisplayOrder INT = @DisplayOrderParam;
+                    DECLARE @IsActive BIT = @IsActiveParam;
+                    DECLARE @UpdatedAt DATETIME2 = GETUTCDATE();
+                    
+                    EXEC [dbo].[Category_Update] 
+                        @Id, @NameEn, @NameHi, @Key, @Type, @Description, 
+                        @DisplayOrder, @IsActive, @UpdatedAt";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("@Id", category.Id);
-            parameters.Add("@Name", category.Name);
-            parameters.Add("@NameEn", category.NameEn);
-            parameters.Add("@NameHi", category.NameHi);
-            parameters.Add("@Type", category.Type);
-            parameters.Add("@Description", category.Description);
-            parameters.Add("@DisplayOrder", category.DisplayOrder);
-            parameters.Add("@IsActive", category.IsActive);
-            parameters.Add("@UpdatedAt", DateTime.UtcNow);
+                var parameters = new DynamicParameters();
+                parameters.Add("@IdParam", category.Id);
+                parameters.Add("@NameEnParam", category.NameEn);
+                parameters.Add("@NameHiParam", category.NameHi ?? (object?)null);
+                parameters.Add("@KeyParam", category.Key);
+                parameters.Add("@TypeParam", category.Type);
+                parameters.Add("@DescriptionParam", category.Description ?? (object?)null);
+                parameters.Add("@DisplayOrderParam", category.DisplayOrder);
+                parameters.Add("@IsActiveParam", category.IsActive);
 
-            await connection.ExecuteAsync(sql, parameters);
+                await connection.ExecuteAsync(sql, parameters);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating category: {ex.Message}", ex);
+            }
         }
 
         public async Task DeleteAsync(Category category)
@@ -122,8 +146,21 @@ namespace MasterService.Infrastructure.Repositories
             using var connection = GetConnection();
             await connection.OpenAsync();
             
-            var sql = "EXEC [dbo].[Category_Delete] @Id";
-            await connection.ExecuteAsync(sql, new { Id = category.Id });
+            try
+            {
+                var sql = @"
+                    UPDATE Categories
+                    SET 
+                        IsActive = 0,
+                        UpdatedAt = GETUTCDATE()
+                    WHERE Id = @Id";
+
+                await connection.ExecuteAsync(sql, new { Id = category.Id });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error deleting category: {ex.Message}", ex);
+            }
         }
 
         public async Task<int> SaveChangesAsync()

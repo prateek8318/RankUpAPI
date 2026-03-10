@@ -160,7 +160,7 @@ namespace MasterService.Application.Services
                 country.IsActive = false;
                 country.UpdatedAt = DateTime.UtcNow;
 
-                await _countryRepository.SaveChangesAsync();
+                await _countryRepository.UpdateAsync(country);
 
                 return true;
             }
@@ -182,7 +182,7 @@ namespace MasterService.Application.Services
                 country.IsActive = isActive;
                 country.UpdatedAt = DateTime.UtcNow;
 
-                await _countryRepository.SaveChangesAsync();
+                await _countryRepository.UpdateAsync(country);
 
                 return true;
             }

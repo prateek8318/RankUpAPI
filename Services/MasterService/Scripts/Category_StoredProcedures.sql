@@ -19,14 +19,17 @@ BEGIN
     
     SELECT 
         Id,
-        Name,
+        NameEn,
+        NameHi,
+        [Key],
+        Type,
         Description,
-        Icon,
+        DisplayOrder,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM [dbo].[Categories] 
-    WHERE Id = @Id AND IsActive = 1;
+    WHERE Id = @Id;
 END
 GO
 
@@ -42,15 +45,46 @@ BEGIN
     
     SELECT 
         Id,
-        Name,
+        NameEn,
+        NameHi,
+        [Key],
+        Type,
         Description,
-        Icon,
+        DisplayOrder,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM [dbo].[Categories] 
     WHERE IsActive = 1
-    ORDER BY Name;
+    ORDER BY DisplayOrder, NameEn;
+END
+GO
+
+-- Category_GetActiveByType
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Category_GetActiveByType]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Category_GetActiveByType]
+GO
+
+CREATE PROCEDURE [dbo].[Category_GetActiveByType]
+    @Type NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        Id,
+        NameEn,
+        NameHi,
+        [Key],
+        Type,
+        Description,
+        DisplayOrder,
+        IsActive,
+        CreatedAt,
+        UpdatedAt
+    FROM [dbo].[Categories] 
+    WHERE Type = @Type AND IsActive = 1
+    ORDER BY DisplayOrder, NameEn;
 END
 GO
 
@@ -60,18 +94,24 @@ IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Catego
 GO
 
 CREATE PROCEDURE [dbo].[Category_Create]
-    @Name NVARCHAR(100),
+    @NameEn NVARCHAR(100),
+    @NameHi NVARCHAR(100) = NULL,
+    @Key NVARCHAR(50),
+    @Type NVARCHAR(50),
     @Description NVARCHAR(500) = NULL,
-    @Icon NVARCHAR(200) = NULL,
-    @CategoryId INT OUTPUT
+    @DisplayOrder INT = 0,
+    @IsActive BIT = 1,
+    @CreatedAt DATETIME2,
+    @UpdatedAt DATETIME2,
+    @Id INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    INSERT INTO Categories (Name, Description, Icon, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @Description, @Icon, 1, GETUTCDATE(), GETUTCDATE());
+    INSERT INTO Categories (NameEn, NameHi, [Key], Type, Description, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@NameEn, @NameHi, @Key, @Type, @Description, @DisplayOrder, @IsActive, @CreatedAt, @UpdatedAt);
     
-    SET @CategoryId = SCOPE_IDENTITY();
+    SET @Id = SCOPE_IDENTITY();
 END
 GO
 
@@ -82,20 +122,29 @@ GO
 
 CREATE PROCEDURE [dbo].[Category_Update]
     @Id INT,
-    @Name NVARCHAR(100),
+    @NameEn NVARCHAR(100),
+    @NameHi NVARCHAR(100) = NULL,
+    @Key NVARCHAR(50),
+    @Type NVARCHAR(50),
     @Description NVARCHAR(500) = NULL,
-    @Icon NVARCHAR(200) = NULL
+    @DisplayOrder INT = 0,
+    @IsActive BIT = 1,
+    @UpdatedAt DATETIME2
 AS
 BEGIN
     SET NOCOUNT ON;
     
     UPDATE Categories
     SET 
-        Name = @Name,
+        NameEn = @NameEn,
+        NameHi = @NameHi,
+        [Key] = @Key,
+        Type = @Type,
         Description = @Description,
-        Icon = @Icon,
-        UpdatedAt = GETUTCDATE()
-    WHERE Id = @Id AND IsActive = 1;
+        DisplayOrder = @DisplayOrder,
+        IsActive = @IsActive,
+        UpdatedAt = @UpdatedAt
+    WHERE Id = @Id;
 END
 GO
 

@@ -205,7 +205,7 @@ CREATE PROCEDURE dbo.State_GetActive
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, CountryCode, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, Code, CountryCode, IsActive, CreatedAt, UpdatedAt
     FROM dbo.States
     WHERE IsActive = 1;
 END
@@ -359,8 +359,10 @@ IF OBJECT_ID('dbo.Qualification_Create', 'P') IS NOT NULL DROP PROCEDURE dbo.Qua
 GO
 CREATE PROCEDURE dbo.Qualification_Create
     @Name        NVARCHAR(200),
+    @Description NVARCHAR(1000) = NULL,
     @CountryCode NVARCHAR(10),
     @IsActive    BIT,
+    @NamesJson   NVARCHAR(MAX) = NULL,
     @CreatedAt   DATETIME2,
     @UpdatedAt   DATETIME2,
     @Id          INT OUTPUT
@@ -379,8 +381,10 @@ GO
 CREATE PROCEDURE dbo.Qualification_Update
     @Id          INT,
     @Name        NVARCHAR(200),
+    @Description NVARCHAR(1000) = NULL,
     @CountryCode NVARCHAR(10),
     @IsActive    BIT,
+    @NamesJson   NVARCHAR(MAX) = NULL,
     @UpdatedAt   DATETIME2
 AS
 BEGIN
@@ -436,7 +440,7 @@ CREATE PROCEDURE dbo.Stream_GetActive
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, QualificationId, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, NameHi, Description, QualificationId, IsActive, CreatedAt, UpdatedAt
     FROM dbo.Streams
     WHERE IsActive = 1;
 END
@@ -648,5 +652,116 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DELETE FROM dbo.Exams WHERE Id = @Id;
+END
+GO
+
+-- =====================================================
+-- SUBJECT STORED PROCEDURES
+-- =====================================================
+
+-- Subject_GetAll
+IF OBJECT_ID('dbo.Subject_GetAll', 'P') IS NOT NULL DROP PROCEDURE dbo.Subject_GetAll;
+GO
+CREATE PROCEDURE dbo.Subject_GetAll
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, Name, Description, IsActive, CreatedAt, UpdatedAt
+    FROM dbo.Subjects
+    ORDER BY Name;
+END
+GO
+
+-- Subject_GetById
+IF OBJECT_ID('dbo.Subject_GetById', 'P') IS NOT NULL DROP PROCEDURE dbo.Subject_GetById;
+GO
+CREATE PROCEDURE dbo.Subject_GetById
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, Name, Description, IsActive, CreatedAt, UpdatedAt
+    FROM dbo.Subjects
+    WHERE Id = @Id;
+END
+GO
+
+-- Subject_GetActive
+IF OBJECT_ID('dbo.Subject_GetActive', 'P') IS NOT NULL DROP PROCEDURE dbo.Subject_GetActive;
+GO
+CREATE PROCEDURE dbo.Subject_GetActive
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, Name, Description, IsActive, CreatedAt, UpdatedAt
+    FROM dbo.Subjects
+    WHERE IsActive = 1
+    ORDER BY Name;
+END
+GO
+
+-- Subject_Create
+IF OBJECT_ID('dbo.Subject_Create', 'P') IS NOT NULL DROP PROCEDURE dbo.Subject_Create;
+GO
+CREATE PROCEDURE dbo.Subject_Create
+    @Name        NVARCHAR(200),
+    @Description NVARCHAR(1000) = NULL,
+    @IsActive    BIT = 1,
+    @CreatedAt   DATETIME2,
+    @UpdatedAt   DATETIME2,
+    @Id          INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.Subjects (Name, Description, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@Name, @Description, @IsActive, @CreatedAt, @UpdatedAt);
+    SET @Id = SCOPE_IDENTITY();
+END
+GO
+
+-- Subject_Update
+IF OBJECT_ID('dbo.Subject_Update', 'P') IS NOT NULL DROP PROCEDURE dbo.Subject_Update;
+GO
+CREATE PROCEDURE dbo.Subject_Update
+    @Id          INT,
+    @Name        NVARCHAR(200),
+    @Description NVARCHAR(1000) = NULL,
+    @IsActive    BIT,
+    @UpdatedAt   DATETIME2
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Subjects
+    SET Name = @Name,
+        Description = @Description,
+        IsActive = @IsActive,
+        UpdatedAt = @UpdatedAt
+    WHERE Id = @Id;
+END
+GO
+
+-- Subject_Delete
+IF OBJECT_ID('dbo.Subject_Delete', 'P') IS NOT NULL DROP PROCEDURE dbo.Subject_Delete;
+GO
+CREATE PROCEDURE dbo.Subject_Delete
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE FROM dbo.Subjects WHERE Id = @Id;
+END
+GO
+
+-- Subject_Exists
+IF OBJECT_ID('dbo.Subject_Exists', 'P') IS NOT NULL DROP PROCEDURE dbo.Subject_Exists;
+GO
+CREATE PROCEDURE dbo.Subject_Exists
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT COUNT(1)
+    FROM dbo.Subjects
+    WHERE Id = @Id;
 END
 GO

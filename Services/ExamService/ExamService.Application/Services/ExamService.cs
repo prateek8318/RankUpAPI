@@ -32,6 +32,17 @@ namespace ExamService.Application.Services
 
         public async Task<ExamDto> CreateExamAsync(CreateExamDto createDto)
         {
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(createDto.Name))
+            {
+                throw new ArgumentException("Exam name is required and cannot be empty.");
+            }
+
+            if (createDto.QualificationIds == null || !createDto.QualificationIds.Any())
+            {
+                throw new ArgumentException("At least one qualification is required to create an exam.");
+            }
+
             var exam = _mapper.Map<Exam>(createDto);
             exam.CreatedAt = DateTime.UtcNow;
             exam.IsActive = true;
@@ -75,6 +86,17 @@ namespace ExamService.Application.Services
             var exam = await _examRepository.GetByIdWithQualificationsAsync(id);
             if (exam == null)
                 return null;
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(updateDto.Name))
+            {
+                throw new ArgumentException("Exam name is required and cannot be empty.");
+            }
+
+            if (updateDto.QualificationIds == null || !updateDto.QualificationIds.Any())
+            {
+                throw new ArgumentException("At least one qualification is required to update an exam.");
+            }
 
             _mapper.Map(updateDto, exam);
             exam.UpdatedAt = DateTime.UtcNow;
@@ -121,9 +143,7 @@ namespace ExamService.Application.Services
                 return false;
 
             await _examQualificationRepository.DeleteByExamIdAsync(id);
-            await _examRepository.DeleteAsync(exam);
-            await _examRepository.SaveChangesAsync();
-            return true;
+            return await _examRepository.HardDeleteByIdAsync(id);
         }
 
         public async Task<ExamDto?> GetExamByIdAsync(int id)

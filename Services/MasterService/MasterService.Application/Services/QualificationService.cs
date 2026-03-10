@@ -1,7 +1,10 @@
 using AutoMapper;
+using Common.Language;
 using MasterService.Application.DTOs;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
+using Microsoft.Extensions.Logging;
+using ILanguageDataService = Common.Language.ILanguageDataService;
 
 namespace MasterService.Application.Services
 {
@@ -9,15 +12,29 @@ namespace MasterService.Application.Services
     {
         private readonly IQualificationRepository _qualificationRepository;
         private readonly IMapper _mapper;
+        private readonly ILanguageDataService _languageDataService;
+        private readonly ILogger<QualificationService> _logger;
 
-        public QualificationService(IQualificationRepository qualificationRepository, IMapper mapper)
+        public QualificationService(
+            IQualificationRepository qualificationRepository, 
+            IMapper mapper,
+            ILanguageDataService languageDataService,
+            ILogger<QualificationService> logger)
         {
             _qualificationRepository = qualificationRepository;
             _mapper = mapper;
+            _languageDataService = languageDataService;
+            _logger = logger;
         }
 
         public async Task<QualificationDto> CreateQualificationAsync(CreateQualificationDto createDto)
         {
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(createDto.Name))
+            {
+                throw new ArgumentException("Qualification name is required and cannot be empty.");
+            }
+
             var qualification = _mapper.Map<Qualification>(createDto);
             qualification.CreatedAt = DateTime.UtcNow;
             qualification.IsActive = true;
@@ -47,6 +64,12 @@ namespace MasterService.Application.Services
             var qualification = await _qualificationRepository.GetByIdAsync(id);
             if (qualification == null)
                 return null;
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(updateDto.Name))
+            {
+                throw new ArgumentException("Qualification name is required and cannot be empty.");
+            }
 
             qualification.Name = updateDto.Name;
             qualification.Description = updateDto.Description;
@@ -84,12 +107,7 @@ namespace MasterService.Application.Services
             if (qualification == null)
                 return false;
             
-            // Always soft delete
-            qualification.IsActive = false;
-            qualification.UpdatedAt = DateTime.UtcNow;
-            await _qualificationRepository.SaveChangesAsync();
-            
-            return true;
+            return await _qualificationRepository.HardDeleteByIdAsync(id);
         }
 
         public async Task<QualificationDto?> GetQualificationByIdAsync(int id, int? languageId = null)
@@ -111,6 +129,31 @@ namespace MasterService.Application.Services
                     dto.Description = langDesc;
             }
             return dto;
+        }
+
+        public async Task<IEnumerable<QualificationDto>> GetAllQualificationsAsync(string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                
+                var qualifications = await _qualificationRepository.GetActiveLocalizedAsync(normalizedLanguage);
+                var qualificationList = qualifications
+                    .Select(q => MapToOptimizedQualificationDto(q, normalizedLanguage))
+                    .ToList();
+
+                if (!qualificationList.Any())
+                {
+                    return await GetDefaultQualificationsOptimized(normalizedLanguage);
+                }
+
+                return qualificationList;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting qualifications for language {Language}", language);
+                throw;
+            }
         }
 
         public async Task<IEnumerable<QualificationDto>> GetAllQualificationsAsync(int? languageId = null)
@@ -159,16 +202,123 @@ namespace MasterService.Application.Services
             return dtos;
         }
 
+        public async Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeAsync(string countryCode, string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                var qualifications = await _qualificationRepository.GetActiveByCountryCodeLocalizedAsync(countryCode, normalizedLanguage);
+                var list = qualifications.Select(q => MapToOptimizedQualificationDto(q, normalizedLanguage)).ToList();
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting qualifications by country code for language {Language}", language);
+                throw;
+            }
+        }
+
         public async Task<bool> ToggleQualificationStatusAsync(int id, bool isActive)
         {
-            var qualification = await _qualificationRepository.GetByIdAsync(id);
-            if (qualification == null)
-                return false;
-            qualification.IsActive = isActive;
-            qualification.UpdatedAt = DateTime.UtcNow;
-            await _qualificationRepository.UpdateAsync(qualification);
-            await _qualificationRepository.SaveChangesAsync();
-            return true;
+            return await _qualificationRepository.SetActiveAsync(id, isActive);
+        }
+
+        private QualificationDto MapToOptimizedQualificationDto(Domain.Entities.Qualification qualification, string language)
+        {
+            var useHindi = language == LanguageConstants.Hindi;
+
+            // For now, use the main Name field since Qualification doesn't have NameEn/NameHi
+            // This can be enhanced later to support NameEn/NameHi like Category
+            var localizedName = qualification.Name;
+
+            // Map QualificationLanguages to Names collection
+            var names = qualification.QualificationLanguages?.Select(ql => new QualificationLanguageDto
+            {
+                LanguageId = ql.LanguageId,
+                LanguageCode = ql.Language?.Code ?? string.Empty,
+                LanguageName = ql.Language?.Name ?? string.Empty,
+                Name = ql.Name,
+                Description = ql.Description
+            }).ToList() ?? new List<QualificationLanguageDto>();
+
+            return new QualificationDto
+            {
+                Id = qualification.Id,
+                Name = localizedName,
+                Description = qualification.Description,
+                CountryCode = qualification.CountryCode,
+                IsActive = qualification.IsActive,
+                CreatedAt = qualification.CreatedAt,
+                UpdatedAt = qualification.UpdatedAt,
+                Names = names
+            };
+        }
+
+        private async Task<IEnumerable<QualificationDto>> GetDefaultQualificationsOptimized(string language)
+        {
+            try
+            {
+                var data = await _languageDataService.GetLocalizedDataAsync(language, "qualifications");
+                if (data.TryGetValue("qualifications", out var qualificationsData) && qualificationsData is IEnumerable<object> items)
+                {
+                    return items.Select(item => MapToOptimizedQualificationDto(item, language)).ToList();
+                }
+
+                return new List<QualificationDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting default qualifications for language {Language}", language);
+                return new List<QualificationDto>();
+            }
+        }
+
+        private QualificationDto MapToOptimizedQualificationDto(object item, string language)
+        {
+            try
+            {
+                _logger.LogInformation("Mapping qualification item of type: {ItemType}", item?.GetType().Name);
+                
+                // Handle JsonElement from System.Text.Json
+                if (item is System.Text.Json.JsonElement element)
+                {
+                    var id = element.GetProperty("id").GetInt32();
+                    var name = element.GetProperty("name").GetString();
+                    var description = element.TryGetProperty("description", out var descProp) ? descProp.GetString() : null;
+                    var countryCode = element.TryGetProperty("countryCode", out var ccProp) ? ccProp.GetString() : null;
+
+                    return new QualificationDto
+                    {
+                        Id = id,
+                        Name = name,
+                        Description = description,
+                        CountryCode = countryCode,
+                        IsActive = true
+                    };
+                }
+
+                // Handle dynamic objects
+                if (item is System.Dynamic.ExpandoObject expando)
+                {
+                    var dict = (IDictionary<string, object>)expando;
+                    return new QualificationDto
+                    {
+                        Id = dict.ContainsKey("id") ? Convert.ToInt32(dict["id"]) : 0,
+                        Name = dict.ContainsKey("name") ? dict["name"]?.ToString() : "",
+                        Description = dict.ContainsKey("description") ? dict["description"]?.ToString() : null,
+                        CountryCode = dict.ContainsKey("countryCode") ? dict["countryCode"]?.ToString() : null,
+                        IsActive = true
+                    };
+                }
+
+                _logger.LogWarning("Unsupported qualification item type: {ItemType}", item?.GetType());
+                return new QualificationDto { IsActive = true };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error mapping qualification item: {Item}", item);
+                return new QualificationDto { IsActive = true };
+            }
         }
     }
 }

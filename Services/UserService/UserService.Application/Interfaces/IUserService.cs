@@ -15,6 +15,8 @@ namespace UserService.Application.Interfaces
         Task<UserDto> GetOrCreateUserAsync(string phoneNumber, string? countryCode = null);
 
         Task UpdateUserLoginInfoAsync(int userId);
+        
+        Task UpdateUserDeviceInfoAsync(int userId, string? deviceId = null, string? deviceType = null, string? deviceName = null);
 
         Task<UserDto> UpdateUserProfileAsync(int userId, ProfileUpdateRequest profileUpdate);
 

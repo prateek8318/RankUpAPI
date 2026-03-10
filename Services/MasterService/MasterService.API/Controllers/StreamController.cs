@@ -24,16 +24,42 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<StreamDto>>> GetStreams([FromQuery] int? languageId = null, [FromQuery] int? qualificationId = null)
+        public async Task<ActionResult<IEnumerable<StreamDto>>> GetStreams([FromQuery] string? language = null, [FromQuery] int? languageId = null, [FromQuery] int? qualificationId = null)
         {
             try
             {
-                if (!languageId.HasValue)
+                // Priority: language parameter > languageId > header
+                string? selectedLanguage = null;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    selectedLanguage = language;
+                }
+                else if (!languageId.HasValue)
+                {
                     languageId = GetLanguageIdFromHeader();
+                }
+                else
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
 
-                IEnumerable<StreamDto> list = qualificationId.HasValue
-                    ? await _streamService.GetStreamsByQualificationIdAsync(qualificationId.Value, languageId)
-                    : await _streamService.GetAllStreamsAsync(languageId);
+                IEnumerable<StreamDto> list;
+                
+                if (!string.IsNullOrEmpty(selectedLanguage))
+                {
+                    // Use new language-based method
+                    list = qualificationId.HasValue
+                        ? await _streamService.GetStreamsByQualificationIdAsync(qualificationId.Value, selectedLanguage)
+                        : await _streamService.GetAllStreamsAsync(selectedLanguage);
+                }
+                else
+                {
+                    // Use existing languageId-based method
+                    list = qualificationId.HasValue
+                        ? await _streamService.GetStreamsByQualificationIdAsync(qualificationId.Value, languageId)
+                        : await _streamService.GetAllStreamsAsync(languageId);
+                }
 
                 var filtered = FilterByLanguage(list, languageId);
                 return Ok(filtered);

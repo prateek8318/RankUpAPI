@@ -136,12 +136,39 @@ namespace MasterService.Application.Services
 
         public async Task<CategoryDto> CreateCategoryAsync(CreateCategoryDto createDto)
         {
+            // Validation
+            if (string.IsNullOrWhiteSpace(createDto.NameEn))
+            {
+                throw new ArgumentException("English name is required and cannot be empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(createDto.Key))
+            {
+                throw new ArgumentException("Key is required and cannot be empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(createDto.Type))
+            {
+                throw new ArgumentException("Type is required and cannot be empty.");
+            }
+
+            // Check for duplicate key
+            var existingCategories = await _categoryRepository.GetActiveByTypeAsync(createDto.Type);
+            var duplicateKey = existingCategories.FirstOrDefault(c => c.Key.Equals(createDto.Key, StringComparison.OrdinalIgnoreCase));
+            
+            if (duplicateKey != null)
+            {
+                throw new InvalidOperationException($"A category with key '{createDto.Key}' already exists in type '{createDto.Type}'.");
+            }
+
             var entity = new Domain.Entities.Category
             {
                 NameEn = createDto.NameEn,
                 NameHi = createDto.NameHi,
                 Key = createDto.Key,
                 Type = createDto.Type,
+                Description = createDto.Description,
+                DisplayOrder = createDto.DisplayOrder,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -155,54 +182,105 @@ namespace MasterService.Application.Services
 
         public async Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryDto updateDto)
         {
-            var existing = await _categoryRepository.GetByIdAsync(id);
-            if (existing == null)
+            try
             {
-                return null;
+                var existing = await _categoryRepository.GetByIdAsync(id);
+                if (existing == null)
+                {
+                    return null;
+                }
+
+                // Validation
+                if (string.IsNullOrWhiteSpace(updateDto.NameEn))
+                {
+                    throw new ArgumentException("English name is required and cannot be empty.");
+                }
+
+                if (string.IsNullOrWhiteSpace(updateDto.Key))
+                {
+                    throw new ArgumentException("Key is required and cannot be empty.");
+                }
+
+                if (string.IsNullOrWhiteSpace(updateDto.Type))
+                {
+                    throw new ArgumentException("Type is required and cannot be empty.");
+                }
+
+                // Check for duplicate key (excluding current entity)
+                var existingCategories = await _categoryRepository.GetActiveByTypeAsync(updateDto.Type);
+                var duplicateKey = existingCategories.FirstOrDefault(c => 
+                    c.Key.Equals(updateDto.Key, StringComparison.OrdinalIgnoreCase) && c.Id != id);
+                
+                if (duplicateKey != null)
+                {
+                    throw new InvalidOperationException($"A category with key '{updateDto.Key}' already exists in type '{updateDto.Type}'.");
+                }
+
+                existing.NameEn = updateDto.NameEn;
+                existing.NameHi = updateDto.NameHi;
+                existing.Key = updateDto.Key;
+                existing.Type = updateDto.Type;
+                existing.Description = updateDto.Description;
+                existing.DisplayOrder = updateDto.DisplayOrder;
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                await _categoryRepository.UpdateAsync(existing);
+
+                return MapToCategoryDto(existing, LanguageConstants.English);
             }
-
-            existing.NameEn = updateDto.NameEn;
-            existing.NameHi = updateDto.NameHi;
-            existing.Key = updateDto.Key;
-            existing.Type = updateDto.Type;
-            existing.UpdatedAt = DateTime.UtcNow;
-
-            await _categoryRepository.UpdateAsync(existing);
-            await _categoryRepository.SaveChangesAsync();
-
-            return MapToCategoryDto(existing, LanguageConstants.English);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating category with ID {Id}", id);
+                throw;
+            }
         }
 
         public async Task<bool> DeleteCategoryAsync(int id)
         {
-            var existing = await _categoryRepository.GetByIdAsync(id);
-            if (existing == null)
+            try
             {
-                return false;
+                var existing = await _categoryRepository.GetByIdAsync(id);
+                if (existing == null)
+                {
+                    return false;
+                }
+
+                existing.IsActive = false;
+                existing.UpdatedAt = DateTime.UtcNow;
+                
+                await _categoryRepository.UpdateAsync(existing);
+
+                return true;
             }
-
-            existing.IsActive = false;
-            existing.UpdatedAt = DateTime.UtcNow;
-            await _categoryRepository.SaveChangesAsync();
-
-            return true;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting category with ID {Id}", id);
+                throw;
+            }
         }
 
         public async Task<bool> ToggleCategoryStatusAsync(int id, bool isActive)
         {
-            var existing = await _categoryRepository.GetByIdAsync(id);
-            if (existing == null)
+            try
             {
-                return false;
+                var existing = await _categoryRepository.GetByIdAsync(id);
+                if (existing == null)
+                {
+                    return false;
+                }
+
+                existing.IsActive = isActive;
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                await _categoryRepository.UpdateAsync(existing);
+
+                return true;
             }
-
-            existing.IsActive = isActive;
-            existing.UpdatedAt = DateTime.UtcNow;
-
-            await _categoryRepository.UpdateAsync(existing);
-            await _categoryRepository.SaveChangesAsync();
-
-            return true;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling category status for ID {Id}", id);
+                throw;
+            }
         }
 
         public async Task<CategoryDto> GetCategoryAsync(int id, string language)

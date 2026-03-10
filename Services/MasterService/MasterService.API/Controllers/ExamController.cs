@@ -25,6 +25,7 @@ namespace MasterService.API.Controllers
         [HttpGet]
         [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<ExamDto>>> GetExams(
+            [FromQuery] string? language = null,
             [FromQuery] int? languageId = null,
             [FromQuery] string? countryCode = null,
             [FromQuery] int? qualificationId = null,
@@ -34,18 +35,47 @@ namespace MasterService.API.Controllers
         {
             try
             {
-                if (!languageId.HasValue)
-                    languageId = GetLanguageIdFromHeader();
-
-                IEnumerable<ExamDto> list;
-
-                if (!string.IsNullOrEmpty(countryCode) || qualificationId.HasValue || streamId.HasValue || minAge.HasValue || maxAge.HasValue)
+                // Priority: language parameter > languageId > header
+                string? selectedLanguage = null;
+                
+                if (!string.IsNullOrEmpty(language))
                 {
-                    list = await _examService.GetExamsByFilterAsync(countryCode, qualificationId, streamId, minAge, maxAge, languageId);
+                    selectedLanguage = language;
+                }
+                else if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
                 }
                 else
                 {
-                    list = await _examService.GetAllExamsAsync(languageId);
+                    languageId = GetLanguageIdFromHeader();
+                }
+
+                IEnumerable<ExamDto> list;
+                
+                if (!string.IsNullOrEmpty(selectedLanguage))
+                {
+                    // Use new language-based method
+                    if (!string.IsNullOrEmpty(countryCode) || qualificationId.HasValue || streamId.HasValue || minAge.HasValue || maxAge.HasValue)
+                    {
+                        list = await _examService.GetExamsByFilterAsync(selectedLanguage, countryCode, qualificationId, streamId, minAge, maxAge);
+                    }
+                    else
+                    {
+                        list = await _examService.GetAllExamsAsync(selectedLanguage);
+                    }
+                }
+                else
+                {
+                    // Use existing languageId-based method
+                    if (!string.IsNullOrEmpty(countryCode) || qualificationId.HasValue || streamId.HasValue || minAge.HasValue || maxAge.HasValue)
+                    {
+                        list = await _examService.GetExamsByFilterAsync(countryCode, qualificationId, streamId, minAge, maxAge, languageId);
+                    }
+                    else
+                    {
+                        list = await _examService.GetAllExamsAsync(languageId);
+                    }
                 }
 
                 var filtered = FilterByLanguage(list, languageId);

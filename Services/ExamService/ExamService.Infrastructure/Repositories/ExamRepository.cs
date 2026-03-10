@@ -88,6 +88,17 @@ namespace ExamService.Infrastructure.Repositories
             return Task.CompletedTask;
         }
 
+        public async Task<bool> HardDeleteByIdAsync(int id)
+        {
+            var exam = await _context.Exams.FindAsync(id);
+            if (exam == null)
+                return false;
+
+            _context.Exams.Remove(exam);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<int> SaveChangesAsync()
         {
             return await _context.SaveChangesAsync();

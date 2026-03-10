@@ -25,25 +25,54 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<StateDto>>> GetStates([FromQuery] int? languageId = null, [FromQuery] string? countryCode = null)
+        public async Task<ActionResult<IEnumerable<StateDto>>> GetStates(
+            [FromQuery] string? language = null,
+            [FromQuery] int? languageId = null,
+            [FromQuery] string? countryCode = null)
         {
             try
             {
-                // Get language from header if not provided in query
-                if (!languageId.HasValue)
+                // Priority: language parameter > languageId > header
+                string? selectedLanguage = null;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    selectedLanguage = language;
+                }
+                else if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+                else
                 {
                     languageId = GetLanguageIdFromHeader();
                 }
 
                 IEnumerable<StateDto> states;
                 
-                if (!string.IsNullOrEmpty(countryCode))
+                if (!string.IsNullOrEmpty(selectedLanguage))
                 {
-                    states = await _stateService.GetStatesByCountryCodeAsync(countryCode, languageId);
+                    // Use new language-based method
+                    if (!string.IsNullOrEmpty(countryCode))
+                    {
+                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, selectedLanguage);
+                    }
+                    else
+                    {
+                        states = await _stateService.GetAllStatesAsync(selectedLanguage);
+                    }
                 }
                 else
                 {
-                    states = await _stateService.GetAllStatesAsync(languageId);
+                    // Use existing languageId-based method
+                    if (!string.IsNullOrEmpty(countryCode))
+                    {
+                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, languageId);
+                    }
+                    else
+                    {
+                        states = await _stateService.GetAllStatesAsync(languageId);
+                    }
                 }
 
                 // Filter names array to show only selected language

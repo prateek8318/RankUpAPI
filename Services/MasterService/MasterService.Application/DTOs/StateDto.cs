@@ -1,13 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MasterService.Application.DTOs
 {
-    public class StateDto
+    // State DTOs with inheritance from base classes
+    public class StateDto : BaseDto
     {
-        public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Code { get; set; }
         public string? CountryCode { get; set; }
-        public bool IsActive { get; set; }
-        public DateTime CreatedAt { get; set; }
         public List<StateLanguageDto> Names { get; set; } = new();
     }
 
@@ -19,26 +19,39 @@ namespace MasterService.Application.DTOs
         public string Name { get; set; } = string.Empty;
     }
 
-    public class CreateStateDto
+    public class CreateStateDto : BaseCreateDto
     {
-        public string Name { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Code is required")]
+        [StringLength(10, ErrorMessage = "Code cannot exceed 10 characters")]
         public string? Code { get; set; }
+
+        [Required(ErrorMessage = "Country code is required")]
+        [StringLength(10, ErrorMessage = "Country code cannot exceed 10 characters")]
         public string? CountryCode { get; set; }
+
         public List<StateLanguageCreateDto>? Names { get; set; }
     }
 
     public class StateLanguageCreateDto
     {
+        [Required(ErrorMessage = "Language ID is required")]
         public int LanguageId { get; set; }
+
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
         public string Name { get; set; } = string.Empty;
     }
 
-    public class UpdateStateDto
+    public class UpdateStateDto : BaseUpdateDto
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Code is required")]
+        [StringLength(10, ErrorMessage = "Code cannot exceed 10 characters")]
         public string? Code { get; set; }
+
+        [Required(ErrorMessage = "Country code is required")]
+        [StringLength(10, ErrorMessage = "Country code cannot exceed 10 characters")]
         public string? CountryCode { get; set; }
+
         public List<StateLanguageCreateDto>? Names { get; set; }
     }
 }

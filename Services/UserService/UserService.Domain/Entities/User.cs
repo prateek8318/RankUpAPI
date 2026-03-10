@@ -61,5 +61,15 @@ namespace UserService.Domain.Entities
         public bool IsPhoneVerified { get; set; } = false;
         
         public bool InterestedInIntlExam { get; set; } = false;
+        
+        // Device information fields
+        [MaxLength(100)]
+        public string? DeviceId { get; set; }
+        
+        [MaxLength(50)]
+        public string? DeviceType { get; set; }
+        
+        [MaxLength(100)]
+        public string? DeviceName { get; set; }
     }
 }

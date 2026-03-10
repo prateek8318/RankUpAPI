@@ -53,6 +53,13 @@ namespace UserService.Application.DTOs
         public bool IsNewUser { get; set; } // Added to identify new vs existing user
 
         public bool InterestedInIntlExam { get; set; }
+        
+        // Device information fields
+        public string? DeviceId { get; set; }
+        
+        public string? DeviceType { get; set; }
+        
+        public string? DeviceName { get; set; }
 
     }
 

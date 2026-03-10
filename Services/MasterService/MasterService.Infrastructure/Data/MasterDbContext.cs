@@ -11,6 +11,8 @@ namespace MasterService.Infrastructure.Data
         {
         }
 
+        public string? ConnectionString => Database.GetDbConnection().ConnectionString;
+
         public DbSet<Subject> Subjects { get; set; }
         public DbSet<SubjectLanguage> SubjectLanguages { get; set; }
         public DbSet<MasterService.Domain.Entities.Stream> Streams { get; set; }

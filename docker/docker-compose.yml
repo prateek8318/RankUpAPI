@@ -99,7 +99,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__QualificationServiceConnection: "Server=sqlserver;Database=RankUp_QualificationDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__MasterServiceConnection: "Server=sqlserver;Database=RankUp_MasterDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:

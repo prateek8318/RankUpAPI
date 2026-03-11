@@ -3,7 +3,11 @@
 -- =====================================================
 
 -- ✅ OPTIMIZED: Get by Subject ID (No SELECT *, Specific Columns)
-CREATE OR ALTER PROCEDURE [dbo].[SubjectLanguage_GetBySubjectId]
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SubjectLanguage_GetBySubjectId]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[SubjectLanguage_GetBySubjectId]
+GO
+
+CREATE PROCEDURE [dbo].[SubjectLanguage_GetBySubjectId]
     @SubjectId INT
 AS
 BEGIN
@@ -16,9 +20,14 @@ BEGIN
     WHERE sl.SubjectId = @SubjectId AND sl.IsActive = 1
     ORDER BY l.Name;
 END
+GO
 
 -- ✅ OPTIMIZED: Get by ID (Specific Columns + JOIN)
-CREATE OR ALTER PROCEDURE [dbo].[SubjectLanguage_GetById]
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SubjectLanguage_GetById]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[SubjectLanguage_GetById]
+GO
+
+CREATE PROCEDURE [dbo].[SubjectLanguage_GetById]
     @Id INT
 AS
 BEGIN
@@ -30,9 +39,14 @@ BEGIN
     INNER JOIN Languages l WITH (NOLOCK) ON sl.LanguageId = l.Id
     WHERE sl.Id = @Id AND sl.IsActive = 1;
 END
+GO
 
 -- ✅ OPTIMIZED: Create (OUTPUT instead of SCOPE_IDENTITY)
-CREATE OR ALTER PROCEDURE [dbo].[SubjectLanguage_Create]
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SubjectLanguage_Create]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[SubjectLanguage_Create]
+GO
+
+CREATE PROCEDURE [dbo].[SubjectLanguage_Create]
     @SubjectId INT,
     @LanguageId INT,
     @Name NVARCHAR(200),
@@ -53,9 +67,14 @@ BEGIN
         RETURN ERROR_NUMBER();
     END CATCH
 END
+GO
 
 -- ✅ OPTIMIZED: Update (TRY-CATCH + Error Handling)
-CREATE OR ALTER PROCEDURE [dbo].[SubjectLanguage_Update]
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SubjectLanguage_Update]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[SubjectLanguage_Update]
+GO
+
+CREATE PROCEDURE [dbo].[SubjectLanguage_Update]
     @Id INT,
     @SubjectId INT,
     @LanguageId INT,
@@ -77,9 +96,14 @@ BEGIN
         RETURN ERROR_NUMBER();
     END CATCH
 END
+GO
 
 -- ✅ OPTIMIZED: Delete (Soft Delete)
-CREATE OR ALTER PROCEDURE [dbo].[SubjectLanguage_Delete]
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SubjectLanguage_Delete]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[SubjectLanguage_Delete]
+GO
+
+CREATE PROCEDURE [dbo].[SubjectLanguage_Delete]
     @Id INT
 AS
 BEGIN
@@ -95,6 +119,7 @@ BEGIN
         RETURN ERROR_NUMBER();
     END CATCH
 END
+GO
 
 -- =====================================================
 -- PERFORMANCE INDEXES FOR SUBJECT LANGUAGE

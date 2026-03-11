@@ -25,7 +25,7 @@ namespace MasterService.Application.Interfaces
         Task<Subject> UpdateAsync(Subject subject);
         Task DeleteAsync(Subject subject);
         Task<bool> ExistsAsync(int id);
-        Task SaveChangesAsync();
+        Task<int> SaveChangesAsync();
     }
 
     public interface ISubjectLanguageRepository
@@ -35,6 +35,6 @@ namespace MasterService.Application.Interfaces
         Task<SubjectLanguage> AddAsync(SubjectLanguage subjectLanguage);
         Task<SubjectLanguage> UpdateAsync(SubjectLanguage subjectLanguage);
         Task DeleteAsync(SubjectLanguage subjectLanguage);
-        Task SaveChangesAsync();
+        Task<int> SaveChangesAsync();
     }
 }

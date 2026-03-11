@@ -1,21 +1,17 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System.Data;
 using AdminService.Domain.Interfaces;
 using AdminService.Domain.Entities;
-using AdminService.Infrastructure.Data;
 
 namespace AdminService.Infrastructure.Repositories
 {
     public class AuditLogDapperRepository : IAuditLogRepository
     {
-        private readonly AdminDbContext _context;
         private readonly IDbConnection _connection;
 
-        public AuditLogDapperRepository(AdminDbContext context, IDbConnection connection)
+        public AuditLogDapperRepository(IDbConnection connection)
         {
-            _context = context;
             _connection = connection;
         }
 
@@ -50,7 +46,9 @@ namespace AdminService.Infrastructure.Repositories
 
         public async Task<int> SaveChangesAsync()
         {
-            return await _context.SaveChangesAsync();
+            // Dapper doesn't track changes, so this method is not needed
+            // It's kept for interface compatibility
+            return await Task.FromResult(0);
         }
     }
 }

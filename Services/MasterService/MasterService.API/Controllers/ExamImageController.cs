@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MasterService.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using MasterService.Application.Services;
 
 namespace MasterService.API.Controllers
 {
@@ -10,11 +11,13 @@ namespace MasterService.API.Controllers
     public class ExamImageController : ControllerBase
     {
         private readonly IImageService _imageService;
+        private readonly IExamService _examService;
         private readonly ILogger<ExamImageController> _logger;
 
-        public ExamImageController(IImageService imageService, ILogger<ExamImageController> logger)
+        public ExamImageController(IImageService imageService, IExamService examService, ILogger<ExamImageController> logger)
         {
             _imageService = imageService;
+            _examService = examService;
             _logger = logger;
         }
 
@@ -32,8 +35,16 @@ namespace MasterService.API.Controllers
                 if (string.IsNullOrEmpty(imagePath))
                     return BadRequest("Failed to upload image.");
 
+                // Update the exam's ImageUrl in the database
                 var baseUrl = $"{Request.Scheme}://{Request.Host}";
                 var fullImageUrl = $"{baseUrl}{imagePath}";
+                
+                var updateSuccess = await _examService.UpdateExamImageUrlAsync(examId, fullImageUrl);
+                if (!updateSuccess)
+                {
+                    _logger.LogWarning("Failed to update exam image URL in database for exam {ExamId}", examId);
+                    // Still return success for upload, but log the issue
+                }
 
                 return Ok(new { 
                     message = "Image uploaded successfully",

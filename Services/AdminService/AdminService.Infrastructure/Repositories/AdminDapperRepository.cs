@@ -1,21 +1,17 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System.Data;
 using AdminService.Application.Interfaces;
 using AdminService.Domain.Entities;
-using AdminService.Infrastructure.Data;
 
 namespace AdminService.Infrastructure.Repositories
 {
     public class AdminDapperRepository : IAdminRepository
     {
-        private readonly AdminDbContext _context;
         private readonly IDbConnection _connection;
 
-        public AdminDapperRepository(AdminDbContext context, IDbConnection connection)
+        public AdminDapperRepository(IDbConnection connection)
         {
-            _context = context;
             _connection = connection;
         }
 
@@ -63,7 +59,7 @@ namespace AdminService.Infrastructure.Repositories
 
         public async Task<int> SaveChangesAsync()
         {
-            return await _context.SaveChangesAsync();
+            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
         }
     }
 }

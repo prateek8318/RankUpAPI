@@ -34,9 +34,13 @@ builder.Services.AddDbContext<SubscriptionDbContext>(options =>
     });
 });
 
+// Register connection string for Dapper repositories
+var connectionString = builder.Configuration.GetConnectionString("SubscriptionServiceConnection");
+builder.Services.AddSingleton(connectionString);
+
 // Register repositories
-builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
-builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
+builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanDapperRepository>();
+builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionDapperRepository>();
 builder.Services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IDemoAccessLogRepository, DemoAccessLogRepository>();

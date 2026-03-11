@@ -3,127 +3,130 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using ExamService.Application.Interfaces;
 using ExamService.Domain.Entities;
-using ExamService.Infrastructure.Data;
 
 namespace ExamService.Infrastructure.Repositories
 {
-    public class ExamDapperRepository : IExamRepository
+    public class ExamDapperRepository : BaseDapperRepository, IExamRepository
     {
-        private readonly ExamDbContext _context;
-        
-        public ExamDapperRepository(ExamDbContext context)
+        public ExamDapperRepository(string connectionString) : base(connectionString)
         {
-            _context = context;
-        }
-
-        protected SqlConnection GetConnection()
-        {
-            var connection = _context.Database.GetDbConnection();
-            if (connection is SqlConnection sqlConnection)
-                return sqlConnection;
-            throw new InvalidOperationException("Database connection is not a SqlConnection");
         }
 
         public async Task<Exam?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = "EXEC [dbo].[Exam_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<Exam>(sql, new { Id = id });
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetById] @Id";
+                return await connection.QueryFirstOrDefaultAsync<Exam>(sql, new { Id = id });
+            });
         }
 
         public async Task<Exam?> GetByIdWithQualificationsAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = "EXEC [dbo].[Exam_GetByIdWithQualifications] @Id";
-            return await connection.QueryFirstOrDefaultAsync<Exam>(sql, new { Id = id });
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetByIdWithQualifications] @Id";
+                return await connection.QueryFirstOrDefaultAsync<Exam>(sql, new { Id = id });
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = "EXEC [dbo].[Exam_GetAll]";
-            return await connection.QueryAsync<Exam>(sql);
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetAll]";
+                return await connection.QueryAsync<Exam>(sql);
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetActiveAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = "EXEC [dbo].[Exam_GetActive]";
-            return await connection.QueryAsync<Exam>(sql);
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetActive]";
+                return await connection.QueryAsync<Exam>(sql);
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetByQualificationIdAsync(int qualificationId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = "EXEC [dbo].[Exam_GetByQualificationId] @QualificationId";
-            return await connection.QueryAsync<Exam>(sql, new { QualificationId = qualificationId });
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetByQualificationId] @QualificationId";
+                return await connection.QueryAsync<Exam>(sql, new { QualificationId = qualificationId });
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetByQualificationAndStreamAsync(int qualificationId, int? streamId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = "EXEC [dbo].[Exam_GetByQualificationAndStream] @QualificationId, @StreamId";
-            return await connection.QueryAsync<Exam>(sql, new { QualificationId = qualificationId, StreamId = streamId });
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetByQualificationAndStream] @QualificationId, @StreamId";
+                return await connection.QueryAsync<Exam>(sql, new { QualificationId = qualificationId, StreamId = streamId });
+            });
         }
 
-        public async Task AddAsync(Exam exam)
+        public async Task<Exam> AddAsync(Exam exam)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = @"
-                EXEC [dbo].[Exam_Create] 
-                    @Name, @Description, @IsActive, @DisplayOrder, @CreatedAt, @UpdatedAt";
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    EXEC [dbo].[Exam_Create] 
+                        @Name, @Description, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
 
-            await connection.ExecuteAsync(sql, exam);
+                var parameters = new DynamicParameters();
+                parameters.Add("@Name", exam.Name);
+                parameters.Add("@Description", exam.Description);
+                parameters.Add("@IsActive", exam.IsActive);
+                parameters.Add("@CreatedAt", DateTime.UtcNow);
+                parameters.Add("@UpdatedAt", DateTime.UtcNow);
+                parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await connection.ExecuteAsync(sql, parameters);
+                
+                if (parameters.Get<int>("@Id") > 0)
+                {
+                    exam.Id = parameters.Get<int>("@Id");
+                }
+
+                return exam;
+            });
         }
 
         public async Task UpdateAsync(Exam exam)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = @"
-                EXEC [dbo].[Exam_Update] 
-                    @Id, @Name, @Description, @IsActive, @DisplayOrder, @UpdatedAt";
+            await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    EXEC [dbo].[Exam_Update] 
+                        @Id, @Name, @Description, @IsActive, @UpdatedAt";
 
-            await connection.ExecuteAsync(sql, exam);
+                await connection.ExecuteAsync(sql, exam);
+            });
         }
 
         public async Task DeleteAsync(Exam exam)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = "EXEC [dbo].[Exam_Delete] @Id";
-            await connection.ExecuteAsync(sql, new { Id = exam.Id });
+            await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_Delete] @Id";
+                await connection.ExecuteAsync(sql, new { Id = exam.Id });
+            });
         }
 
         public async Task<bool> HardDeleteByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
-            var sql = "EXEC [dbo].[Exam_HardDeleteById] @Id";
-            var affectedRows = await connection.ExecuteAsync(sql, new { Id = id });
+            var affectedRows = await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_HardDeleteById] @Id";
+                return await connection.ExecuteAsync(sql, new { Id = id });
+            });
             return affectedRows > 0;
         }
 
         public async Task<int> SaveChangesAsync()
         {
-            return await _context.SaveChangesAsync();
+            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
         }
     }
 }

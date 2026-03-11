@@ -1,29 +1,24 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
-using MasterService.Infrastructure.Data;
 using System.Data;
 
 namespace MasterService.Infrastructure.Repositories
 {
-    public class SubjectLanguageDapperRepository : ISubjectLanguageRepository
+    public class SubjectLanguageDapperRepository : BaseDapperRepository, ISubjectLanguageRepository
     {
-        private readonly MasterDbContext _context;
-        private readonly IDbConnection _connection;
-
-        public SubjectLanguageDapperRepository(MasterDbContext context, IDbConnection connection)
+        public SubjectLanguageDapperRepository(string connectionString) : base(connectionString)
         {
-            _context = context;
-            _connection = connection;
         }
-
 
         public async Task<IEnumerable<SubjectLanguage>> GetBySubjectIdAsync(int subjectId)
         {
-            var sql = "EXEC [dbo].[SubjectLanguage_GetBySubjectId] @SubjectId";
-            return await _connection.QueryAsync<SubjectLanguage>(sql, new { SubjectId = subjectId });
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[SubjectLanguage_GetBySubjectId] @SubjectId";
+                return await connection.QueryAsync<SubjectLanguage>(sql, new { SubjectId = subjectId });
+            });
         }
 
         public async Task<SubjectLanguage> GetByIdAsync(int id)
@@ -57,7 +52,7 @@ namespace MasterService.Infrastructure.Repositories
             return subjectLanguage;
         }
 
-        public Task<SubjectLanguage> UpdateAsync(SubjectLanguage subjectLanguage)
+        public async Task<SubjectLanguage> UpdateAsync(SubjectLanguage subjectLanguage)
         {
             var sql = @"
                 EXEC [dbo].[SubjectLanguage_Update] 
@@ -71,20 +66,17 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@IsActive", subjectLanguage.IsActive);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            _connection.Execute(sql, parameters);
-            return Task.FromResult(subjectLanguage);
+            await _connection.ExecuteAsync(sql, parameters);
+            return subjectLanguage;
         }
-
-        public Task DeleteAsync(SubjectLanguage subjectLanguage)
+        public async Task DeleteAsync(SubjectLanguage subjectLanguage)
         {
             var sql = "EXEC [dbo].[SubjectLanguage_Delete] @Id";
-            _connection.Execute(sql, new { Id = subjectLanguage.Id });
-            return Task.CompletedTask;
+            await _connection.ExecuteAsync(sql, new { Id = subjectLanguage.Id });
         }
-
-        public async Task SaveChangesAsync()
+        public async Task<int> SaveChangesAsync()
         {
-            await _context.SaveChangesAsync();
+            return await Task.FromResult(1);
         }
     }
 }

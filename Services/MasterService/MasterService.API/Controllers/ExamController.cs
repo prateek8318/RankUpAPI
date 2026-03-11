@@ -195,21 +195,25 @@ namespace MasterService.API.Controllers
             if (!languageId.HasValue)
                 return list;
 
-            return list.Select(e => new ExamDto
-            {
-                Id = e.Id,
-                Name = e.Name,
-                Description = e.Description,
-                CountryCode = e.CountryCode,
-                MinAge = e.MinAge,
-                MaxAge = e.MaxAge,
-                ImageUrl = e.ImageUrl,
-                IsInternational = e.IsInternational,
-                IsActive = e.IsActive,
-                CreatedAt = e.CreatedAt,
-                QualificationIds = e.QualificationIds,
-                StreamIds = e.StreamIds,
-                Names = e.Names?.Where(n => n.LanguageId == languageId.Value).ToList() ?? new List<ExamLanguageDto>()
+            return list.Select(e => {
+                var localizedExam = e.Names?.FirstOrDefault(n => n.LanguageId == languageId.Value);
+                
+                return new ExamDto
+                {
+                    Id = e.Id,
+                    Name = localizedExam?.Name ?? e.Name, // Use localized name if available, fallback to base name
+                    Description = localizedExam?.Description ?? e.Description, // Use localized description if available
+                    CountryCode = e.CountryCode,
+                    MinAge = e.MinAge,
+                    MaxAge = e.MaxAge,
+                    ImageUrl = e.ImageUrl,
+                    IsInternational = e.IsInternational,
+                    IsActive = e.IsActive,
+                    CreatedAt = e.CreatedAt,
+                    QualificationIds = e.QualificationIds,
+                    StreamIds = e.StreamIds,
+                    Names = e.Names?.Where(n => n.LanguageId == languageId.Value).ToList() ?? new List<ExamLanguageDto>()
+                };
             });
         }
     }

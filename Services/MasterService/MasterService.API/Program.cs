@@ -37,12 +37,12 @@ builder.Services.AddDbContext<MasterDbContext>(options =>
     });
 });
 
-// Add IDbConnection for Dapper repositories
-builder.Services.AddScoped<IDbConnection>(sp =>
+// Add connection string for Dapper repositories
+builder.Services.AddScoped(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    var connectionString = configuration.GetConnectionString("MasterServiceConnection");
-    return new SqlConnection(connectionString);
+    return configuration.GetConnectionString("MasterServiceConnection") 
+           ?? throw new InvalidOperationException("MasterServiceConnection not found");
 });
 
 builder.Services.AddScoped<ILanguageRepository, LanguageDapperRepository>();

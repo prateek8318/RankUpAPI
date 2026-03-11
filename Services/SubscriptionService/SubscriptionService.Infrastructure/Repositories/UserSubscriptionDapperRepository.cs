@@ -3,43 +3,27 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using SubscriptionService.Domain.Entities;
 using SubscriptionService.Domain.Interfaces;
-using SubscriptionService.Infrastructure.Data;
 
 namespace SubscriptionService.Infrastructure.Repositories
 {
-    public class UserSubscriptionDapperRepository : IUserSubscriptionRepository
+    public class UserSubscriptionDapperRepository : BaseDapperRepository, IUserSubscriptionRepository
     {
-        private readonly SubscriptionDbContext _context;
-        
-        public UserSubscriptionDapperRepository(SubscriptionDbContext context)
+        public UserSubscriptionDapperRepository(string connectionString) : base(connectionString)
         {
-            _context = context;
-        }
-
-        protected SqlConnection GetConnection()
-        {
-            var connection = _context.Database.GetDbConnection();
-            if (connection is SqlConnection sqlConnection)
-                return sqlConnection;
-            throw new InvalidOperationException("Database connection is not a SqlConnection");
         }
 
         public async Task<UserSubscription?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { Id = id });
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { Id = id }));
         }
 
         public async Task<IEnumerable<UserSubscription>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_GetAll]";
-            return await connection.QueryAsync<UserSubscription>(sql);
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryAsync<UserSubscription>(sql));
         }
 
         public async Task<IEnumerable<UserSubscription>> FindAsync(System.Linq.Expressions.Expression<Func<UserSubscription, bool>> predicate)
@@ -47,98 +31,83 @@ namespace SubscriptionService.Infrastructure.Repositories
             throw new NotImplementedException("Use specific repository methods with stored procedures for complex queries");
         }
 
-        public async Task AddAsync(UserSubscription entity)
+        public async Task<UserSubscription> AddAsync(UserSubscription entity)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[UserSubscription_Create] 
                     @UserId, @SubscriptionPlanId, @Status, @StartDate, @EndDate, 
                     @RazorpayOrderId, @RazorpayPaymentId, @CreatedAt, @UpdatedAt";
 
-            await connection.ExecuteAsync(sql, entity);
+            await WithConnectionAsync(async connection => 
+                await connection.ExecuteAsync(sql, entity));
+            return entity;
         }
 
-        public async Task UpdateAsync(UserSubscription entity)
+        public async Task<UserSubscription> UpdateAsync(UserSubscription entity)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = @"
                 EXEC [dbo].[UserSubscription_Update] 
                     @Id, @UserId, @SubscriptionPlanId, @Status, @StartDate, @EndDate, 
                     @RazorpayOrderId, @RazorpayPaymentId, @UpdatedAt";
 
-            await connection.ExecuteAsync(sql, entity);
+            await WithConnectionAsync(async connection => 
+                await connection.ExecuteAsync(sql, entity));
+            return entity;
         }
 
-        public async Task DeleteAsync(UserSubscription entity)
+        public async Task<bool> DeleteAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_Delete] @Id";
-            await connection.ExecuteAsync(sql, new { Id = entity.Id });
+            var affectedRows = await WithConnectionAsync(async connection => 
+                await connection.ExecuteAsync(sql, new { Id = id }));
+            return affectedRows > 0;
         }
 
         public async Task<int> SaveChangesAsync()
         {
-            return await _context.SaveChangesAsync();
+            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
         }
 
         public async Task<UserSubscription?> GetByUserIdAsync(int userId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_GetByUserId] @UserId";
-            return await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { UserId = userId });
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { UserId = userId }));
         }
 
         public async Task<IEnumerable<UserSubscription>> GetByUserIdWithHistoryAsync(int userId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_GetByUserIdWithHistory] @UserId";
-            return await connection.QueryAsync<UserSubscription>(sql, new { UserId = userId });
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryAsync<UserSubscription>(sql, new { UserId = userId }));
         }
 
         public async Task<IEnumerable<UserSubscription>> GetActiveSubscriptionsAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_GetActive]";
-            return await connection.QueryAsync<UserSubscription>(sql);
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryAsync<UserSubscription>(sql));
         }
 
         public async Task<IEnumerable<UserSubscription>> GetExpiringSubscriptionsAsync(int daysBeforeExpiry)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_GetExpiring] @DaysBeforeExpiry";
-            return await connection.QueryAsync<UserSubscription>(sql, new { DaysBeforeExpiry = daysBeforeExpiry });
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryAsync<UserSubscription>(sql, new { DaysBeforeExpiry = daysBeforeExpiry }));
         }
 
         public async Task<UserSubscription?> GetByRazorpayOrderIdAsync(string orderId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_GetByRazorpayOrderId] @OrderId";
-            return await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { OrderId = orderId });
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { OrderId = orderId }));
         }
 
         public async Task<UserSubscription?> GetByRazorpayPaymentIdAsync(string paymentId)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var sql = "EXEC [dbo].[UserSubscription_GetByRazorpayPaymentId] @PaymentId";
-            return await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { PaymentId = paymentId });
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { PaymentId = paymentId }));
         }
     }
 }

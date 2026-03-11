@@ -523,6 +523,80 @@ BEGIN
 END
 GO
 
+-- Stream_GetActiveLocalized
+IF OBJECT_ID('dbo.Stream_GetActiveLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.Stream_GetActiveLocalized;
+GO
+CREATE PROCEDURE dbo.Stream_GetActiveLocalized
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF @LanguageCode = 'hi'
+    BEGIN
+        SELECT Id, NameHi as Name, NameHi, Description, QualificationId, IsActive, CreatedAt, UpdatedAt
+        FROM dbo.Streams
+        WHERE IsActive = 1 AND NameHi IS NOT NULL AND NameHi != '';
+    END
+    ELSE
+    BEGIN
+        SELECT Id, Name, NameHi, Description, QualificationId, IsActive, CreatedAt, UpdatedAt
+        FROM dbo.Streams
+        WHERE IsActive = 1;
+    END
+END
+GO
+
+-- Stream_GetByIdLocalized
+IF OBJECT_ID('dbo.Stream_GetByIdLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.Stream_GetByIdLocalized;
+GO
+CREATE PROCEDURE dbo.Stream_GetByIdLocalized
+    @Id INT,
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF @LanguageCode = 'hi'
+    BEGIN
+        SELECT Id, NameHi as Name, NameHi, Description, QualificationId, IsActive, CreatedAt, UpdatedAt
+        FROM dbo.Streams
+        WHERE Id = @Id AND IsActive = 1 AND NameHi IS NOT NULL AND NameHi != '';
+    END
+    ELSE
+    BEGIN
+        SELECT Id, Name, NameHi, Description, QualificationId, IsActive, CreatedAt, UpdatedAt
+        FROM dbo.Streams
+        WHERE Id = @Id AND IsActive = 1;
+    END
+END
+GO
+
+-- Stream_GetActiveByQualificationIdLocalized
+IF OBJECT_ID('dbo.Stream_GetActiveByQualificationIdLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.Stream_GetActiveByQualificationIdLocalized;
+GO
+CREATE PROCEDURE dbo.Stream_GetActiveByQualificationIdLocalized
+    @QualificationId INT,
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF @LanguageCode = 'hi'
+    BEGIN
+        SELECT Id, NameHi as Name, NameHi, Description, QualificationId, IsActive, CreatedAt, UpdatedAt
+        FROM dbo.Streams
+        WHERE IsActive = 1 AND QualificationId = @QualificationId AND NameHi IS NOT NULL AND NameHi != '';
+    END
+    ELSE
+    BEGIN
+        SELECT Id, Name, NameHi, Description, QualificationId, IsActive, CreatedAt, UpdatedAt
+        FROM dbo.Streams
+        WHERE IsActive = 1 AND QualificationId = @QualificationId;
+    END
+END
+GO
+
 -- Exam_GetAll
 IF OBJECT_ID('dbo.Exam_GetAll', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_GetAll;
 GO
@@ -763,5 +837,58 @@ BEGIN
     SELECT COUNT(1)
     FROM dbo.Subjects
     WHERE Id = @Id;
+END
+GO
+
+-- Qualification_GetActiveLocalized
+IF OBJECT_ID('dbo.Qualification_GetActiveLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.Qualification_GetActiveLocalized;
+GO
+CREATE PROCEDURE dbo.Qualification_GetActiveLocalized
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF @LanguageCode = 'hi'
+    BEGIN
+        SELECT Id, NameHi as Name, NameHi, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive
+        FROM dbo.Qualifications
+        WHERE IsActive = 1 AND NameHi IS NOT NULL AND NameHi != ''
+        ORDER BY NameHi;
+    END
+    ELSE
+    BEGIN
+        SELECT Id, Name, NameHi, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive
+        FROM dbo.Qualifications
+        WHERE IsActive = 1
+        ORDER BY Name;
+    END
+END
+GO
+
+-- Qualification_GetActiveByCountryCodeLocalized
+IF OBJECT_ID('dbo.Qualification_GetActiveByCountryCodeLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.Qualification_GetActiveByCountryCodeLocalized;
+GO
+CREATE PROCEDURE dbo.Qualification_GetActiveByCountryCodeLocalized
+    @CountryCode NVARCHAR(10),
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF @LanguageCode = 'hi'
+    BEGIN
+        SELECT Id, NameHi as Name, NameHi, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive
+        FROM dbo.Qualifications
+        WHERE IsActive = 1 AND CountryCode = @CountryCode AND NameHi IS NOT NULL AND NameHi != ''
+        ORDER BY NameHi;
+    END
+    ELSE
+    BEGIN
+        SELECT Id, Name, NameHi, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive
+        FROM dbo.Qualifications
+        WHERE IsActive = 1 AND CountryCode = @CountryCode
+        ORDER BY Name;
+    END
 END
 GO

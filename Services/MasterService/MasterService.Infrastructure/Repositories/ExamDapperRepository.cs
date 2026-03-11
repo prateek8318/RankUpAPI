@@ -1,40 +1,39 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using MasterService.Application.Interfaces;
-using MasterService.Domain.Entities;
-using MasterService.Infrastructure.Data;
 using System.Data;
 using System.Text.Json;
+using MasterService.Application.Interfaces;
+using MasterService.Domain.Entities;
 
 namespace MasterService.Infrastructure.Repositories
 {
-    public class ExamDapperRepository : IExamRepository
+    public class ExamDapperRepository : BaseDapperRepository, IExamRepository
     {
-        private readonly MasterDbContext _context;
-        private readonly IDbConnection _connection;
-
-        public ExamDapperRepository(MasterDbContext context, IDbConnection connection)
+        public ExamDapperRepository(string connectionString) : base(connectionString)
         {
-            _context = context;
-            _connection = connection;
         }
 
 
         public async Task<Exam?> GetByIdAsync(int id)
         {
-            using var multi = await _connection.QueryMultipleAsync(
-                "[dbo].[Exam_GetByIdWithRelations]",
-                new { Id = id },
-                commandType: CommandType.StoredProcedure);
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetByIdWithRelations]",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure);
 
-            var exam = await multi.ReadFirstOrDefaultAsync<Exam>();
-            if (exam == null)
-                return null;
+                var exam = await multi.ReadFirstOrDefaultAsync<Exam>();
+                if (exam == null)
+                    return null;
 
-            var relations = (await multi.ReadAsync<ExamQualification>()).ToList();
-            exam.ExamQualifications = relations;
-            return exam;
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                var relations = (await multi.ReadAsync<ExamQualification>()).ToList();
+                
+                exam.ExamLanguages = languages;
+                exam.ExamQualifications = relations;
+                return exam;
+            });
         }
 
         public async Task<Exam?> GetByIdLocalizedAsync(int id, string? languageCode)
@@ -48,31 +47,76 @@ namespace MasterService.Infrastructure.Repositories
             if (exam == null)
                 return null;
 
+            var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
             var relations = (await multi.ReadAsync<ExamQualification>()).ToList();
+            
+            exam.ExamLanguages = languages;
             exam.ExamQualifications = relations;
             return exam;
         }
 
         public async Task<IEnumerable<Exam>> GetAllAsync()
         {
-            return await _connection.QueryAsync<Exam>(
-                "[dbo].[Exam_GetAll]",
-                commandType: CommandType.StoredProcedure);
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetAllWithLanguages]",
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                
+                // Map languages to exams
+                foreach (var exam in exams)
+                {
+                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                }
+                
+                return exams;
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetActiveAsync()
         {
-            return await _connection.QueryAsync<Exam>(
-                "[dbo].[Exam_GetActive]",
-                commandType: CommandType.StoredProcedure);
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetActiveWithLanguages]",
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                
+                // Map languages to exams
+                foreach (var exam in exams)
+                {
+                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                }
+                
+                return exams;
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetActiveLocalizedAsync(string? languageCode)
         {
-            return await _connection.QueryAsync<Exam>(
-                "[dbo].[Exam_GetActiveLocalized]",
-                new { LanguageCode = languageCode },
-                commandType: CommandType.StoredProcedure);
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetActiveWithLanguagesLocalized]",
+                    new { LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                
+                // Map languages to exams
+                foreach (var exam in exams)
+                {
+                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                }
+                
+                return exams;
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetByFilterAsync(string? countryCode, int? qualificationId, int? streamId, int? minAge, int? maxAge)
@@ -84,10 +128,24 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@MinAge", minAge);
             parameters.Add("@MaxAge", maxAge);
 
-            return await _connection.QueryAsync<Exam>(
-                "[dbo].[Exam_GetByFilter]",
-                parameters,
-                commandType: CommandType.StoredProcedure);
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetByFilterWithLanguages]",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                
+                // Map languages to exams
+                foreach (var exam in exams)
+                {
+                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                }
+                
+                return exams;
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetByFilterLocalizedAsync(string? languageCode, string? countryCode, int? qualificationId, int? streamId, int? minAge, int? maxAge)
@@ -100,10 +158,24 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@MinAge", minAge);
             parameters.Add("@MaxAge", maxAge);
 
-            return await _connection.QueryAsync<Exam>(
-                "[dbo].[Exam_GetByFilterLocalized]",
-                parameters,
-                commandType: CommandType.StoredProcedure);
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetByFilterWithLanguagesLocalized]",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                
+                // Map languages to exams
+                foreach (var exam in exams)
+                {
+                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                }
+                
+                return exams;
+            });
         }
 
         public async Task<Exam> AddAsync(Exam exam)
@@ -174,13 +246,12 @@ namespace MasterService.Infrastructure.Repositories
                 commandType: CommandType.StoredProcedure);
         }
 
-        public Task DeleteAsync(Exam exam)
+        public async Task DeleteAsync(Exam exam)
         {
-            _connection.Execute(
+            await _connection.ExecuteAsync(
                 "[dbo].[Exam_Delete]",
                 new { Id = exam.Id },
                 commandType: CommandType.StoredProcedure);
-            return Task.CompletedTask;
         }
 
         public async Task<bool> SoftDeleteByIdAsync(int id)
@@ -205,8 +276,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<int> SaveChangesAsync()
         {
-            // Dapper-based repo executes commands immediately; nothing to commit via EF here.
-            return await Task.FromResult(0);
+            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
         }
     }
 }

@@ -31,27 +31,31 @@ builder.Services.AddDbContext<HomeDashboardDbContext>(options =>
     });
 });
 
-// Register repositories - using Dapper implementations
+// Register connection string for Dapper repositories
+var homeDashboardConnectionString = builder.Configuration.GetConnectionString("HomeDashboardServiceConnection");
+builder.Services.AddSingleton(homeDashboardConnectionString);
+
+// Register repositories - using Entity Framework implementations
 builder.Services.AddScoped<IExamRepository, ExamDapperRepository>();
-builder.Services.AddScoped<ISubjectRepository, SubjectDapperRepository>();
-builder.Services.AddScoped<IChapterRepository, ChapterDapperRepository>();
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<IChapterRepository, ChapterRepository>();
 builder.Services.AddScoped<IQuizRepository, QuizDapperRepository>();
-builder.Services.AddScoped<IQuestionRepository, QuestionDapperRepository>();
-builder.Services.AddScoped<IQuestionOptionRepository, QuestionOptionDapperRepository>();
-builder.Services.AddScoped<IQuizAttemptRepository, QuizAttemptDapperRepository>();
-builder.Services.AddScoped<ILeaderboardEntryRepository, LeaderboardEntryDapperRepository>();
-builder.Services.AddScoped<INotificationRepository, NotificationDapperRepository>();
-builder.Services.AddScoped<IHomeBannerRepository, HomeBannerDapperRepository>();
-builder.Services.AddScoped<IPracticeModeRepository, PracticeModeDapperRepository>();
-builder.Services.AddScoped<IDailyTargetRepository, DailyTargetDapperRepository>();
-builder.Services.AddScoped<IRapidFireTestRepository, RapidFireTestDapperRepository>();
-builder.Services.AddScoped<IFreeTestRepository, FreeTestDapperRepository>();
-builder.Services.AddScoped<IMotivationMessageRepository, MotivationMessageDapperRepository>();
-builder.Services.AddScoped<ISubscriptionBannerRepository, SubscriptionBannerDapperRepository>();
-builder.Services.AddScoped<IContinuePracticeItemRepository, ContinuePracticeItemDapperRepository>();
-builder.Services.AddScoped<IOfferBannerRepository, OfferBannerDapperRepository>();
-builder.Services.AddScoped<IDailyVideoRepository, DailyVideoDapperRepository>();
-builder.Services.AddScoped<IBulkUploadLogRepository, BulkUploadLogDapperRepository>();
+builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<IQuestionOptionRepository, QuestionOptionRepository>();
+builder.Services.AddScoped<IQuizAttemptRepository, QuizAttemptRepository>();
+builder.Services.AddScoped<ILeaderboardEntryRepository, LeaderboardEntryRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IHomeBannerRepository, HomeBannerRepository>();
+builder.Services.AddScoped<IPracticeModeRepository, PracticeModeRepository>();
+builder.Services.AddScoped<IDailyTargetRepository, DailyTargetRepository>();
+builder.Services.AddScoped<IRapidFireTestRepository, RapidFireTestRepository>();
+builder.Services.AddScoped<IFreeTestRepository, FreeTestRepository>();
+builder.Services.AddScoped<IMotivationMessageRepository, MotivationMessageRepository>();
+builder.Services.AddScoped<ISubscriptionBannerRepository, SubscriptionBannerRepository>();
+builder.Services.AddScoped<IContinuePracticeItemRepository, ContinuePracticeItemRepository>();
+builder.Services.AddScoped<IOfferBannerRepository, OfferBannerRepository>();
+builder.Services.AddScoped<IDailyVideoRepository, DailyVideoRepository>();
+builder.Services.AddScoped<IBulkUploadLogRepository, BulkUploadLogRepository>();
 
 // Register application services
 builder.Services.AddScoped<IDashboardService, DashboardService>();

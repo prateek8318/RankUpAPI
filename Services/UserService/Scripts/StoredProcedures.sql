@@ -1,6 +1,6 @@
 
 
-USE [ankUp_UserDB]
+USE [RankUp_UserDB]
 GO
 
 
@@ -215,7 +215,6 @@ CREATE PROCEDURE [dbo].[User_Create]
     @PhoneNumber NVARCHAR(15),
     @PasswordHash NVARCHAR(255),
     @ProfilePhoto NVARCHAR(255),
-    @EmailVerified BIT = 0,
     @IsActive BIT = 1,
     @PreferredLanguage NVARCHAR(5) = 'en',
     @CreatedAt DATETIME,
@@ -227,11 +226,11 @@ BEGIN
     
     INSERT INTO [dbo].[Users] (
         Name, Email, PhoneNumber, PasswordHash, ProfilePhoto, 
-        EmailVerified, IsActive, PreferredLanguage, CreatedAt, UpdatedAt
+        IsActive, PreferredLanguage, CreatedAt, UpdatedAt
     )
     VALUES (
         @Name, @Email, @PhoneNumber, @PasswordHash, @ProfilePhoto, 
-        @EmailVerified, @IsActive, @PreferredLanguage, @CreatedAt, @UpdatedAt
+        @IsActive, @PreferredLanguage, @CreatedAt, @UpdatedAt
     );
     
     SET @UserId = SCOPE_IDENTITY();

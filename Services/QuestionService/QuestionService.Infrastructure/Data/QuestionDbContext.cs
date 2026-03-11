@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using QuestionService.Domain.Entities;
 
 namespace QuestionService.Infrastructure.Data
 {
@@ -10,7 +11,8 @@ namespace QuestionService.Infrastructure.Data
         {
         }
 
-        // No DbSet properties - using Dapper for stored procedures
+        public DbSet<Question> Questions { get; set; }
+
         // No OnModelCreating - using stored procedures instead
     }
 }

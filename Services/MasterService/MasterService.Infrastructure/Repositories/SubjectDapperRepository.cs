@@ -1,44 +1,35 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
-using MasterService.Infrastructure.Data;
 using System.Data;
 
 namespace MasterService.Infrastructure.Repositories
 {
-    public class SubjectDapperRepository : ISubjectRepository
+    public class SubjectDapperRepository : BaseDapperRepository, ISubjectRepository
     {
-        private readonly MasterDbContext _context;
-        private readonly IDbConnection _connection;
-
-        public SubjectDapperRepository(MasterDbContext context, IDbConnection connection)
+        public SubjectDapperRepository(string connectionString) : base(connectionString)
         {
-            _context = context;
-            _connection = connection;
         }
 
 
         public async Task<IEnumerable<Subject>> GetAllAsync()
         {
-            var sql = "EXEC [dbo].[Subject_GetAll]";
-            var subjects = await _connection.QueryAsync<Subject>(sql);
-
-            // Load SubjectLanguages for each subject
-            var subjectList = subjects.ToList();
-            foreach (var subject in subjectList)
+            return await WithConnectionAsync(async connection =>
             {
-                var languages = await _connection.QueryAsync<SubjectLanguage>(
-                    "SELECT sl.*, l.Code as LanguageCode, l.Name as LanguageName FROM SubjectLanguages sl " +
-                    "LEFT JOIN Languages l ON sl.LanguageId = l.Id " +
-                    "WHERE sl.SubjectId = @SubjectId AND sl.IsActive = 1",
-                    new { SubjectId = subject.Id });
-                
-                subject.SubjectLanguages = languages.ToList();
-            }
+                var sql = "EXEC [dbo].[Subject_GetAll]";
+                var subjects = await connection.QueryAsync<Subject>(sql);
 
-            return subjectList;
+                // Load SubjectLanguages for each subject
+                var subjectList = subjects.ToList();
+                foreach (var subject in subjectList)
+                {
+                    var languagesSql = "EXEC [dbo].[SubjectLanguage_GetBySubjectId] @SubjectId";
+                    subject.SubjectLanguages = (await connection.QueryAsync<SubjectLanguage>(languagesSql, new { SubjectId = subject.Id })).ToList();
+                }
+
+                return subjectList;
+            });
         }
 
         public async Task<Subject> GetByIdAsync(int id)
@@ -76,7 +67,7 @@ namespace MasterService.Infrastructure.Repositories
             return subject;
         }
 
-        public Task<Subject> UpdateAsync(Subject subject)
+        public async Task<Subject> UpdateAsync(Subject subject)
         {
             var sql = @"
                 EXEC [dbo].[Subject_Update] 
@@ -88,15 +79,14 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@IsActive", subject.IsActive);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            _connection.Execute(sql, parameters);
-            return Task.FromResult(subject);
+            await _connection.ExecuteAsync(sql, parameters);
+            return subject;
         }
 
-        public Task DeleteAsync(Subject subject)
+        public async Task DeleteAsync(Subject subject)
         {
             var sql = "EXEC [dbo].[Subject_Delete] @Id";
-            _connection.Execute(sql, new { Id = subject.Id });
-            return Task.CompletedTask;
+            await _connection.ExecuteAsync(sql, new { Id = subject.Id });
         }
 
         public async Task<bool> ExistsAsync(int id)
@@ -106,9 +96,10 @@ namespace MasterService.Infrastructure.Repositories
             return result > 0;
         }
 
-        public async Task SaveChangesAsync()
+        public async Task<int> SaveChangesAsync()
         {
-            await _context.SaveChangesAsync();
+            // Dapper operations are executed immediately. Returning 1 to indicate success.
+            return await Task.FromResult(1);
         }
     }
 }

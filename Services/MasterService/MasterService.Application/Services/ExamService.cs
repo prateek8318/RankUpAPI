@@ -266,6 +266,30 @@ namespace MasterService.Application.Services
             return await _examRepository.SetActiveAsync(id, isActive);
         }
 
+        public async Task<bool> UpdateExamImageUrlAsync(int examId, string imageUrl)
+        {
+            try
+            {
+                var exam = await _examRepository.GetByIdAsync(examId);
+                if (exam == null)
+                    return false;
+
+                exam.ImageUrl = imageUrl;
+                exam.UpdatedAt = DateTime.UtcNow;
+                
+                await _examRepository.UpdateAsync(exam);
+                await _examRepository.SaveChangesAsync();
+                
+                _logger.LogInformation("Updated image URL for exam {ExamId}: {ImageUrl}", examId, imageUrl);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating image URL for exam {ExamId}", examId);
+                return false;
+            }
+        }
+
         private ExamDto MapToOptimizedExamDto(Exam exam, string language)
         {
             var useHindi = language == LanguageConstants.Hindi;

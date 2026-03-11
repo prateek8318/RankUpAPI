@@ -25,14 +25,14 @@ namespace MasterService.Infrastructure.Services
 
             try
             {
-                // Validate file type
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                // Validate file type - only JPG and PNG allowed
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
                 var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
                 
                 if (!allowedExtensions.Contains(fileExtension))
                 {
                     _logger.LogWarning("Invalid file type: {FileExtension}", fileExtension);
-                    throw new InvalidOperationException("Only image files (jpg, jpeg, png, gif, webp) are allowed.");
+                    throw new InvalidOperationException("Only JPG and PNG image files are allowed.");
                 }
 
                 // Validate file size (max 5MB)

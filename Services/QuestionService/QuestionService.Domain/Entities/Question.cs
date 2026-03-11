@@ -108,7 +108,6 @@ namespace QuestionService.Domain.Entities
         public bool IsMcq { get; set; } = true;
 
         // Backward compatibility properties
-        public string QuestionType => Type.ToString();
         public int? SubjectId { get; set; }
         public int? ExamId { get; set; }
         public string Explanation => ExplanationEnglish ?? string.Empty;

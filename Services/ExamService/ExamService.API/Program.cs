@@ -43,6 +43,14 @@ builder.Services.AddDbContext<ExamDbContext>(options =>
     });
 });
 
+// Add connection string for Dapper repositories
+builder.Services.AddScoped(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    return configuration.GetConnectionString("ExamServiceConnection") 
+           ?? throw new InvalidOperationException("ExamServiceConnection not found");
+});
+
 // Register Repositories
 builder.Services.AddScoped<IExamRepository, ExamDapperRepository>();
 builder.Services.AddScoped<IExamQualificationRepository, ExamQualificationRepository>();

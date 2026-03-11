@@ -97,6 +97,7 @@ namespace MasterService.Application.DTOs
     public class QualificationDto : BaseDto
     {
         public string Name { get; set; } = string.Empty;
+        public string? NameHi { get; set; }
         public string? Description { get; set; }
         public string? CountryCode { get; set; }
         public List<QualificationLanguageDto> Names { get; set; } = new();

@@ -1,8 +1,6 @@
 using AdminService.Domain.Entities;
 using AdminService.Domain.Interfaces;
-using AdminService.Infrastructure.Data;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System.Data;
 using Dapper;
 
@@ -10,12 +8,10 @@ namespace AdminService.Infrastructure.Repositories
 {
     public class ExportLogDapperRepository : IExportLogRepository
     {
-        private readonly AdminDbContext _context;
         private readonly IDbConnection _connection;
 
-        public ExportLogDapperRepository(AdminDbContext context, IDbConnection connection)
+        public ExportLogDapperRepository(IDbConnection connection)
         {
-            _context = context;
             _connection = connection;
         }
 
@@ -35,17 +31,16 @@ namespace AdminService.Infrastructure.Repositories
             parameters.Add("@Status", exportLog.Status);
             parameters.Add("@RecordCount", exportLog.RecordCount);
             parameters.Add("@FilePath", exportLog.FilePath);
-            parameters.Add("@ErrorMessage", exportLog.ErrorMessage);
-            parameters.Add("@CreatedAt", exportLog.CreatedAt);
-            parameters.Add("@UpdatedAt", exportLog.UpdatedAt);
+            parameters.Add("@ErrorMessage", exportLog.ErrorMessage ?? (object)DBNull.Value);
+            parameters.Add("@CreatedAt", DateTime.UtcNow);
+            parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
             await _connection.ExecuteAsync(sql, parameters);
-
-            var id = parameters.Get<int>("@Id");
-            if (id > 0)
+            
+            if (parameters.Get<int>("@Id") > 0)
             {
-                exportLog.Id = id;
+                exportLog.Id = parameters.Get<int>("@Id");
             }
 
             return exportLog;
@@ -64,7 +59,7 @@ namespace AdminService.Infrastructure.Repositories
         public async Task<IEnumerable<ExportLog>> GetExportLogsAsync(int? adminId = null, int page = 1, int pageSize = 50)
         {
             var sql = @"EXEC [dbo].[ExportLog_GetAuditLogs]
-                    @AdminId, @Page, @PageSize";
+                @AdminId, @Page, @PageSize";
 
             var parameters = new 
             { 

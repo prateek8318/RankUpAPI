@@ -3,56 +3,38 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using HomeDashboardService.Domain.Entities;
 using HomeDashboardService.Domain.Interfaces;
-using HomeDashboardService.Infrastructure.Data;
 
 namespace HomeDashboardService.Infrastructure.Repositories
 {
-    public class GenericDapperRepository<T> : IRepository<T> where T : BaseEntity
+    public class GenericDapperRepository<T> : BaseDapperRepository, IRepository<T> where T : BaseEntity
     {
-        protected readonly HomeDashboardDbContext _context;
-        
-        public GenericDapperRepository(HomeDashboardDbContext context)
+        public GenericDapperRepository(string connectionString) : base(connectionString)
         {
-            _context = context;
-        }
-
-        protected SqlConnection GetConnection()
-        {
-            return (SqlConnection)_context.Database.GetDbConnection();
         }
 
         public virtual async Task<T?> GetByIdAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var entityName = typeof(T).Name;
             var sql = $"EXEC [dbo].[{entityName}_GetById] @Id";
-            return await connection.QueryFirstOrDefaultAsync<T>(sql, new { Id = id });
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryFirstOrDefaultAsync<T>(sql, new { Id = id }));
         }
 
         public virtual async Task<IEnumerable<T>> GetAllAsync()
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var entityName = typeof(T).Name;
             var sql = $"EXEC [dbo].[{entityName}_GetAll]";
-            return await connection.QueryAsync<T>(sql);
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryAsync<T>(sql));
         }
 
         public virtual async Task<IEnumerable<T>> FindAsync(System.Linq.Expressions.Expression<Func<T, bool>> predicate)
         {
-            // For complex predicates, create a specific stored procedure
-            // This is a fallback for simple cases - consider creating SPs for complex queries
             throw new NotImplementedException("Use specific repository methods with stored procedures for complex queries");
         }
 
-        public virtual async Task AddAsync(T entity)
+        public virtual async Task<T> AddAsync(T entity)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var entityName = typeof(T).Name;
             var properties = typeof(T).GetProperties()
                 .Where(p => p.Name != "Id" && p.Name != "CreatedAt" && p.Name != "UpdatedAt")
@@ -70,19 +52,21 @@ namespace HomeDashboardService.Infrastructure.Repositories
             
             var sql = $"EXEC [dbo].[{entityName}_Create] {string.Join(", ", parameterNames)}, @Id OUTPUT";
             
-            await connection.ExecuteAsync(sql, parameters);
-            
-            if (parameters.Get<int>("@Id") > 0)
+            await WithConnectionAsync(async connection => 
             {
-                entity.Id = parameters.Get<int>("@Id");
-            }
+                await connection.ExecuteAsync(sql, parameters);
+                
+                if (parameters.Get<int>("@Id") > 0)
+                {
+                    entity.Id = parameters.Get<int>("@Id");
+                }
+            });
+            
+            return entity;
         }
 
-        public virtual async Task UpdateAsync(T entity)
+        public virtual async Task<T> UpdateAsync(T entity)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var entityName = typeof(T).Name;
             var properties = typeof(T).GetProperties()
                 .Where(p => p.Name != "CreatedAt")
@@ -99,22 +83,25 @@ namespace HomeDashboardService.Infrastructure.Repositories
             
             var sql = $"EXEC [dbo].[{entityName}_Update] {string.Join(", ", parameterNames)}";
             
-            await connection.ExecuteAsync(sql, parameters);
+            await WithConnectionAsync(async connection => 
+                await connection.ExecuteAsync(sql, parameters));
+            
+            return entity;
         }
 
-        public virtual async Task DeleteAsync(T entity)
+        public virtual async Task<bool> DeleteAsync(int id)
         {
-            using var connection = GetConnection();
-            await connection.OpenAsync();
-            
             var entityName = typeof(T).Name;
             var sql = $"EXEC [dbo].[{entityName}_Delete] @Id";
-            await connection.ExecuteAsync(sql, new { Id = entity.Id });
+            var affectedRows = await WithConnectionAsync(async connection => 
+                await connection.ExecuteAsync(sql, new { Id = id }));
+            return affectedRows > 0;
         }
 
         public virtual async Task<int> SaveChangesAsync()
         {
-            return await _context.SaveChangesAsync();
+            // This method should not be used with pure Dapper implementation
+            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
         }
     }
 }

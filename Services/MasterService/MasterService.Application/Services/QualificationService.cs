@@ -117,6 +117,8 @@ namespace MasterService.Application.Services
                 return null;
 
             var dto = _mapper.Map<QualificationDto>(qualification);
+            dto.NameHi = qualification.NameHi;
+            
             if (languageId.HasValue)
             {
                 var langName = qualification.QualificationLanguages
@@ -128,6 +130,15 @@ namespace MasterService.Application.Services
                 if (langDesc != null)
                     dto.Description = langDesc;
             }
+            else
+            {
+                // Use NameHi for Hindi if available, fallback to Name
+                if (!string.IsNullOrWhiteSpace(qualification.NameHi))
+                {
+                    dto.Name = qualification.NameHi;
+                }
+            }
+            
             return dto;
         }
 
@@ -227,9 +238,10 @@ namespace MasterService.Application.Services
         {
             var useHindi = language == LanguageConstants.Hindi;
 
-            // For now, use the main Name field since Qualification doesn't have NameEn/NameHi
-            // This can be enhanced later to support NameEn/NameHi like Category
-            var localizedName = qualification.Name;
+            // Use NameHi for Hindi, Name for English
+            var localizedName = useHindi && !string.IsNullOrWhiteSpace(qualification.NameHi)
+                ? qualification.NameHi!
+                : qualification.Name;
 
             // Map QualificationLanguages to Names collection
             var names = qualification.QualificationLanguages?.Select(ql => new QualificationLanguageDto
@@ -245,6 +257,7 @@ namespace MasterService.Application.Services
             {
                 Id = qualification.Id,
                 Name = localizedName,
+                NameHi = qualification.NameHi,
                 Description = qualification.Description,
                 CountryCode = qualification.CountryCode,
                 IsActive = qualification.IsActive,

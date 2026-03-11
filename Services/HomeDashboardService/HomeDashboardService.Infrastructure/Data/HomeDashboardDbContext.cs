@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using HomeDashboardService.Domain.Entities;
 
 namespace HomeDashboardService.Infrastructure.Data
 {
@@ -10,7 +11,8 @@ namespace HomeDashboardService.Infrastructure.Data
         {
         }
 
-        // No DbSet properties - using Dapper for stored procedures
+        public DbSet<DailyTarget> DailyTargets { get; set; }
+
         // No OnModelCreating - using stored procedures instead
     }
 }

@@ -17,7 +17,6 @@ namespace UserService.Infrastructure.Repositories
             _connection = connection;
         }
 
-
         public async Task<User?> GetByIdAsync(int id)
         {
             var sql = "EXEC [dbo].[User_GetById] @Id";
@@ -56,11 +55,6 @@ namespace UserService.Infrastructure.Repositories
 
         public async Task<User> AddAsync(User user)
         {
-            // Set proper QUOTED_IDENTIFIER setting for stored procedures
-            using var setCommand = _connection.CreateCommand();
-            setCommand.CommandText = "SET QUOTED_IDENTIFIER ON";
-            await ((DbCommand)setCommand).ExecuteNonQueryAsync();
-
             var sql = @"EXEC [dbo].[User_Create] 
                     @Name, @Email, @PhoneNumber, @PasswordHash, 
                     @ProfilePhoto, @IsActive, 

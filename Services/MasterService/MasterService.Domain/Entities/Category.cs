@@ -27,7 +27,15 @@ namespace MasterService.Domain.Entities
 
         public int DisplayOrder { get; set; } = 0;
 
-        public bool IsActive { get; set; } = true;
+        // Status field instead of IsActive
+        public string Status { get; set; } = "active"; // active, inactive, draft, archived
+        
+        // Keep IsActive for backward compatibility
+        public bool IsActive 
+        { 
+            get => Status == "active";
+            set => Status = value ? "active" : "inactive";
+        }
     }
 }
 

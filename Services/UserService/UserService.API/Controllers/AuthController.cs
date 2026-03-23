@@ -18,17 +18,20 @@ namespace UserService.API.Controllers
         private readonly IConfiguration _configuration;
         private readonly IUserService _userService;
         private readonly IOtpService _otpService;
+        private readonly IDeviceInfoService _deviceInfoService;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             IConfiguration configuration,
             IUserService userService,
             IOtpService otpService,
+            IDeviceInfoService deviceInfoService,
             ILogger<AuthController> logger)
         {
             _configuration = configuration;
             _userService = userService;
             _otpService = otpService;
+            _deviceInfoService = deviceInfoService;
             _logger = logger;
         }
 
@@ -99,7 +102,7 @@ namespace UserService.API.Controllers
                         ErrorCodes.INVALID_OTP));
                 }
 
-                var userDto = await _userService.GetOrCreateUserAsync(request.MobileNumber, request.CountryCode);
+                var userDto = await _userService.GetOrCreateUserAsync(request.MobileNumber, request.CountryCode, markPhoneVerified: true);
                 if (userDto == null)
                 {
                     return StatusCode(500, ApiResponse.CreateInternalServerError(
@@ -109,10 +112,18 @@ namespace UserService.API.Controllers
 
                 await _userService.UpdateUserLoginInfoAsync(userDto.Id);
                 
-                // Update device information if provided
-                if (!string.IsNullOrWhiteSpace(request.DeviceId) || !string.IsNullOrWhiteSpace(request.DeviceType) || !string.IsNullOrWhiteSpace(request.DeviceName))
+                // Update device information using the new device info service
+                if (!string.IsNullOrWhiteSpace(request.DeviceId) || 
+                    !string.IsNullOrWhiteSpace(request.DeviceType) || 
+                    !string.IsNullOrWhiteSpace(request.DeviceName) ||
+                    !string.IsNullOrWhiteSpace(request.FcmToken))
                 {
-                    await _userService.UpdateUserDeviceInfoAsync(userDto.Id, request.DeviceId, request.DeviceType, request.DeviceName);
+                    await _deviceInfoService.UpdateDeviceInfoFromOtpAsync(
+                        userDto.Id, 
+                        request.DeviceId, 
+                        request.DeviceType, 
+                        request.DeviceName, 
+                        request.FcmToken);
                 }
                 
                 _otpService.RemoveOtp(fullPhoneNumber);
@@ -123,14 +134,13 @@ namespace UserService.API.Controllers
                 {
                     ["token"] = token,
                     ["userId"] = userDto.Id,
-                    //["userName"] = userDto.Name,
                     ["isNewUser"] = userDto.IsNewUser,
-                    //["isProfileComplete"] = !string.IsNullOrWhiteSpace(userDto.Name) && 
-                    //                       userDto.Name != $"User{userDto.PhoneNumber}",
-                    ["isProfileComplete"] = !string.IsNullOrWhiteSpace(userDto.Name) &&
-                                           userDto.Name != $"UserName",
+                    ["isProfileComplete"] = !userDto.IsNewUser && 
+                                           !string.IsNullOrWhiteSpace(userDto.Name) && 
+                                           userDto.Name != "User" &&
+                                           !string.IsNullOrWhiteSpace(userDto.Email),
                     ["phoneNumber"] = fullPhoneNumber,
-                    ["isPhoneVerified"] = userDto.IsPhoneVerified
+                    ["isPhoneVerified"] = true  // OTP verification means phone is verified
                 };
 
                 if (!string.IsNullOrWhiteSpace(request.FcmToken))
@@ -141,6 +151,15 @@ namespace UserService.API.Controllers
                     responseData["deviceType"] = request.DeviceType;
                 if (!string.IsNullOrWhiteSpace(request.DeviceName))
                     responseData["deviceName"] = request.DeviceName;
+
+                // Add device info stored confirmation
+                if (!string.IsNullOrWhiteSpace(request.DeviceId) || 
+                    !string.IsNullOrWhiteSpace(request.DeviceType) || 
+                    !string.IsNullOrWhiteSpace(request.DeviceName) ||
+                    !string.IsNullOrWhiteSpace(request.FcmToken))
+                {
+                    responseData["deviceInfoStored"] = true;
+                }
 
                 return Ok(ApiResponse.CreateSuccess(
                     "Login successful! Welcome back.",

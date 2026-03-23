@@ -10,6 +10,7 @@ namespace MasterService.Application.Interfaces
         Task<Country> AddAsync(Country country);
         Task<Country> UpdateAsync(Country country);
         Task DeleteAsync(Country country);
+        Task<bool> ToggleCountryStatusAsync(int id, bool isActive);
         Task<int> SaveChangesAsync();
     }
 }

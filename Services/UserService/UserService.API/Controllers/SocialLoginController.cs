@@ -41,8 +41,7 @@ namespace UserService.API.Controllers
                         ["userId"] = user.Id,
                         ["userName"] = user.Name,
                         ["isNewUser"] = result.IsNewUser,
-                        ["isProfileComplete"] = !string.IsNullOrWhiteSpace(user.Name) &&
-                                                user.Name != $"User{user.PhoneNumber}",
+                        ["isProfileComplete"] = user.ProfileCompleted,
                         ["phoneNumber"] = user.PhoneNumber,
                         ["isPhoneVerified"] = user.IsPhoneVerified
                     };
@@ -87,8 +86,7 @@ namespace UserService.API.Controllers
                         ["userId"] = user.Id,
                         ["userName"] = user.Name,
                         ["isNewUser"] = result.IsNewUser,
-                        ["isProfileComplete"] = !string.IsNullOrWhiteSpace(user.Name) &&
-                                                user.Name != $"User{user.PhoneNumber}",
+                        ["isProfileComplete"] = user.ProfileCompleted,
                         ["phoneNumber"] = user.PhoneNumber,
                         ["isPhoneVerified"] = user.IsPhoneVerified
                     };

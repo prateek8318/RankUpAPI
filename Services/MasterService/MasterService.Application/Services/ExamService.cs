@@ -144,6 +144,11 @@ namespace MasterService.Application.Services
                 return null;
 
             var dto = _mapper.Map<ExamDto>(exam);
+            
+            // Populate QualificationIds and StreamIds
+            dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+            dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+            
             if (languageId.HasValue)
             {
                 var langName = exam.ExamLanguages
@@ -192,12 +197,16 @@ namespace MasterService.Application.Services
                 .Select(e => _mapper.Map<ExamDto>(e))
                 .ToList();
 
-            if (languageId.HasValue)
+            // Populate QualificationIds and StreamIds for all exams
+            foreach (var dto in dtos)
             {
-                foreach (var dto in dtos)
+                var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
+                if (exam != null)
                 {
-                    var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
-                    if (exam != null)
+                    dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                    dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                    
+                    if (languageId.HasValue)
                     {
                         var langName = exam.ExamLanguages
                             .FirstOrDefault(el => el.LanguageId == languageId.Value && el.IsActive)?.Name;
@@ -222,12 +231,16 @@ namespace MasterService.Application.Services
                 .Select(e => _mapper.Map<ExamDto>(e))
                 .ToList();
 
-            if (languageId.HasValue)
+            // Populate QualificationIds and StreamIds for all exams
+            foreach (var dto in dtos)
             {
-                foreach (var dto in dtos)
+                var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
+                if (exam != null)
                 {
-                    var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
-                    if (exam != null)
+                    dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                    dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                    
+                    if (languageId.HasValue)
                     {
                         var langName = exam.ExamLanguages
                             .FirstOrDefault(el => el.LanguageId == languageId.Value && el.IsActive)?.Name;

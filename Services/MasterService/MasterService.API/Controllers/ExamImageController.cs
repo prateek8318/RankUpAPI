@@ -49,7 +49,8 @@ namespace MasterService.API.Controllers
                 return Ok(new { 
                     message = "Image uploaded successfully",
                     imagePath = imagePath,
-                    imageUrl = fullImageUrl
+                    imageUrl = fullImageUrl,
+                    examId = examId
                 });
             }
             catch (InvalidOperationException ex)

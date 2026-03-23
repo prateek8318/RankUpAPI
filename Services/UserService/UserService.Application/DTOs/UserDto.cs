@@ -54,12 +54,23 @@ namespace UserService.Application.DTOs
 
         public bool InterestedInIntlExam { get; set; }
         
+        public bool ProfileCompleted { get; set; }
+        
         // Device information fields
         public string? DeviceId { get; set; }
         
         public string? DeviceType { get; set; }
         
         public string? DeviceName { get; set; }
+        
+        public string? FcmToken { get; set; }
+        
+        // Device login tracking
+        public DateTime? LastDeviceLoginAt { get; set; }
+        
+        public string? LastDeviceType { get; set; }
+        
+        public string? LastDeviceName { get; set; }
 
     }
 
@@ -495,6 +506,56 @@ namespace UserService.Application.DTOs
 
         public int? UserId { get; set; }
 
+    }
+
+    /// <summary>
+    /// Device information request DTO
+    /// </summary>
+    /// <remarks>
+    /// **Usage:** Store device information for user tracking and push notifications
+    /// 
+    /// **Field Descriptions:**
+    /// - FcmToken: Firebase Cloud Messaging token for push notifications
+    /// - DeviceId: Unique device identifier for tracking
+    /// - DeviceType: Device platform ("android", "ios", "web")
+    /// - DeviceName: Device name or model (e.g., "Samsung", "iPhone 14", "Pixel 7")
+    /// </remarks>
+    public class DeviceInfoRequest
+    {
+        public string? FcmToken { get; set; }
+        public string? DeviceId { get; set; }
+        public string? DeviceType { get; set; }
+        public string? DeviceName { get; set; }
+    }
+
+    /// <summary>
+    /// Device information response DTO
+    /// </summary>
+    /// <remarks>
+    /// **Usage:** Returns stored device information for a user
+    /// </remarks>
+    public class DeviceInfoResponse
+    {
+        public int UserId { get; set; }
+        public string? FcmToken { get; set; }
+        public string? DeviceId { get; set; }
+        public string? DeviceType { get; set; }
+        public string? DeviceName { get; set; }
+        public DateTime? LastUpdated { get; set; }
+    }
+
+    /// <summary>
+    /// Update FCM token request DTO
+    /// </summary>
+    /// <remarks>
+    /// **Usage:** Update Firebase Cloud Messaging token for push notifications
+    /// 
+    /// **Field Descriptions:**
+    /// - FcmToken: Firebase Cloud Messaging token for push notifications
+    /// </remarks>
+    public class UpdateFcmTokenRequest
+    {
+        public string FcmToken { get; set; } = string.Empty;
     }
 
 }

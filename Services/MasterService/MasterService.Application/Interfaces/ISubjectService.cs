@@ -24,6 +24,7 @@ namespace MasterService.Application.Interfaces
         Task<Subject> AddAsync(Subject subject);
         Task<Subject> UpdateAsync(Subject subject);
         Task DeleteAsync(Subject subject);
+        Task<bool> ToggleSubjectStatusAsync(int id, bool isActive);
         Task<bool> ExistsAsync(int id);
         Task<int> SaveChangesAsync();
     }

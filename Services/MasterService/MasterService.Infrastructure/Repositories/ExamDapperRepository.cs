@@ -276,7 +276,8 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<int> SaveChangesAsync()
         {
-            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
+            // Dapper commands are executed immediately; this exists for interface compatibility.
+            return await Task.FromResult(1);
         }
     }
 }

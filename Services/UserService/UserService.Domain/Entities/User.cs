@@ -17,7 +17,7 @@ namespace UserService.Domain.Entities
         public string? PasswordHash { get; set; }
         
         [Required, MaxLength(15)]
-        public string PhoneNumber { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
         
         [MaxLength(10)]
         public string? CountryCode { get; set; } = "+91";
@@ -62,6 +62,8 @@ namespace UserService.Domain.Entities
         
         public bool InterestedInIntlExam { get; set; } = false;
         
+        public bool ProfileCompleted { get; set; } = false;
+        
         // Device information fields
         [MaxLength(100)]
         public string? DeviceId { get; set; }
@@ -71,5 +73,17 @@ namespace UserService.Domain.Entities
         
         [MaxLength(100)]
         public string? DeviceName { get; set; }
+        
+        [MaxLength(500)]
+        public string? FcmToken { get; set; }
+        
+        // Device login tracking fields
+        public DateTime? LastDeviceLoginAt { get; set; }
+        
+        [MaxLength(50)]
+        public string? LastDeviceType { get; set; }
+        
+        [MaxLength(100)]
+        public string? LastDeviceName { get; set; }
     }
 }

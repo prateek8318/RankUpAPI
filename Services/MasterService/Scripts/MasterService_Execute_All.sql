@@ -244,17 +244,36 @@ IF OBJECT_ID('dbo.State_Create', 'P') IS NOT NULL DROP PROCEDURE dbo.State_Creat
 GO
 CREATE PROCEDURE dbo.State_Create
     @Name        NVARCHAR(100),
+    @Code        NVARCHAR(10),
     @CountryCode NVARCHAR(10),
-    @IsActive    BIT,
+    @IsActive    BIT = 1,
+    @NamesJson   NVARCHAR(MAX) = NULL,
     @CreatedAt   DATETIME2,
     @UpdatedAt   DATETIME2,
     @Id          INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.States (Name, CountryCode, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @CountryCode, @IsActive, @CreatedAt, @UpdatedAt);
+    INSERT INTO dbo.States (Name, Code, CountryCode, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@Name, @Code, @CountryCode, @IsActive, @CreatedAt, @UpdatedAt);
     SET @Id = SCOPE_IDENTITY();
+
+    IF @NamesJson IS NOT NULL AND @Id > 0
+    BEGIN
+        INSERT INTO dbo.StateLanguages (StateId, LanguageId, Name, IsActive, CreatedAt, UpdatedAt)
+        SELECT
+            @Id as StateId,
+            LanguageId,
+            Name,
+            1 as IsActive,
+            @CreatedAt as CreatedAt,
+            @UpdatedAt as UpdatedAt
+        FROM OPENJSON(@NamesJson)
+        WITH (
+            LanguageId INT '$.LanguageId',
+            Name NVARCHAR(100) '$.Name'
+        );
+    END
 END
 GO
 
@@ -264,15 +283,37 @@ GO
 CREATE PROCEDURE dbo.State_Update
     @Id          INT,
     @Name        NVARCHAR(100),
+    @Code        NVARCHAR(10),
     @CountryCode NVARCHAR(10),
     @IsActive    BIT,
+    @NamesJson   NVARCHAR(MAX) = NULL,
     @UpdatedAt   DATETIME2
 AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE dbo.States
-    SET Name = @Name, CountryCode = @CountryCode, IsActive = @IsActive, UpdatedAt = @UpdatedAt
+    SET Name = @Name, Code = @Code, CountryCode = @CountryCode, IsActive = @IsActive, UpdatedAt = @UpdatedAt
     WHERE Id = @Id;
+
+    -- Replace language rows when provided
+    IF @NamesJson IS NOT NULL
+    BEGIN
+        DELETE FROM dbo.StateLanguages WHERE StateId = @Id;
+
+        INSERT INTO dbo.StateLanguages (StateId, LanguageId, Name, IsActive, CreatedAt, UpdatedAt)
+        SELECT
+            @Id as StateId,
+            LanguageId,
+            Name,
+            1 as IsActive,
+            @UpdatedAt as CreatedAt,
+            @UpdatedAt as UpdatedAt
+        FROM OPENJSON(@NamesJson)
+        WITH (
+            LanguageId INT '$.LanguageId',
+            Name NVARCHAR(100) '$.Name'
+        );
+    END
 END
 GO
 
@@ -479,17 +520,38 @@ IF OBJECT_ID('dbo.Stream_Create', 'P') IS NOT NULL DROP PROCEDURE dbo.Stream_Cre
 GO
 CREATE PROCEDURE dbo.Stream_Create
     @Name            NVARCHAR(200),
+    @Description     NVARCHAR(1000) = NULL,
     @QualificationId INT,
-    @IsActive        BIT,
+    @IsActive        BIT = 1,
+    @NamesJson       NVARCHAR(MAX) = NULL,
     @CreatedAt       DATETIME2,
     @UpdatedAt       DATETIME2,
     @Id              INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.Streams (Name, QualificationId, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @QualificationId, @IsActive, @CreatedAt, @UpdatedAt);
+    INSERT INTO dbo.Streams (Name, Description, QualificationId, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@Name, @Description, @QualificationId, @IsActive, @CreatedAt, @UpdatedAt);
     SET @Id = SCOPE_IDENTITY();
+
+    IF @NamesJson IS NOT NULL AND @Id > 0
+    BEGIN
+        INSERT INTO dbo.StreamLanguages (StreamId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+        SELECT
+            @Id as StreamId,
+            LanguageId,
+            Name,
+            Description,
+            1 as IsActive,
+            @CreatedAt as CreatedAt,
+            @UpdatedAt as UpdatedAt
+        FROM OPENJSON(@NamesJson)
+        WITH (
+            LanguageId INT '$.LanguageId',
+            Name NVARCHAR(200) '$.Name',
+            Description NVARCHAR(1000) '$.Description'
+        );
+    END
 END
 GO
 
@@ -499,15 +561,38 @@ GO
 CREATE PROCEDURE dbo.Stream_Update
     @Id              INT,
     @Name            NVARCHAR(200),
+    @Description     NVARCHAR(1000) = NULL,
     @QualificationId INT,
     @IsActive        BIT,
+    @NamesJson       NVARCHAR(MAX) = NULL,
     @UpdatedAt       DATETIME2
 AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE dbo.Streams
-    SET Name = @Name, QualificationId = @QualificationId, IsActive = @IsActive, UpdatedAt = @UpdatedAt
+    SET Name = @Name, Description = @Description, QualificationId = @QualificationId, IsActive = @IsActive, UpdatedAt = @UpdatedAt
     WHERE Id = @Id;
+
+    IF @NamesJson IS NOT NULL
+    BEGIN
+        DELETE FROM dbo.StreamLanguages WHERE StreamId = @Id;
+
+        INSERT INTO dbo.StreamLanguages (StreamId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+        SELECT
+            @Id as StreamId,
+            LanguageId,
+            Name,
+            Description,
+            1 as IsActive,
+            @UpdatedAt as CreatedAt,
+            @UpdatedAt as UpdatedAt
+        FROM OPENJSON(@NamesJson)
+        WITH (
+            LanguageId INT '$.LanguageId',
+            Name NVARCHAR(200) '$.Name',
+            Description NVARCHAR(1000) '$.Description'
+        );
+    END
 END
 GO
 
@@ -676,19 +761,70 @@ IF OBJECT_ID('dbo.Exam_Create', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_Create;
 GO
 CREATE PROCEDURE dbo.Exam_Create
     @Name        NVARCHAR(150),
+    @Description NVARCHAR(1000) = NULL,
     @CountryCode NVARCHAR(10) = NULL,
     @MinAge      INT = NULL,
     @MaxAge      INT = NULL,
+    @ImageUrl    NVARCHAR(500) = NULL,
+    @IsInternational BIT = 0,
     @IsActive    BIT = 1,
+    @NamesJson   NVARCHAR(MAX) = NULL,
+    @RelationsJson NVARCHAR(MAX) = NULL,
     @CreatedAt   DATETIME2,
     @UpdatedAt   DATETIME2,
     @Id          INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.Exams (Name, CountryCode, MinAge, MaxAge, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @CountryCode, @MinAge, @MaxAge, @IsActive, @CreatedAt, @UpdatedAt);
-    SET @Id = SCOPE_IDENTITY();
+    
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        INSERT INTO dbo.Exams (Name, Description, CountryCode, MinAge, MaxAge, ImageUrl, IsInternational, IsActive, CreatedAt, UpdatedAt)
+        VALUES (@Name, @Description, @CountryCode, @MinAge, @MaxAge, @ImageUrl, @IsInternational, @IsActive, @CreatedAt, @UpdatedAt);
+        SET @Id = SCOPE_IDENTITY();
+
+        IF @NamesJson IS NOT NULL AND @Id > 0
+        BEGIN
+            INSERT INTO dbo.ExamLanguages (ExamId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+            SELECT 
+                @Id as ExamId,
+                LanguageId,
+                Name,
+                Description,
+                1 as IsActive,
+                @CreatedAt as CreatedAt,
+                @UpdatedAt as UpdatedAt
+            FROM OPENJSON(@NamesJson) 
+            WITH (
+                LanguageId INT '$.LanguageId',
+                Name NVARCHAR(150) '$.Name',
+                Description NVARCHAR(1000) '$.Description'
+            );
+        END
+
+        IF @RelationsJson IS NOT NULL AND @Id > 0
+        BEGIN
+            INSERT INTO dbo.ExamQualifications (ExamId, QualificationId, StreamId, IsActive, CreatedAt, UpdatedAt)
+            SELECT 
+                @Id as ExamId,
+                QualificationId,
+                StreamId,
+                1 as IsActive,
+                @CreatedAt as CreatedAt,
+                @UpdatedAt as UpdatedAt
+            FROM OPENJSON(@RelationsJson) 
+            WITH (
+                QualificationId INT '$.QualificationId',
+                StreamId INT '$.StreamId'
+            );
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END
 GO
 
@@ -698,22 +834,78 @@ GO
 CREATE PROCEDURE dbo.Exam_Update
     @Id          INT,
     @Name        NVARCHAR(150),
+    @Description NVARCHAR(1000) = NULL,
     @CountryCode NVARCHAR(10) = NULL,
     @MinAge      INT = NULL,
     @MaxAge      INT = NULL,
-    @IsActive    BIT,
+    @ImageUrl    NVARCHAR(500) = NULL,
+    @IsInternational BIT = 0,
+    @IsActive    BIT = 1,
+    @NamesJson   NVARCHAR(MAX) = NULL,
+    @RelationsJson NVARCHAR(MAX) = NULL,
     @UpdatedAt   DATETIME2
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.Exams
-    SET Name = @Name,
-        CountryCode = @CountryCode,
-        MinAge = @MinAge,
-        MaxAge = @MaxAge,
-        IsActive = @IsActive,
-        UpdatedAt = @UpdatedAt
-    WHERE Id = @Id;
+    
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        UPDATE dbo.Exams
+        SET Name = @Name,
+            Description = @Description,
+            CountryCode = @CountryCode,
+            MinAge = @MinAge,
+            MaxAge = @MaxAge,
+            ImageUrl = @ImageUrl,
+            IsInternational = @IsInternational,
+            IsActive = @IsActive,
+            UpdatedAt = @UpdatedAt
+        WHERE Id = @Id;
+
+        DELETE FROM dbo.ExamLanguages WHERE ExamId = @Id;
+        IF @NamesJson IS NOT NULL
+        BEGIN
+            INSERT INTO dbo.ExamLanguages (ExamId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+            SELECT 
+                @Id as ExamId,
+                LanguageId,
+                Name,
+                Description,
+                1 as IsActive,
+                @UpdatedAt as CreatedAt,
+                @UpdatedAt as UpdatedAt
+            FROM OPENJSON(@NamesJson) 
+            WITH (
+                LanguageId INT '$.LanguageId',
+                Name NVARCHAR(150) '$.Name',
+                Description NVARCHAR(1000) '$.Description'
+            );
+        END
+
+        DELETE FROM dbo.ExamQualifications WHERE ExamId = @Id;
+        IF @RelationsJson IS NOT NULL
+        BEGIN
+            INSERT INTO dbo.ExamQualifications (ExamId, QualificationId, StreamId, IsActive, CreatedAt, UpdatedAt)
+            SELECT 
+                @Id as ExamId,
+                QualificationId,
+                StreamId,
+                1 as IsActive,
+                @UpdatedAt as CreatedAt,
+                @UpdatedAt as UpdatedAt
+            FROM OPENJSON(@RelationsJson) 
+            WITH (
+                QualificationId INT '$.QualificationId',
+                StreamId INT '$.StreamId'
+            );
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END
 GO
 

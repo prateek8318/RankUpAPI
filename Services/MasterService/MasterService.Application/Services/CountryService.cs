@@ -111,7 +111,6 @@ namespace MasterService.Application.Services
                 };
 
                 var createdCountry = await _countryRepository.AddAsync(country);
-                await _countryRepository.SaveChangesAsync();
 
                 return MapToDto(createdCountry);
             }
@@ -138,7 +137,6 @@ namespace MasterService.Application.Services
                 existingCountry.UpdatedAt = DateTime.UtcNow;
 
                 var updatedCountry = await _countryRepository.UpdateAsync(existingCountry);
-                await _countryRepository.SaveChangesAsync();
 
                 return MapToDto(updatedCountry);
             }
@@ -157,10 +155,7 @@ namespace MasterService.Application.Services
                 if (country == null)
                     return false;
 
-                country.IsActive = false;
-                country.UpdatedAt = DateTime.UtcNow;
-
-                await _countryRepository.UpdateAsync(country);
+                await _countryRepository.DeleteAsync(country);
 
                 return true;
             }
@@ -175,16 +170,7 @@ namespace MasterService.Application.Services
         {
             try
             {
-                var country = await _countryRepository.GetByIdAsync(id);
-                if (country == null)
-                    return false;
-
-                country.IsActive = isActive;
-                country.UpdatedAt = DateTime.UtcNow;
-
-                await _countryRepository.UpdateAsync(country);
-
-                return true;
+                return await _countryRepository.ToggleCountryStatusAsync(id, isActive);
             }
             catch (Exception ex)
             {

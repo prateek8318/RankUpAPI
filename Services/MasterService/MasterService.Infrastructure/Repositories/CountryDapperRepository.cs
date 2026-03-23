@@ -103,9 +103,27 @@ namespace MasterService.Infrastructure.Repositories
             });
         }
 
+        public async Task<bool> ToggleCountryStatusAsync(int id, bool isActive)
+        {
+            try
+            {
+                return await WithConnectionAsync(async connection =>
+                {
+                    var sql = "EXEC [dbo].[Country_ToggleStatus] @Id, @IsActive";
+                    var result = await connection.ExecuteAsync(sql, new { Id = id, IsActive = isActive });
+                    return result > 0;
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error toggling country status: {ex.Message}", ex);
+            }
+        }
+
         public async Task<int> SaveChangesAsync()
         {
-            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
+            // Dapper commands are executed immediately; this exists for interface compatibility.
+            return await Task.FromResult(1);
         }
     }
 }

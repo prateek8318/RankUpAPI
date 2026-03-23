@@ -1,3 +1,5 @@
+SET QUOTED_IDENTIFIER ON;
+GO
 ALTER PROCEDURE [dbo].[User_Create]
     @Name NVARCHAR(100),
     @Email NVARCHAR(100),

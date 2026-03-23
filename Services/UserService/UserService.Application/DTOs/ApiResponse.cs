@@ -71,7 +71,7 @@ namespace UserService.Application.DTOs
     /// </summary>
     public class ApiResponse : ApiResponse<object>
     {
-        public static ApiResponse CreateSuccess(string message, object? data = null)
+        public static new ApiResponse CreateSuccess(string message, object? data = null)
         {
             return new ApiResponse
             {
@@ -145,6 +145,7 @@ namespace UserService.Application.DTOs
         public const string RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND";
 
         // Unauthorized errors (401)
+        public const string UNAUTHORIZED = "UNAUTHORIZED";
         public const string INVALID_TOKEN = "INVALID_TOKEN";
         public const string TOKEN_EXPIRED = "TOKEN_EXPIRED";
         public const string ACCESS_DENIED = "ACCESS_DENIED";

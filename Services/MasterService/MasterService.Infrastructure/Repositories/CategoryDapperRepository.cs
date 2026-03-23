@@ -134,13 +134,7 @@ namespace MasterService.Infrastructure.Repositories
             {
                 await WithConnectionAsync(async connection =>
                 {
-                    var sql = @"
-                        UPDATE Categories
-                        SET 
-                            IsActive = 0,
-                            UpdatedAt = GETUTCDATE()
-                        WHERE Id = @Id";
-
+                    var sql = "EXEC [dbo].[Category_Delete] @Id";
                     await connection.ExecuteAsync(sql, new { Id = category.Id });
                 });
             }
@@ -150,9 +144,27 @@ namespace MasterService.Infrastructure.Repositories
             }
         }
 
+        public async Task<bool> ToggleCategoryStatusAsync(int id, bool isActive)
+        {
+            try
+            {
+                return await WithConnectionAsync(async connection =>
+                {
+                    var sql = "EXEC [dbo].[Category_ToggleStatus] @Id, @IsActive";
+                    var result = await connection.ExecuteAsync(sql, new { Id = id, IsActive = isActive });
+                    return result > 0;
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error toggling category status: {ex.Message}", ex);
+            }
+        }
+
         public async Task<int> SaveChangesAsync()
         {
-            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
+            // Dapper commands are executed immediately; this exists for interface compatibility.
+            return await Task.FromResult(1);
         }
     }
 }

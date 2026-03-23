@@ -81,7 +81,6 @@ namespace MasterService.Application.Services
                 };
 
                 var createdSubject = await _subjectRepository.AddAsync(subject);
-                await _subjectRepository.SaveChangesAsync();
 
                 // Add subject languages if provided
                 if (createSubjectDto.SubjectLanguages != null && createSubjectDto.SubjectLanguages.Any())
@@ -101,7 +100,6 @@ namespace MasterService.Application.Services
 
                         await _subjectLanguageRepository.AddAsync(subjectLanguage);
                     }
-                    await _subjectLanguageRepository.SaveChangesAsync();
                 }
 
                 return MapToSubjectDto(createdSubject);
@@ -136,7 +134,6 @@ namespace MasterService.Application.Services
                 existingSubject.UpdatedAt = DateTime.UtcNow;
 
                 var updatedSubject = await _subjectRepository.UpdateAsync(existingSubject);
-                await _subjectRepository.SaveChangesAsync();
 
                 // Update subject languages if provided
                 if (updateSubjectDto.SubjectLanguages != null && updateSubjectDto.SubjectLanguages.Any())
@@ -163,7 +160,6 @@ namespace MasterService.Application.Services
                             await _subjectLanguageRepository.UpdateAsync(existingLang);
                         }
                     }
-                    await _subjectLanguageRepository.SaveChangesAsync();
                 }
 
                 return MapToSubjectDto(updatedSubject);
@@ -185,9 +181,7 @@ namespace MasterService.Application.Services
                     return false;
                 }
 
-                subject.IsActive = false;
-                subject.UpdatedAt = DateTime.UtcNow;
-                await _subjectRepository.UpdateAsync(subject);
+                await _subjectRepository.DeleteAsync(subject);
 
                 return true;
             }

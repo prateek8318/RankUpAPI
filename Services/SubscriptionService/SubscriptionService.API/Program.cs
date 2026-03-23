@@ -93,7 +93,27 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:8080")
+        builder.WithOrigins(
+                "http://localhost:5176",
+                "http://localhost:5173", 
+                "http://localhost:3000", 
+                "http://localhost:8080",
+                "http://localhost:5174",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:5176",
+                "http://127.0.0.1:8080",
+                "http://192.168.1.9:5176",
+                "http://192.168.1.9:3000",
+                "http://192.168.1.9:8080",
+                "http://192.168.1.9:5173",
+                "http://192.168.1.9:5174",
+                "http://192.168.1.21:5176",
+                "http://192.168.1.21:3000",
+                "http://192.168.1.21:8080",
+                "http://192.168.1.21:5173",
+                "http://192.168.1.21:5174"
+               )
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();

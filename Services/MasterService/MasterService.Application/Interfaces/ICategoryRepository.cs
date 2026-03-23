@@ -11,6 +11,7 @@ namespace MasterService.Application.Interfaces
         Task<Category> AddAsync(Category category);
         Task UpdateAsync(Category category);
         Task DeleteAsync(Category category);
+        Task<bool> ToggleCategoryStatusAsync(int id, bool isActive);
         Task<int> SaveChangesAsync();
     }
 }

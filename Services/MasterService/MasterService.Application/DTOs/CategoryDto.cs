@@ -13,9 +13,9 @@ namespace MasterService.Application.DTOs
 
     public abstract class BaseCreateDto
     {
-        [Required(ErrorMessage = "Name is required")]
+        // Optional Name field - only required for non-category DTOs
         [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
     }
 
     public abstract class BaseUpdateDto : BaseCreateDto
@@ -50,14 +50,23 @@ namespace MasterService.Application.DTOs
         public string Type { get; set; } = string.Empty; // category, qualification, exam_category, stream
         public string? Description { get; set; }
         public int DisplayOrder { get; set; }
+        
+        // Status field instead of IsActive
+        public string Status { get; set; } = "active"; // active, inactive, draft, archived
+        
+        // Keep IsActive for backward compatibility
+        public bool IsActive => Status == "active";
     }
 
     public class CreateCategoryDto : BaseCreateDto
     {
-        // English name (required) - mapped to base Name property
+        // English name (required)
+        [Required(ErrorMessage = "NameEn is required")]
+        [StringLength(100, ErrorMessage = "NameEn cannot exceed 100 characters")]
         public string NameEn { get; set; } = string.Empty;
 
         // Hindi name (optional)
+        [StringLength(100, ErrorMessage = "NameHi cannot exceed 100 characters")]
         public string? NameHi { get; set; }
 
         [Required(ErrorMessage = "Key is required")]
@@ -72,14 +81,20 @@ namespace MasterService.Application.DTOs
         public string? Description { get; set; }
 
         public int DisplayOrder { get; set; } = 0;
+
+        // Status field instead of IsActive
+        public string Status { get; set; } = "active"; // active, inactive, draft, archived
     }
 
     public class UpdateCategoryDto : BaseUpdateDto
     {
-        // English name (required) - mapped to base Name property
+        // English name (required)
+        [Required(ErrorMessage = "NameEn is required")]
+        [StringLength(100, ErrorMessage = "NameEn cannot exceed 100 characters")]
         public string NameEn { get; set; } = string.Empty;
 
         // Hindi name (optional)
+        [StringLength(100, ErrorMessage = "NameHi cannot exceed 100 characters")]
         public string? NameHi { get; set; }
 
         [Required(ErrorMessage = "Key is required")]
@@ -94,5 +109,8 @@ namespace MasterService.Application.DTOs
         public string? Description { get; set; }
 
         public int DisplayOrder { get; set; } = 0;
+
+        // Status field instead of IsActive
+        public string Status { get; set; } = "active"; // active, inactive, draft, archived
     }
 }

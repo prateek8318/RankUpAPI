@@ -12,7 +12,7 @@ namespace UserService.Application.Interfaces
 
         Task<UserDto?> GetUserByIdAsync(int userId);
 
-        Task<UserDto> GetOrCreateUserAsync(string phoneNumber, string? countryCode = null);
+        Task<UserDto> GetOrCreateUserAsync(string phoneNumber, string? countryCode = null, bool markPhoneVerified = false);
 
         Task UpdateUserLoginInfoAsync(int userId);
         

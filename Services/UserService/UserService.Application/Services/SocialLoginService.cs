@@ -47,19 +47,15 @@ namespace UserService.Application.Services
                     };
                 }
 
-                if (string.IsNullOrWhiteSpace(request.GoogleId))
+                // GoogleId is optional - allow null/empty values
+                if (!string.IsNullOrWhiteSpace(request.GoogleId) && request.GoogleId != "google")
                 {
-                    _logger.LogWarning("SocialLogin failed: GoogleId is missing in request");
-                    return new SocialLoginResponseDto
-                    {
-                        Success = false,
-                        Message = "GoogleId is required for social login"
-                    };
+                    _logger.LogInformation($"Valid GoogleId provided: {request.GoogleId}");
                 }
 
-                // Use GoogleId as primary identifier, fallback to email lookup
+                // Use GoogleId as primary identifier if available, fallback to email lookup (skip placeholder values)
                 UserSocialLogin? existingSocialLogin = null;
-                if (!string.IsNullOrEmpty(request.GoogleId))
+                if (!string.IsNullOrEmpty(request.GoogleId) && request.GoogleId != "google")
                 {
                     existingSocialLogin = await _socialLoginRepository.GetByProviderAndGoogleIdAsync(
                         "Google", request.GoogleId ?? string.Empty);
@@ -88,6 +84,15 @@ namespace UserService.Application.Services
                     // Update last login info for existing user
                     user.LastLoginAt = DateTime.UtcNow;
                     user.UpdatedAt = DateTime.UtcNow;
+                    
+                    // Update device information if provided
+                    if (!string.IsNullOrWhiteSpace(request.DeviceId))
+                        user.DeviceId = request.DeviceId;
+                    if (!string.IsNullOrWhiteSpace(request.DeviceType))
+                        user.DeviceType = request.DeviceType;
+                    if (!string.IsNullOrWhiteSpace(request.DeviceName))
+                        user.DeviceName = request.DeviceName;
+                    
                     await _userRepository.UpdateAsync(user);
                     await _userRepository.SaveChangesAsync();
 
@@ -131,6 +136,15 @@ namespace UserService.Application.Services
 
                         existingUser.LastLoginAt = DateTime.UtcNow;
                         existingUser.UpdatedAt = DateTime.UtcNow;
+                        
+                        // Update device information if provided
+                        if (!string.IsNullOrWhiteSpace(request.DeviceId))
+                            existingUser.DeviceId = request.DeviceId;
+                        if (!string.IsNullOrWhiteSpace(request.DeviceType))
+                            existingUser.DeviceType = request.DeviceType;
+                        if (!string.IsNullOrWhiteSpace(request.DeviceName))
+                            existingUser.DeviceName = request.DeviceName;
+                        
                         await _userRepository.UpdateAsync(existingUser);
                         await _userRepository.SaveChangesAsync();
 
@@ -155,9 +169,14 @@ namespace UserService.Application.Services
                             Email = request.Email,
                             Name = request.Name,
                             ProfilePhoto = request.AvatarUrl,
-                            PhoneNumber = "SOCIAL", // Placeholder since column is NOT NULL (max 15 chars)
+                            PhoneNumber = null, // Allow null for social users, will be added later
+                            IsPhoneVerified = false,
                             IsActive = true,
+                            ProfileCompleted = false, // New social users have incomplete profiles
                             CreatedAt = DateTime.UtcNow,
+                            DeviceId = request.DeviceId,
+                            DeviceType = request.DeviceType,
+                            DeviceName = request.DeviceName,
                         };
 
                         await _userRepository.AddAsync(newUser);
@@ -221,7 +240,7 @@ namespace UserService.Application.Services
                 {
                     UserId = userId,
                     Provider = "Google",
-                    GoogleId = request.GoogleId,
+                    GoogleId = request.GoogleId == "google" ? null : request.GoogleId,
                     Email = request.Email,
                     Name = request.Name,
                     // AvatarUrl = request.AvatarUrl,
@@ -302,7 +321,7 @@ namespace UserService.Application.Services
                 Id = user.Id,
                 Email = user.Email,
                 Name = user.Name,
-                PhoneNumber = user.PhoneNumber,
+                PhoneNumber = user.PhoneNumber ?? string.Empty,
                 CountryCode = user.CountryCode,
                 ProfilePhoto = user.ProfilePhoto,
                 ProfilePhotoUrl = user.ProfilePhoto,
@@ -310,7 +329,8 @@ namespace UserService.Application.Services
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt,
                 IsPhoneVerified = user.IsPhoneVerified,
-                InterestedInIntlExam = user.InterestedInIntlExam
+                InterestedInIntlExam = user.InterestedInIntlExam,
+                ProfileCompleted = user.ProfileCompleted
             };
         }
     }

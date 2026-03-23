@@ -52,7 +52,7 @@ namespace UserService.Application.Services
 
 
 
-        public async Task<UserDto> GetOrCreateUserAsync(string phoneNumber, string? countryCode = null)
+        public async Task<UserDto> GetOrCreateUserAsync(string phoneNumber, string? countryCode = null, bool markPhoneVerified = false)
 
         {
 
@@ -107,7 +107,6 @@ namespace UserService.Application.Services
 
             {
 
-
                 user.CountryCode = countryCode;
 
                 user.UpdatedAt = DateTime.UtcNow;
@@ -116,6 +115,15 @@ namespace UserService.Application.Services
 
                 await _userRepository.SaveChangesAsync();
 
+            }
+
+            // Mark phone as verified if this is OTP verification
+            if (markPhoneVerified && !user.IsPhoneVerified)
+            {
+                user.IsPhoneVerified = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                await _userRepository.UpdateAsync(user);
+                await _userRepository.SaveChangesAsync();
             }
 
 

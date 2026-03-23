@@ -119,6 +119,15 @@ namespace MasterService.Application.Services
             var dto = _mapper.Map<QualificationDto>(qualification);
             dto.NameHi = qualification.NameHi;
             
+            // Map QualificationLanguages to Names collection
+            dto.Names = qualification.QualificationLanguages?.Select(ql => new QualificationLanguageDto
+            {
+                LanguageId = ql.LanguageId,
+                LanguageCode = ql.Language?.Code ?? string.Empty,
+                Name = ql.Name,
+                Description = ql.Description
+            }).ToList() ?? new List<QualificationLanguageDto>();
+            
             if (languageId.HasValue)
             {
                 var langName = qualification.QualificationLanguages
@@ -171,12 +180,23 @@ namespace MasterService.Application.Services
         {
             var qualifications = await _qualificationRepository.GetActiveAsync();
             var dtos = qualifications.OrderBy(q => q.Name).Select(q => _mapper.Map<QualificationDto>(q)).ToList();
-            if (languageId.HasValue)
+            
+            // Populate Names array for all qualifications
+            foreach (var dto in dtos)
             {
-                foreach (var dto in dtos)
+                var q = qualifications.FirstOrDefault(x => x.Id == dto.Id);
+                if (q != null)
                 {
-                    var q = qualifications.FirstOrDefault(x => x.Id == dto.Id);
-                    if (q != null)
+                    // Map QualificationLanguages to Names collection
+                    dto.Names = q.QualificationLanguages?.Select(ql => new QualificationLanguageDto
+                    {
+                        LanguageId = ql.LanguageId,
+                        LanguageCode = ql.Language?.Code ?? string.Empty,
+                        Name = ql.Name,
+                        Description = ql.Description
+                    }).ToList() ?? new List<QualificationLanguageDto>();
+                    
+                    if (languageId.HasValue)
                     {
                         var langName = q.QualificationLanguages.FirstOrDefault(ql => ql.LanguageId == languageId.Value && ql.IsActive)?.Name;
                         if (!string.IsNullOrEmpty(langName))
@@ -194,12 +214,23 @@ namespace MasterService.Application.Services
         {
             var qualifications = await _qualificationRepository.GetActiveByCountryCodeAsync(countryCode);
             var dtos = qualifications.OrderBy(q => q.Name).Select(q => _mapper.Map<QualificationDto>(q)).ToList();
-            if (languageId.HasValue)
+            
+            // Populate Names array for all qualifications
+            foreach (var dto in dtos)
             {
-                foreach (var dto in dtos)
+                var q = qualifications.FirstOrDefault(x => x.Id == dto.Id);
+                if (q != null)
                 {
-                    var q = qualifications.FirstOrDefault(x => x.Id == dto.Id);
-                    if (q != null)
+                    // Map QualificationLanguages to Names collection
+                    dto.Names = q.QualificationLanguages?.Select(ql => new QualificationLanguageDto
+                    {
+                        LanguageId = ql.LanguageId,
+                        LanguageCode = ql.Language?.Code ?? string.Empty,
+                        Name = ql.Name,
+                        Description = ql.Description
+                    }).ToList() ?? new List<QualificationLanguageDto>();
+                    
+                    if (languageId.HasValue)
                     {
                         var langName = q.QualificationLanguages.FirstOrDefault(ql => ql.LanguageId == languageId.Value && ql.IsActive)?.Name;
                         if (!string.IsNullOrEmpty(langName))

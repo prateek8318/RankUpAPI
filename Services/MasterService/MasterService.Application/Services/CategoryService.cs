@@ -169,15 +169,14 @@ namespace MasterService.Application.Services
                 Type = createDto.Type,
                 Description = createDto.Description,
                 DisplayOrder = createDto.DisplayOrder,
-                IsActive = true,
+                Status = createDto.Status ?? "active",
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _categoryRepository.AddAsync(entity);
-            await _categoryRepository.SaveChangesAsync();
+            var categoryEntity = await _categoryRepository.AddAsync(entity);
 
             // Default response English me
-            return MapToCategoryDto(entity, LanguageConstants.English);
+            return MapToCategoryDto(categoryEntity, LanguageConstants.English);
         }
 
         public async Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryDto updateDto)
@@ -222,6 +221,7 @@ namespace MasterService.Application.Services
                 existing.Type = updateDto.Type;
                 existing.Description = updateDto.Description;
                 existing.DisplayOrder = updateDto.DisplayOrder;
+                existing.Status = updateDto.Status ?? existing.Status;
                 existing.UpdatedAt = DateTime.UtcNow;
 
                 await _categoryRepository.UpdateAsync(existing);
@@ -245,7 +245,7 @@ namespace MasterService.Application.Services
                     return false;
                 }
 
-                existing.IsActive = false;
+                existing.Status = "inactive";
                 existing.UpdatedAt = DateTime.UtcNow;
                 
                 await _categoryRepository.UpdateAsync(existing);
@@ -263,18 +263,7 @@ namespace MasterService.Application.Services
         {
             try
             {
-                var existing = await _categoryRepository.GetByIdAsync(id);
-                if (existing == null)
-                {
-                    return false;
-                }
-
-                existing.IsActive = isActive;
-                existing.UpdatedAt = DateTime.UtcNow;
-
-                await _categoryRepository.UpdateAsync(existing);
-
-                return true;
+                return await _categoryRepository.ToggleCategoryStatusAsync(id, isActive);
             }
             catch (Exception ex)
             {
@@ -328,7 +317,7 @@ namespace MasterService.Application.Services
                 NameHi = category.NameHi,
                 Key = category.Key,
                 Type = category.Type,
-                IsActive = category.IsActive,
+                Status = category.Status,
                 CreatedAt = category.CreatedAt,
                 UpdatedAt = category.UpdatedAt
             };
@@ -353,7 +342,7 @@ namespace MasterService.Application.Services
                               element.TryGetProperty("code", out var codeProp) ? codeProp.GetString() : string.Empty,
                         Type = element.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : 
                                element.TryGetProperty("category", out var categoryProp) ? categoryProp.GetString() : string.Empty,
-                        IsActive = true,
+                        Status = "active",
                         CreatedAt = DateTime.UtcNow
                     };
                 }
@@ -370,8 +359,8 @@ namespace MasterService.Application.Services
                         Key = dict.TryGetValue("key", out var keyValue) ? keyValue?.ToString() : 
                               dict.TryGetValue("code", out var codeValue) ? codeValue?.ToString() : string.Empty,
                         Type = dict.TryGetValue("type", out var typeValue) ? typeValue?.ToString() : 
-                               dict.TryGetValue("category", out var categoryValue) ? categoryValue?.ToString() : string.Empty,
-                        IsActive = true,
+                              (dict.TryGetValue("category", out var categoryValue) ? categoryValue?.ToString() : string.Empty),
+                        Status = "active",
                         CreatedAt = DateTime.UtcNow
                     };
                 }
@@ -397,7 +386,7 @@ namespace MasterService.Application.Services
                               codeProperty?.GetValue(item)?.ToString() ?? string.Empty,
                         Type = typeProperty?.GetValue(item)?.ToString() ?? 
                                categoryProperty?.GetValue(item)?.ToString() ?? string.Empty,
-                        IsActive = true,
+                        Status = "active",
                         CreatedAt = DateTime.UtcNow
                     };
                 }
@@ -426,7 +415,7 @@ namespace MasterService.Application.Services
                     NameHi = "सामान्य",
                     Key = "general",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 },
                 new()
@@ -437,7 +426,7 @@ namespace MasterService.Application.Services
                     NameHi = "अन्य पिछड़ा वर्ग",
                     Key = "obc",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 },
                 new()
@@ -448,7 +437,7 @@ namespace MasterService.Application.Services
                     NameHi = "अनुसूचित जाति",
                     Key = "sc",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 },
                 new()
@@ -459,7 +448,7 @@ namespace MasterService.Application.Services
                     NameHi = "अनुसूचित जनजाति",
                     Key = "st",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 },
                 new()
@@ -470,7 +459,7 @@ namespace MasterService.Application.Services
                     NameHi = "आर्थिक रूप से कमजोर",
                     Key = "ews",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 }
             };
@@ -482,18 +471,18 @@ namespace MasterService.Application.Services
             
             return new List<CategoryDto>
             {
-                new() { Id = 1, Name = useHindi ? "१०वीं पास" : "10th Pass", NameEn = "10th Pass", NameHi = "१०वीं पास", Key = "10th", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 2, Name = useHindi ? "१२वीं पास" : "12th Pass", NameEn = "12th Pass", NameHi = "१२वीं पास", Key = "12th", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 3, Name = useHindi ? "स्नातक" : "Graduate", NameEn = "Graduate", NameHi = "स्नातक", Key = "graduate", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 4, Name = useHindi ? "स्नातकोत्तर" : "Post Graduate", NameEn = "Post Graduate", NameHi = "स्नातकोत्तर", Key = "post_graduate", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 5, Name = useHindi ? "डिप्लोमा" : "Diploma", NameEn = "Diploma", NameHi = "डिप्लोमा", Key = "diploma", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 6, Name = useHindi ? "इंजीनियरिंग" : "Engineering", NameEn = "Engineering", NameHi = "इंजीनियरिंग", Key = "engineering", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 7, Name = useHindi ? "चिकित्सा" : "Medical", NameEn = "Medical", NameHi = "चिकित्सा", Key = "medical", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 8, Name = useHindi ? "प्रबंधन" : "Management", NameEn = "Management", NameHi = "प्रबंधन", Key = "management", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 9, Name = useHindi ? "वाणिज्य" : "Commerce", NameEn = "Commerce", NameHi = "वाणिज्य", Key = "commerce", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 10, Name = useHindi ? "विज्ञान" : "Science", NameEn = "Science", NameHi = "विज्ञान", Key = "science", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 11, Name = useHindi ? "कला" : "Arts", NameEn = "Arts", NameHi = "कला", Key = "arts", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 12, Name = useHindi ? "अन्य" : "Other", NameEn = "Other", NameHi = "अन्य", Key = "other", Type = "qualification", IsActive = true, CreatedAt = DateTime.UtcNow }
+                new() { Id = 1, Name = useHindi ? "१०वीं पास" : "10th Pass", NameEn = "10th Pass", NameHi = "१०वीं पास", Key = "10th", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 2, Name = useHindi ? "१२वीं पास" : "12th Pass", NameEn = "12th Pass", NameHi = "१२वीं पास", Key = "12th", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 3, Name = useHindi ? "स्नातक" : "Graduate", NameEn = "Graduate", NameHi = "स्नातक", Key = "graduate", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 4, Name = useHindi ? "स्नातकोत्तर" : "Post Graduate", NameEn = "Post Graduate", NameHi = "स्नातकोत्तर", Key = "post_graduate", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 5, Name = useHindi ? "डिप्लोमा" : "Diploma", NameEn = "Diploma", NameHi = "डिप्लोमा", Key = "diploma", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 6, Name = useHindi ? "इंजीनियरिंग" : "Engineering", NameEn = "Engineering", NameHi = "इंजीनियरिंग", Key = "engineering", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 7, Name = useHindi ? "चिकित्सा" : "Medical", NameEn = "Medical", NameHi = "चिकित्सा", Key = "medical", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 8, Name = useHindi ? "प्रबंधन" : "Management", NameEn = "Management", NameHi = "प्रबंधन", Key = "management", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 9, Name = useHindi ? "वाणिज्य" : "Commerce", NameEn = "Commerce", NameHi = "वाणिज्य", Key = "commerce", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 10, Name = useHindi ? "विज्ञान" : "Science", NameEn = "Science", NameHi = "विज्ञान", Key = "science", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 11, Name = useHindi ? "कला" : "Arts", NameEn = "Arts", NameHi = "कला", Key = "arts", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 12, Name = useHindi ? "अन्य" : "Other", NameEn = "Other", NameHi = "अन्य", Key = "other", Type = "qualification", Status = "active", CreatedAt = DateTime.UtcNow }
             };
         }
 
@@ -503,11 +492,11 @@ namespace MasterService.Application.Services
             
             return new List<CategoryDto>
             {
-                new() { Id = 1, Name = useHindi ? "सामान्य" : "General", NameEn = "General", NameHi = "सामान्य", Key = "general", Type = "exam_category", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 2, Name = useHindi ? "अनुसूचित जाति" : "SC", NameEn = "SC", NameHi = "अनुसूचित जाति", Key = "sc", Type = "exam_category", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 3, Name = useHindi ? "अनुसूचित जनजाति" : "ST", NameEn = "ST", NameHi = "अनुसूचित जनजाति", Key = "st", Type = "exam_category", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 4, Name = useHindi ? "अन्य पिछड़ा वर्ग" : "OBC", NameEn = "OBC", NameHi = "अन्य पिछड़ा वर्ग", Key = "obc", Type = "exam_category", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 5, Name = useHindi ? "आर्थिक रूप से कमजोर" : "EWS", NameEn = "EWS", NameHi = "आर्थिक रूप से कमजोर", Key = "ews", Type = "exam_category", IsActive = true, CreatedAt = DateTime.UtcNow }
+                new() { Id = 1, Name = useHindi ? "सामान्य" : "General", NameEn = "General", NameHi = "सामान्य", Key = "general", Type = "exam_category", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 2, Name = useHindi ? "अनुसूचित जाति" : "SC", NameEn = "SC", NameHi = "अनुसूचित जाति", Key = "sc", Type = "exam_category", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 3, Name = useHindi ? "अनुसूचित जनजाति" : "ST", NameEn = "ST", NameHi = "अनुसूचित जनजाति", Key = "st", Type = "exam_category", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 4, Name = useHindi ? "अन्य पिछड़ा वर्ग" : "OBC", NameEn = "OBC", NameHi = "अन्य पिछड़ा वर्ग", Key = "obc", Type = "exam_category", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 5, Name = useHindi ? "आर्थिक रूप से कमजोर" : "EWS", NameEn = "EWS", NameHi = "आर्थिक रूप से कमजोर", Key = "ews", Type = "exam_category", Status = "active", CreatedAt = DateTime.UtcNow }
             };
         }
 
@@ -517,9 +506,9 @@ namespace MasterService.Application.Services
             
             return new List<CategoryDto>
             {
-                new() { Id = 1, Name = useHindi ? "विज्ञान" : "Science", NameEn = "Science", NameHi = "विज्ञान", Key = "science", Type = "stream", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 2, Name = useHindi ? "वाणिज्य" : "Commerce", NameEn = "Commerce", NameHi = "वाणिज्य", Key = "commerce", Type = "stream", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new() { Id = 3, Name = useHindi ? "कला" : "Arts", NameEn = "Arts", NameHi = "कला", Key = "arts", Type = "stream", IsActive = true, CreatedAt = DateTime.UtcNow }
+                new() { Id = 1, Name = useHindi ? "विज्ञान" : "Science", NameEn = "Science", NameHi = "विज्ञान", Key = "science", Type = "stream", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 2, Name = useHindi ? "वाणिज्य" : "Commerce", NameEn = "Commerce", NameHi = "वाणिज्य", Key = "commerce", Type = "stream", Status = "active", CreatedAt = DateTime.UtcNow },
+                new() { Id = 3, Name = useHindi ? "कला" : "Arts", NameEn = "Arts", NameHi = "कला", Key = "arts", Type = "stream", Status = "active", CreatedAt = DateTime.UtcNow }
             };
         }
 
@@ -540,7 +529,7 @@ namespace MasterService.Application.Services
                 NameHi = category.NameHi,
                 Key = category.Key,
                 Type = category.Type,
-                IsActive = category.IsActive,
+                Status = category.Status,
                 CreatedAt = category.CreatedAt,
                 UpdatedAt = category.UpdatedAt
             };
@@ -558,7 +547,7 @@ namespace MasterService.Application.Services
                     NameHi = "सामान्य",
                     Key = "general",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 },
                 new()
@@ -569,7 +558,7 @@ namespace MasterService.Application.Services
                     NameHi = "अन्य पिछड़ा वर्ग",
                     Key = "obc",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 },
                 new()
@@ -580,7 +569,7 @@ namespace MasterService.Application.Services
                     NameHi = "अनुसूचित जाति",
                     Key = "sc",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 },
                 new()
@@ -591,7 +580,7 @@ namespace MasterService.Application.Services
                     NameHi = "अनुसूचित जनजाति",
                     Key = "st",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 },
                 new()
@@ -602,7 +591,7 @@ namespace MasterService.Application.Services
                     NameHi = "आर्थिक रूप से कमजोर",
                     Key = "ews",
                     Type = "category",
-                    IsActive = true,
+                    Status = "active",
                     CreatedAt = DateTime.UtcNow
                 }
             };

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MasterService.Application.DTOs;
 using MasterService.Application.Interfaces;
+using Microsoft.Data.SqlClient;
 
 namespace MasterService.API.Controllers
 {
@@ -118,6 +119,12 @@ namespace MasterService.API.Controllers
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }
+            catch (SqlException ex) when (ex.Number == 50000 || ex.Number == 2601 || ex.Number == 2627)
+            {
+                // 50000: RAISERROR from stored procedure (validation/business rule)
+                // 2601/2627: unique constraint violations
+                return BadRequest(new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating subject");
@@ -145,6 +152,10 @@ namespace MasterService.API.Controllers
                 });
             }
             catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (SqlException ex) when (ex.Number == 50000 || ex.Number == 2601 || ex.Number == 2627)
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }

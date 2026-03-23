@@ -58,7 +58,7 @@ namespace UserService.Infrastructure.Repositories
             var sql = @"EXEC [dbo].[User_Create] 
                     @Name, @Email, @PhoneNumber, @PasswordHash, 
                     @ProfilePhoto, @IsActive, 
-                    @PreferredLanguage, @CreatedAt, @UpdatedAt, @UserId OUTPUT";
+                    @PreferredLanguage, @IsPhoneVerified, @CreatedAt, @UpdatedAt, @UserId OUTPUT";
 
             var parameters = new DynamicParameters();
             parameters.Add("@Name", user.Name);
@@ -68,6 +68,7 @@ namespace UserService.Infrastructure.Repositories
             parameters.Add("@ProfilePhoto", user.ProfilePhoto);
             parameters.Add("@IsActive", user.IsActive);
             parameters.Add("@PreferredLanguage", user.PreferredLanguage ?? "en");
+            parameters.Add("@IsPhoneVerified", user.IsPhoneVerified);
             parameters.Add("@CreatedAt", DateTime.UtcNow);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@UserId", dbType: DbType.Int32, direction: ParameterDirection.Output);
@@ -91,7 +92,8 @@ namespace UserService.Infrastructure.Repositories
                     @PreferredExam, @StateId, @LanguageId, @QualificationId,
                     @ExamId, @CategoryId, @StreamId, @RefreshToken,
                     @RefreshTokenExpiryTime, @IsPhoneVerified, @InterestedInIntlExam,
-                    @IsActive, @UpdatedAt, @LastLoginAt";
+                    @IsActive, @UpdatedAt, @LastLoginAt, @DeviceId, @DeviceType, 
+                    @DeviceName, @FcmToken, @LastDeviceLoginAt, @LastDeviceType, @LastDeviceName";
 
             await _connection.ExecuteAsync(sql, user);
         }

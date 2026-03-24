@@ -91,7 +91,9 @@ namespace UserService.Application.Services
 
                     IsActive = true,
 
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+
+                    LoginType = "Mobile"
 
                 };
 
@@ -255,7 +257,18 @@ namespace UserService.Application.Services
 
                 throw new KeyNotFoundException($"User with ID {userId} not found");
 
+            
 
+            // Field restrictions based on login type
+            if (user.LoginType == "Mobile" && !string.IsNullOrWhiteSpace(patchRequest.Email) && patchRequest.Email != user.Email)
+            {
+                // For mobile login users, email can be updated (no restriction)
+            }
+            
+            if (user.LoginType == "Social" && !string.IsNullOrWhiteSpace(patchRequest.Email) && patchRequest.Email != user.Email)
+            {
+                throw new InvalidOperationException("Email cannot be changed for social login users");
+            }
 
             if (!string.IsNullOrWhiteSpace(patchRequest.FullName))
 
@@ -340,6 +353,14 @@ namespace UserService.Application.Services
             if (user == null)
 
                 throw new KeyNotFoundException($"User with ID {userId} not found");
+
+            
+
+            // Field restrictions based on login type
+            if (user.LoginType == "Social" && !string.IsNullOrWhiteSpace(formData.Email) && formData.Email != user.Email)
+            {
+                throw new InvalidOperationException("Email cannot be changed for social login users");
+            }
 
 
 

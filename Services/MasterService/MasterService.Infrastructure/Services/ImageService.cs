@@ -21,25 +21,33 @@ namespace MasterService.Infrastructure.Services
         public async Task<string?> UploadExamImageAsync(IFormFile? imageFile, int examId)
         {
             if (imageFile == null || imageFile.Length == 0)
-                return null;
+                throw new InvalidOperationException("Please select an image file to upload.");
 
             try
             {
-                // Validate file type - only JPG and PNG allowed
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
+                // Validate file type - only JPG, JPEG, PNG, and WebP allowed
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
                 var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
                 
                 if (!allowedExtensions.Contains(fileExtension))
                 {
                     _logger.LogWarning("Invalid file type: {FileExtension}", fileExtension);
-                    throw new InvalidOperationException("Only JPG and PNG image files are allowed.");
+                    throw new InvalidOperationException("Only JPG, JPEG, PNG, and WebP image files are allowed.");
                 }
 
-                // Validate file size (max 5MB)
-                if (imageFile.Length > 5 * 1024 * 1024)
+                // Validate file size (max 3MB for better performance)
+                if (imageFile.Length > 3 * 1024 * 1024)
                 {
                     _logger.LogWarning("File too large: {FileSize} bytes", imageFile.Length);
-                    throw new InvalidOperationException("File size must be less than 5MB.");
+                    throw new InvalidOperationException("File size must be less than 3MB.");
+                }
+
+                // Validate MIME type
+                var allowedMimeTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/webp" };
+                if (!allowedMimeTypes.Contains(imageFile.ContentType.ToLowerInvariant()))
+                {
+                    _logger.LogWarning("Invalid MIME type: {MimeType}", imageFile.ContentType);
+                    throw new InvalidOperationException("Invalid image file type.");
                 }
 
                 // Create uploads directory if it doesn't exist
@@ -49,8 +57,9 @@ namespace MasterService.Infrastructure.Services
                     Directory.CreateDirectory(uploadsFolder);
                 }
 
-                // Generate unique filename
-                var fileName = $"exam_{examId}_{DateTime.UtcNow:yyyyMMddHHmmss}{fileExtension}";
+                // Generate unique filename with timestamp and random suffix
+                var randomSuffix = new Random().Next(1000, 9999);
+                var fileName = $"exam_{examId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{randomSuffix}{fileExtension}";
                 var filePath = Path.Combine(uploadsFolder, fileName);
 
                 // Save file
@@ -59,15 +68,25 @@ namespace MasterService.Infrastructure.Services
                     await imageFile.CopyToAsync(stream);
                 }
 
-                _logger.LogInformation("Successfully uploaded exam image: {FileName}", fileName);
+                // Verify file was saved and has content
+                if (!new FileInfo(filePath).Exists || new FileInfo(filePath).Length == 0)
+                {
+                    throw new InvalidOperationException("Failed to save the image file.");
+                }
+
+                _logger.LogInformation("Successfully uploaded exam image: {FileName} ({FileSize} bytes)", fileName, imageFile.Length);
                 
                 // Return relative path for database storage
                 return $"/uploads/exams/{fileName}";
             }
+            catch (InvalidOperationException)
+            {
+                throw; // Re-throw validation exceptions
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error uploading exam image for exam ID: {ExamId}", examId);
-                throw;
+                throw new InvalidOperationException("Failed to upload image. Please try again.");
             }
         }
 

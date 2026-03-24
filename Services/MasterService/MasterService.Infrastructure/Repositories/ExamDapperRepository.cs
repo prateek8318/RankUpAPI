@@ -86,11 +86,13 @@ namespace MasterService.Infrastructure.Repositories
 
                 var exams = (await multi.ReadAsync<Exam>()).ToList();
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
                 // Map languages to exams
                 foreach (var exam in exams)
                 {
                     exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                    exam.ExamQualifications = qualifications.Where(eq => eq.ExamId == exam.Id).ToList();
                 }
                 
                 return exams;
@@ -108,11 +110,13 @@ namespace MasterService.Infrastructure.Repositories
 
                 var exams = (await multi.ReadAsync<Exam>()).ToList();
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
-                // Map languages to exams
+                // Map languages and qualifications to exams
                 foreach (var exam in exams)
                 {
                     exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                    exam.ExamQualifications = qualifications.Where(eq => eq.ExamId == exam.Id).ToList();
                 }
                 
                 return exams;

@@ -118,19 +118,23 @@ namespace MasterService.API.Controllers
             try
             {
                 if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+                    return BadRequest(new { success = false, errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+
+                // Additional validation for image URL
+                if (string.IsNullOrWhiteSpace(createDto.ImageUrl))
+                    return BadRequest(new { success = false, message = "Image URL is required for exam creation." });
 
                 var exam = await _examService.CreateExamAsync(createDto);
-                return CreatedAtAction(nameof(GetExam), new { id = exam.Id }, exam);
+                return CreatedAtAction(nameof(GetExam), new { id = exam.Id }, new { success = true, data = exam });
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating exam");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Internal server error while creating exam." });
             }
         }
 
@@ -139,23 +143,28 @@ namespace MasterService.API.Controllers
         public async Task<IActionResult> UpdateExam(int id, UpdateExamDto updateDto)
         {
             if (id != updateDto.Id)
-                return BadRequest("ID in the URL does not match the ID in the request body.");
+                return BadRequest(new { success = false, message = "ID in the URL does not match the ID in the request body." });
 
             try
             {
+                // Additional validation for image URL
+                if (string.IsNullOrWhiteSpace(updateDto.ImageUrl))
+                    return BadRequest(new { success = false, message = "Image URL is required for exam update." });
+
                 var result = await _examService.UpdateExamAsync(id, updateDto);
                 if (result == null)
-                    return NotFound();
-                return NoContent();
+                    return NotFound(new { success = false, message = "Exam not found." });
+                    
+                return Ok(new { success = true, message = "Exam updated successfully." });
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating exam {ExamId}", id);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Internal server error while updating exam." });
             }
         }
 

@@ -28,12 +28,12 @@ namespace MasterService.API.Controllers
             try
             {
                 if (file == null || file.Length == 0)
-                    return BadRequest("No file uploaded.");
+                    return BadRequest(new { success = false, message = "Please select an image file to upload." });
 
                 var imagePath = await _imageService.UploadExamImageAsync(file, examId);
                 
                 if (string.IsNullOrEmpty(imagePath))
-                    return BadRequest("Failed to upload image.");
+                    return BadRequest(new { success = false, message = "Failed to upload image." });
 
                 // Update the exam's ImageUrl in the database
                 var baseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -43,10 +43,11 @@ namespace MasterService.API.Controllers
                 if (!updateSuccess)
                 {
                     _logger.LogWarning("Failed to update exam image URL in database for exam {ExamId}", examId);
-                    // Still return success for upload, but log the issue
+                    return BadRequest(new { success = false, message = "Image uploaded but failed to update database." });
                 }
 
                 return Ok(new { 
+                    success = true,
                     message = "Image uploaded successfully",
                     imagePath = imagePath,
                     imageUrl = fullImageUrl,
@@ -55,12 +56,12 @@ namespace MasterService.API.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error uploading image for exam {ExamId}", examId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Internal server error while uploading image." });
             }
         }
 

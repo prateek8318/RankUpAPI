@@ -25,9 +25,17 @@ namespace MasterService.Application.Services
 
         public async Task<ExamDto> CreateExamAsync(CreateExamDto createDto)
         {
+            // Validate ImageUrl at DTO level
+            if (string.IsNullOrWhiteSpace(createDto.ImageUrl))
+                throw new ArgumentException("Image URL is required for exam creation.");
+
             var exam = _mapper.Map<Exam>(createDto);
             exam.CreatedAt = DateTime.UtcNow;
             exam.IsActive = true;
+
+            // Double-check ImageUrl after mapping
+            if (string.IsNullOrWhiteSpace(exam.ImageUrl))
+                throw new ArgumentException("Image URL is required for exam creation.");
 
             if (createDto.Names != null && createDto.Names.Any())
             {
@@ -70,6 +78,10 @@ namespace MasterService.Application.Services
 
         public async Task<ExamDto?> UpdateExamAsync(int id, UpdateExamDto updateDto)
         {
+            // Validate ImageUrl
+            if (string.IsNullOrWhiteSpace(updateDto.ImageUrl))
+                throw new ArgumentException("Image URL is required for exam update.");
+
             var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
                 return null;
@@ -323,7 +335,9 @@ namespace MasterService.Application.Services
                 IsInternational = exam.IsInternational,
                 IsActive = exam.IsActive,
                 CreatedAt = exam.CreatedAt,
-                UpdatedAt = exam.UpdatedAt
+                UpdatedAt = exam.UpdatedAt,
+                QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>(),
+                StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>()
             };
         }
 

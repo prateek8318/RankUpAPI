@@ -85,5 +85,11 @@ namespace UserService.Domain.Entities
         
         [MaxLength(100)]
         public string? LastDeviceName { get; set; }
+        
+        // Login type tracking
+        [MaxLength(20)]
+        public string? LoginType { get; set; } // "Mobile" or "Social"
+        
+        public DateTime? LastLoginAtIST => LastLoginAt?.AddHours(5.5);
     }
 }

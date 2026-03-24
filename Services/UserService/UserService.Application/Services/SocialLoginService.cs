@@ -134,6 +134,12 @@ namespace UserService.Application.Services
 
                         await LinkSocialAccountAsync(existingUser.Id, socialLoginRequest);
 
+                        // Set LoginType to Social for existing users who link social accounts
+                        if (string.IsNullOrEmpty(existingUser.LoginType))
+                        {
+                            existingUser.LoginType = "Social";
+                        }
+                        
                         existingUser.LastLoginAt = DateTime.UtcNow;
                         existingUser.UpdatedAt = DateTime.UtcNow;
                         
@@ -177,6 +183,7 @@ namespace UserService.Application.Services
                             DeviceId = request.DeviceId,
                             DeviceType = request.DeviceType,
                             DeviceName = request.DeviceName,
+                            LoginType = "Social"
                         };
 
                         await _userRepository.AddAsync(newUser);
@@ -330,7 +337,10 @@ namespace UserService.Application.Services
                 LastLoginAt = user.LastLoginAt,
                 IsPhoneVerified = user.IsPhoneVerified,
                 InterestedInIntlExam = user.InterestedInIntlExam,
-                ProfileCompleted = user.ProfileCompleted
+                ProfileCompleted = user.ProfileCompleted,
+                LoginType = user.LoginType,
+                CreatedAtIST = user.CreatedAt.AddHours(5.5),
+                LastLoginAtIST = user.LastLoginAt?.AddHours(5.5)
             };
         }
     }

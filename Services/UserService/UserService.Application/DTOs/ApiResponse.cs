@@ -9,7 +9,7 @@ namespace UserService.Application.DTOs
         public string Message { get; set; } = string.Empty;
         public T? Data { get; set; }
         public string? ErrorCode { get; set; }
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow.AddHours(5.5);
 
         public static ApiResponse<T> CreateSuccess(string message, T? data = default)
         {

@@ -71,6 +71,12 @@ namespace UserService.Application.DTOs
         public string? LastDeviceType { get; set; }
         
         public string? LastDeviceName { get; set; }
+        
+        public string? LoginType { get; set; } // "Mobile" or "Social"
+        
+        public DateTime CreatedAtIST { get; set; }
+        
+        public DateTime? LastLoginAtIST { get; set; }
 
     }
 
@@ -545,9 +551,10 @@ namespace UserService.Application.DTOs
     }
 
     /// <summary>
-    /// Update FCM token request DTO
+    /// Device information request DTO
     /// </summary>
     /// <remarks>
+    /// **Usage:** Store device information for user tracking and push notifications
     /// **Usage:** Update Firebase Cloud Messaging token for push notifications
     /// 
     /// **Field Descriptions:**

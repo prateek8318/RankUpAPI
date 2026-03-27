@@ -290,8 +290,99 @@ BEGIN
 END
 GO
 
+-- Subject_GetAllByLanguage
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Subject_GetAllByLanguage]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Subject_GetAllByLanguage]
+GO
+
+CREATE PROCEDURE [dbo].[Subject_GetAllByLanguage]
+    @LanguageId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        s.Name,
+        s.Description,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[Subjects] s
+    WHERE s.IsActive = 1
+      AND EXISTS (
+          SELECT 1 FROM SubjectLanguages sl 
+          WHERE sl.SubjectId = s.Id 
+            AND sl.LanguageId = @LanguageId 
+            AND sl.IsActive = 1
+      )
+    ORDER BY s.Name;
+END
+GO
+
+-- Subject_GetByIdByLanguage
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Subject_GetByIdByLanguage]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Subject_GetByIdByLanguage]
+GO
+
+CREATE PROCEDURE [dbo].[Subject_GetByIdByLanguage]
+    @Id INT,
+    @LanguageId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        s.Name,
+        s.Description,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[Subjects] s
+    WHERE s.Id = @Id
+      AND s.IsActive = 1
+      AND EXISTS (
+          SELECT 1 FROM SubjectLanguages sl 
+          WHERE sl.SubjectId = s.Id 
+            AND sl.LanguageId = @LanguageId 
+            AND sl.IsActive = 1
+      );
+END
+GO
+
+-- Subject_GetActiveByLanguage
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Subject_GetActiveByLanguage]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Subject_GetActiveByLanguage]
+GO
+
+CREATE PROCEDURE [dbo].[Subject_GetActiveByLanguage]
+    @LanguageId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        s.Name,
+        s.Description,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[Subjects] s
+    WHERE s.IsActive = 1
+      AND EXISTS (
+          SELECT 1 FROM SubjectLanguages sl 
+          WHERE sl.SubjectId = s.Id 
+            AND sl.LanguageId = @LanguageId 
+            AND sl.IsActive = 1
+      )
+    ORDER BY s.Name;
+END
+GO
+
 PRINT '====================================================';
 PRINT 'SUBJECT STORED PROCEDURES CREATED SUCCESSFULLY!';
-PRINT 'Total Procedures: 8';
+PRINT 'Total Procedures: 11';
 PRINT '====================================================';
 GO

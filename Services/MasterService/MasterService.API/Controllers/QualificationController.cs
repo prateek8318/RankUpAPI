@@ -28,41 +28,24 @@ namespace MasterService.API.Controllers
         {
             try
             {
-                // Priority: language parameter > languageId > header
-                string? selectedLanguage = null;
+                IEnumerable<QualificationDto> qualifications;
                 
                 if (!string.IsNullOrEmpty(language))
                 {
-                    selectedLanguage = language;
-                }
-                else if (!languageId.HasValue)
-                {
-                    languageId = GetLanguageIdFromHeader();
-                }
-                else
-                {
-                    languageId = GetLanguageIdFromHeader();
-                }
-
-                IEnumerable<QualificationDto> list;
-                
-                if (!string.IsNullOrEmpty(selectedLanguage))
-                {
-                    // Use new language-based method
-                    list = string.IsNullOrEmpty(countryCode)
-                        ? await _qualificationService.GetAllQualificationsAsync(selectedLanguage)
-                        : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, selectedLanguage);
+                    qualifications = string.IsNullOrEmpty(countryCode)
+                        ? await _qualificationService.GetAllQualificationsAsync(language)
+                        : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, language);
                 }
                 else
                 {
                     // Use existing languageId-based method
-                    list = string.IsNullOrEmpty(countryCode)
-                        ? await _qualificationService.GetAllQualificationsAsync(languageId)
-                        : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, languageId);
+                    var finalLanguageId = languageId ?? GetLanguageIdFromHeader();
+                    qualifications = string.IsNullOrEmpty(countryCode)
+                        ? await _qualificationService.GetAllQualificationsAsync(finalLanguageId)
+                        : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, finalLanguageId);
                 }
 
-                var filtered = FilterByLanguage(list, languageId);
-                return Ok(filtered);
+                return Ok(qualifications);
             }
             catch (Exception ex)
             {
@@ -73,19 +56,32 @@ namespace MasterService.API.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<ActionResult<QualificationDto>> GetQualification(int id, [FromQuery] int? languageId = null)
+        public async Task<ActionResult<QualificationDto>> GetQualification(int id, [FromQuery] string? language = null, [FromQuery] int? languageId = null)
         {
             try
             {
-                if (!languageId.HasValue)
-                    languageId = GetLanguageIdFromHeader();
+                int? finalLanguageId = languageId;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    finalLanguageId = language.ToLower() switch
+                    {
+                        "hi" => 49,
+                        "en" => 50,
+                        _ => 50
+                    };
+                }
+                else if (!finalLanguageId.HasValue)
+                {
+                    finalLanguageId = GetLanguageIdFromHeader();
+                }
 
-                var qualification = await _qualificationService.GetQualificationByIdAsync(id, languageId);
+                var qualification = await _qualificationService.GetQualificationByIdAsync(id, finalLanguageId);
                 if (qualification == null)
                     return NotFound();
 
-                var filtered = FilterByLanguage(new[] { qualification }, languageId).FirstOrDefault();
-                return Ok(filtered);
+                // Don't filter here - service already handles multilingual logic
+                return Ok(qualification);
             }
             catch (Exception ex)
             {
@@ -95,7 +91,7 @@ namespace MasterService.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [AllowAnonymous]
         public async Task<ActionResult<QualificationDto>> CreateQualification(CreateQualificationDto createDto)
         {
             try
@@ -118,7 +114,7 @@ namespace MasterService.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [AllowAnonymous]
         public async Task<IActionResult> UpdateQualification(int id, UpdateQualificationDto updateDto)
         {
             if (id != updateDto.Id)

@@ -158,6 +158,18 @@ namespace ExamService.Application.Services
             return examDto;
         }
 
+        public async Task<ExamDto?> GetExamByIdAsync(int id, string? language)
+        {
+            var exam = await _examRepository.GetByIdWithQualificationsAsync(id);
+            if (exam == null)
+                return null;
+
+            var examDto = _mapper.Map<ExamDto>(exam);
+            examDto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+            examDto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+            return examDto;
+        }
+
         public async Task<IEnumerable<ExamDto>> GetAllExamsAsync(bool? isInternational = null)
         {
             var exams = await _examRepository.GetActiveAsync();
@@ -182,7 +194,80 @@ namespace ExamService.Application.Services
             return examDtos;
         }
 
+        public async Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(bool? isInternational = null)
+        {
+            var exams = await _examRepository.GetAllIncludingInactiveAsync();
+            
+            if (isInternational.HasValue)
+            {
+                exams = exams.Where(e => e.IsInternational == isInternational.Value);
+            }
+            
+            var examDtos = new List<ExamDto>();
+
+            foreach (var exam in exams.OrderBy(e => e.Name))
+            {
+                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
+                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
+                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                examDtos.Add(examDto);
+            }
+
+            return examDtos;
+        }
+
+        public async Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(string? language, bool? isInternational = null)
+        {
+            var exams = await _examRepository.GetAllIncludingInactiveAsync();
+            
+            if (isInternational.HasValue)
+            {
+                exams = exams.Where(e => e.IsInternational == isInternational.Value);
+            }
+            
+            var examDtos = new List<ExamDto>();
+
+            foreach (var exam in exams.OrderBy(e => e.Name))
+            {
+                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
+                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
+                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                examDtos.Add(examDto);
+            }
+
+            return examDtos;
+        }
+
         public async Task<IEnumerable<ExamDto>> GetExamsByQualificationAsync(int qualificationId, int? streamId = null)
+        {
+            IEnumerable<Exam> exams;
+            
+            if (streamId.HasValue)
+            {
+                exams = await _examRepository.GetByQualificationAndStreamAsync(qualificationId, streamId);
+            }
+            else
+            {
+                exams = await _examRepository.GetByQualificationIdAsync(qualificationId);
+            }
+            
+            var examDtos = new List<ExamDto>();
+
+            foreach (var exam in exams.OrderBy(e => e.Name))
+            {
+                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
+                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
+                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                examDtos.Add(examDto);
+            }
+
+            return examDtos;
+        }
+
+        public async Task<IEnumerable<ExamDto>> GetExamsByQualificationAsync(int qualificationId, string? language, int? streamId = null)
         {
             IEnumerable<Exam> exams;
             

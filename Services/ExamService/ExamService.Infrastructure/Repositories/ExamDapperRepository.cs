@@ -48,6 +48,15 @@ namespace ExamService.Infrastructure.Repositories
             });
         }
 
+        public async Task<IEnumerable<Exam>> GetAllIncludingInactiveAsync()
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetAllIncludingInactive]";
+                return await connection.QueryAsync<Exam>(sql);
+            });
+        }
+
         public async Task<IEnumerable<Exam>> GetByQualificationIdAsync(int qualificationId)
         {
             return await WithConnectionAsync(async connection =>

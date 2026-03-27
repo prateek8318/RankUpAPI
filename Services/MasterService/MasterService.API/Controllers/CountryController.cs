@@ -58,6 +58,37 @@ namespace MasterService.API.Controllers
             }
         }
 
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> GetAllCountriesForAdmin([FromQuery] string? language = null)
+        {
+            try
+            {
+                IEnumerable<CountryDto> countries;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    countries = await _countryService.GetAllCountriesIncludingInactiveAsync(language);
+                }
+                else
+                {
+                    countries = await _countryService.GetAllCountriesIncludingInactiveAsync();
+                }
+                
+                return Ok(new
+                {
+                    success = true,
+                    message = "All countries fetched successfully",
+                    data = countries
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all countries for admin");
+                return StatusCode(500, new { success = false, message = "Error fetching countries" });
+            }
+        }
+
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<ActionResult<object>> GetCountry(int id, [FromQuery] string? language = null)

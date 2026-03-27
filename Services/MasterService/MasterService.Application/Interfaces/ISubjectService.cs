@@ -7,20 +7,21 @@ namespace MasterService.Application.Interfaces
 {
     public interface ISubjectService
     {
-        Task<IEnumerable<SubjectDto>> GetAllSubjectsAsync();
-        Task<SubjectDto?> GetSubjectByIdAsync(int id);
-        Task<IEnumerable<SubjectListDto>> GetActiveSubjectsAsync();
+        Task<IEnumerable<SubjectDto>> GetAllSubjectsAsync(int? languageId = null);
+        Task<SubjectDto?> GetSubjectByIdAsync(int id, int? languageId = null);
+        Task<IEnumerable<SubjectListDto>> GetActiveSubjectsAsync(int? languageId = null);
         Task<SubjectDto> CreateSubjectAsync(CreateSubjectDto createSubjectDto);
         Task<SubjectDto?> UpdateSubjectAsync(int id, UpdateSubjectDto updateSubjectDto);
         Task<bool> DeleteSubjectAsync(int id);
+        Task<bool> ToggleSubjectStatusAsync(int id, bool isActive);
         Task<bool> SubjectExistsAsync(int id);
     }
 
     public interface ISubjectRepository
     {
-        Task<IEnumerable<Subject>> GetAllAsync();
-        Task<Subject?> GetByIdAsync(int id);
-        Task<IEnumerable<Subject>> GetActiveSubjectsAsync();
+        Task<IEnumerable<Subject>> GetAllAsync(int? languageId = null);
+        Task<Subject?> GetByIdAsync(int id, int? languageId = null);
+        Task<IEnumerable<Subject>> GetActiveSubjectsAsync(int? languageId = null);
         Task<Subject> AddAsync(Subject subject, string? namesJson = null);
         Task<Subject> UpdateAsync(Subject subject, string? namesJson = null);
         Task DeleteAsync(Subject subject);

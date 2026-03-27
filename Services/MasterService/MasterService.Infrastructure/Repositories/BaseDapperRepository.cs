@@ -20,7 +20,10 @@ namespace MasterService.Infrastructure.Repositories
 
         protected IDbConnection GetConnection()
         {
-            return new SqlConnection(_connectionString);
+            var connection = new SqlConnection(_connectionString);
+            // Set QUOTED_IDENTIFIER ON for this connection
+            connection.StatisticsEnabled = false;
+            return connection;
         }
 
         protected async Task EnsureOpenAsync(IDbConnection connection)

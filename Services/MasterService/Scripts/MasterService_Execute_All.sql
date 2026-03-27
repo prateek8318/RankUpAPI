@@ -96,7 +96,7 @@ CREATE PROCEDURE dbo.Country_GetAll
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, Code, SubdivisionLabelEn, SubdivisionLabelHi, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, Iso2, CountryCode, PhoneLength, CurrencyCode, Image, IsActive, CreatedAt, UpdatedAt
     FROM dbo.Countries;
 END
 GO
@@ -109,7 +109,7 @@ CREATE PROCEDURE dbo.Country_GetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, Code, SubdivisionLabelEn, SubdivisionLabelHi, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, Iso2, CountryCode, PhoneLength, CurrencyCode, Image, IsActive, CreatedAt, UpdatedAt
     FROM dbo.Countries
     WHERE Id = @Id;
 END
@@ -119,13 +119,13 @@ GO
 IF OBJECT_ID('dbo.Country_GetByCode', 'P') IS NOT NULL DROP PROCEDURE dbo.Country_GetByCode;
 GO
 CREATE PROCEDURE dbo.Country_GetByCode
-    @Code NVARCHAR(10)
+    @Iso2 NVARCHAR(2)
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, Code, SubdivisionLabelEn, SubdivisionLabelHi, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, Iso2, CountryCode, PhoneLength, CurrencyCode, Image, IsActive, CreatedAt, UpdatedAt
     FROM dbo.Countries
-    WHERE Code = @Code;
+    WHERE Iso2 = @Iso2;
 END
 GO
 
@@ -134,18 +134,28 @@ IF OBJECT_ID('dbo.Country_Create', 'P') IS NOT NULL DROP PROCEDURE dbo.Country_C
 GO
 CREATE PROCEDURE dbo.Country_Create
     @Name                   NVARCHAR(100),
-    @Code                   NVARCHAR(10),
-    @SubdivisionLabelEn     NVARCHAR(100),
-    @SubdivisionLabelHi     NVARCHAR(100),
-    @IsActive               BIT,
+    @Iso2                   NVARCHAR(2),
+    @CountryCode            NVARCHAR(5),
+    @PhoneLength            INT = 10,
+    @CurrencyCode           NVARCHAR(3) = '',
+    @Image                  NVARCHAR(255) = NULL,
+    @IsActive               BIT = 1,
     @CreatedAt              DATETIME2,
     @UpdatedAt              DATETIME2,
     @Id                     INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.Countries (Name, Code, SubdivisionLabelEn, SubdivisionLabelHi, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @Code, @SubdivisionLabelEn, @SubdivisionLabelHi, @IsActive, @CreatedAt, @UpdatedAt);
+    
+    -- Check for duplicate Iso2
+    IF EXISTS (SELECT 1 FROM dbo.Countries WHERE Iso2 = @Iso2)
+    BEGIN
+        RAISERROR('Country with this ISO2 code already exists', 16, 1);
+        RETURN -1;
+    END
+    
+    INSERT INTO dbo.Countries (Name, Iso2, CountryCode, PhoneLength, CurrencyCode, Image, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@Name, @Iso2, @CountryCode, @PhoneLength, @CurrencyCode, @Image, @IsActive, @CreatedAt, @UpdatedAt);
     SET @Id = SCOPE_IDENTITY();
 END
 GO
@@ -156,20 +166,27 @@ GO
 CREATE PROCEDURE dbo.Country_Update
     @Id                     INT,
     @Name                   NVARCHAR(100),
-    @Code                   NVARCHAR(10),
-    @SubdivisionLabelEn     NVARCHAR(100),
-    @SubdivisionLabelHi     NVARCHAR(100),
+    @Iso2                   NVARCHAR(2),
+    @CountryCode            NVARCHAR(5),
+    @PhoneLength            INT = 10,
+    @CurrencyCode           NVARCHAR(3) = '',
+    @Image                  NVARCHAR(255) = NULL,
     @IsActive               BIT,
     @UpdatedAt              DATETIME2
 AS
 BEGIN
     SET NOCOUNT ON;
+    
+    -- Check for duplicate Iso2 (excluding current record)
+    IF EXISTS (SELECT 1 FROM dbo.Countries WHERE Iso2 = @Iso2 AND Id != @Id)
+    BEGIN
+        RAISERROR('Country with this ISO2 code already exists', 16, 1);
+        RETURN -1;
+    END
+    
     UPDATE dbo.Countries
-    SET Name = @Name, Code = @Code,
-        SubdivisionLabelEn = @SubdivisionLabelEn,
-        SubdivisionLabelHi = @SubdivisionLabelHi,
-        IsActive = @IsActive,
-        UpdatedAt = @UpdatedAt
+    SET Name = @Name, Iso2 = @Iso2, CountryCode = @CountryCode, PhoneLength = @PhoneLength,
+        CurrencyCode = @CurrencyCode, Image = @Image, IsActive = @IsActive, UpdatedAt = @UpdatedAt
     WHERE Id = @Id;
 END
 GO
@@ -183,6 +200,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DELETE FROM dbo.Countries WHERE Id = @Id;
+END
+GO
+
+-- Country_ToggleStatus
+IF OBJECT_ID('dbo.Country_ToggleStatus', 'P') IS NOT NULL DROP PROCEDURE dbo.Country_ToggleStatus;
+GO
+CREATE PROCEDURE dbo.Country_ToggleStatus
+    @Id INT,
+    @IsActive BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Countries 
+    SET IsActive = @IsActive, UpdatedAt = GETUTCDATE()
+    WHERE Id = @Id;
 END
 GO
 
@@ -400,6 +432,7 @@ IF OBJECT_ID('dbo.Qualification_Create', 'P') IS NOT NULL DROP PROCEDURE dbo.Qua
 GO
 CREATE PROCEDURE dbo.Qualification_Create
     @Name        NVARCHAR(200),
+    @NameHi      NVARCHAR(100) = NULL,
     @Description NVARCHAR(1000) = NULL,
     @CountryCode NVARCHAR(10),
     @IsActive    BIT,
@@ -410,8 +443,8 @@ CREATE PROCEDURE dbo.Qualification_Create
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.Qualifications (Name, Description, CountryCode, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @Description, @CountryCode, @IsActive, @CreatedAt, @UpdatedAt);
+    INSERT INTO dbo.Qualifications (Name, NameHi, Description, CountryCode, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@Name, @NameHi, @Description, @CountryCode, @IsActive, @CreatedAt, @UpdatedAt);
     SET @Id = SCOPE_IDENTITY();
 
     IF @NamesJson IS NOT NULL AND @Id > 0
@@ -441,6 +474,7 @@ GO
 CREATE PROCEDURE dbo.Qualification_Update
     @Id          INT,
     @Name        NVARCHAR(200),
+    @NameHi      NVARCHAR(100) = NULL,
     @Description NVARCHAR(1000) = NULL,
     @CountryCode NVARCHAR(10),
     @IsActive    BIT,
@@ -450,7 +484,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE dbo.Qualifications
-    SET Name = @Name, Description = @Description, CountryCode = @CountryCode, IsActive = @IsActive, UpdatedAt = @UpdatedAt
+    SET Name = @Name, NameHi = @NameHi, Description = @Description, CountryCode = @CountryCode, IsActive = @IsActive, UpdatedAt = @UpdatedAt
     WHERE Id = @Id;
 
     -- Replace language rows when provided
@@ -958,6 +992,15 @@ CREATE PROCEDURE dbo.Exam_Delete
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET QUOTED_IDENTIFIER ON;
+    
+    -- Delete related ExamLanguages first
+    DELETE FROM dbo.ExamLanguages WHERE ExamId = @Id;
+    
+    -- Delete related ExamQualifications
+    DELETE FROM dbo.ExamQualifications WHERE ExamId = @Id;
+    
+    -- Finally delete the exam
     DELETE FROM dbo.Exams WHERE Id = @Id;
 END
 GO
@@ -1146,17 +1189,49 @@ BEGIN
     
     IF @LanguageCode = 'hi'
     BEGIN
-        SELECT Id, NameHi as Name, NameHi, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive
-        FROM dbo.Qualifications
-        WHERE IsActive = 1 AND NameHi IS NOT NULL AND NameHi != ''
-        ORDER BY NameHi;
+        SELECT 
+            q.Id, 
+            COALESCE(q.NameHi, q.Name) as Name, 
+            q.NameHi, 
+            q.Description, 
+            q.CountryCode, 
+            q.CountryId, 
+            q.CreatedAt, 
+            q.UpdatedAt, 
+            q.IsActive,
+            (
+                SELECT ql.LanguageId, l.Code as LanguageCode, l.Name as LanguageName, ql.Name, ql.Description
+                FROM dbo.QualificationLanguages ql
+                INNER JOIN dbo.Languages l ON ql.LanguageId = l.Id
+                WHERE ql.QualificationId = q.Id AND ql.IsActive = 1
+                FOR JSON PATH
+            ) as Names
+        FROM dbo.Qualifications q
+        WHERE q.IsActive = 1
+        ORDER BY COALESCE(q.NameHi, q.Name);
     END
     ELSE
     BEGIN
-        SELECT Id, Name, NameHi, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive
-        FROM dbo.Qualifications
-        WHERE IsActive = 1
-        ORDER BY Name;
+        SELECT 
+            q.Id, 
+            q.Name, 
+            q.NameHi, 
+            q.Description, 
+            q.CountryCode, 
+            q.CountryId, 
+            q.CreatedAt, 
+            q.UpdatedAt, 
+            q.IsActive,
+            (
+                SELECT ql.LanguageId, l.Code as LanguageCode, l.Name as LanguageName, ql.Name, ql.Description
+                FROM dbo.QualificationLanguages ql
+                INNER JOIN dbo.Languages l ON ql.LanguageId = l.Id
+                WHERE ql.QualificationId = q.Id AND ql.IsActive = 1
+                FOR JSON PATH
+            ) as Names
+        FROM dbo.Qualifications q
+        WHERE q.IsActive = 1
+        ORDER BY q.Name;
     END
 END
 GO
@@ -1173,10 +1248,10 @@ BEGIN
     
     IF @LanguageCode = 'hi'
     BEGIN
-        SELECT Id, NameHi as Name, NameHi, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive
+        SELECT Id, COALESCE(NameHi, Name) as Name, NameHi, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive
         FROM dbo.Qualifications
-        WHERE IsActive = 1 AND CountryCode = @CountryCode AND NameHi IS NOT NULL AND NameHi != ''
-        ORDER BY NameHi;
+        WHERE IsActive = 1 AND CountryCode = @CountryCode
+        ORDER BY COALESCE(NameHi, Name);
     END
     ELSE
     BEGIN
@@ -1185,5 +1260,109 @@ BEGIN
         WHERE IsActive = 1 AND CountryCode = @CountryCode
         ORDER BY Name;
     END
+END
+GO
+
+-- Exam_GetAllWithLanguagesIncludingInactive
+IF OBJECT_ID('dbo.Exam_GetAllWithLanguagesIncludingInactive', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_GetAllWithLanguagesIncludingInactive;
+GO
+CREATE PROCEDURE dbo.Exam_GetAllWithLanguagesIncludingInactive
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        e.Id,
+        e.Name,
+        e.Description,
+        e.CountryCode,
+        e.MinAge,
+        e.MaxAge,
+        e.ImageUrl,
+        e.IsInternational,
+        e.IsActive,
+        e.CreatedAt,
+        e.UpdatedAt
+    FROM [dbo].[Exams] e
+    ORDER BY e.Name;
+    
+    SELECT 
+        el.Id,
+        el.ExamId,
+        el.LanguageId,
+        el.Name,
+        el.Description,
+        el.IsActive,
+        el.CreatedAt,
+        el.UpdatedAt
+    FROM [dbo].[ExamLanguages] el
+    WHERE el.IsActive = 1
+    ORDER BY el.ExamId, el.LanguageId;
+    
+    SELECT 
+        eq.Id,
+        eq.ExamId,
+        eq.QualificationId,
+        eq.StreamId,
+        eq.IsActive,
+        eq.CreatedAt,
+        eq.UpdatedAt
+    FROM [dbo].[ExamQualifications] eq
+    WHERE eq.IsActive = 1
+    ORDER BY eq.ExamId;
+END
+GO
+
+-- Exam_GetAllWithLanguagesIncludingInactiveLocalized
+IF OBJECT_ID('dbo.Exam_GetAllWithLanguagesIncludingInactiveLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_GetAllWithLanguagesIncludingInactiveLocalized;
+GO
+CREATE PROCEDURE dbo.Exam_GetAllWithLanguagesIncludingInactiveLocalized
+    @LanguageCode NVARCHAR(10) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        e.Id,
+        ISNULL(el.Name, e.Name) AS Name,
+        e.Description,
+        e.CountryCode,
+        e.MinAge,
+        e.MaxAge,
+        e.ImageUrl,
+        e.IsInternational,
+        e.IsActive,
+        e.CreatedAt,
+        e.UpdatedAt
+    FROM [dbo].[Exams] e
+    LEFT JOIN [dbo].[ExamLanguages] el ON e.Id = el.ExamId 
+        AND el.LanguageId = (SELECT Id FROM Languages WHERE Code = @LanguageCode AND IsActive = 1)
+        AND el.IsActive = 1
+    ORDER BY ISNULL(el.Name, e.Name);
+    
+    SELECT 
+        el.Id,
+        el.ExamId,
+        el.LanguageId,
+        el.Name,
+        el.Description,
+        el.IsActive,
+        el.CreatedAt,
+        el.UpdatedAt
+    FROM [dbo].[ExamLanguages] el
+    WHERE el.IsActive = 1
+    ORDER BY el.ExamId, el.LanguageId;
+    
+    SELECT 
+        eq.Id,
+        eq.ExamId,
+        eq.QualificationId,
+        eq.StreamId,
+        eq.IsActive,
+        eq.CreatedAt,
+        eq.UpdatedAt
+    FROM [dbo].[ExamQualifications] eq
+    WHERE eq.IsActive = 1
+    ORDER BY eq.ExamId;
 END
 GO

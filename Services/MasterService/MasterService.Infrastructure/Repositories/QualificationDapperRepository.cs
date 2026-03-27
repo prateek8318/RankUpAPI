@@ -121,6 +121,7 @@ WHERE ql.IsActive = 1
         {
             var parameters = new DynamicParameters();
             parameters.Add("@Name", qualification.Name);
+            parameters.Add("@NameHi", qualification.NameHi);
             parameters.Add("@Description", qualification.Description);
             parameters.Add("@CountryCode", qualification.CountryCode);
             parameters.Add("@IsActive", qualification.IsActive);
@@ -150,6 +151,7 @@ WHERE ql.IsActive = 1
             var parameters = new DynamicParameters();
             parameters.Add("@Id", qualification.Id);
             parameters.Add("@Name", qualification.Name);
+            parameters.Add("@NameHi", qualification.NameHi);
             parameters.Add("@Description", qualification.Description);
             parameters.Add("@CountryCode", qualification.CountryCode);
             parameters.Add("@IsActive", qualification.IsActive);

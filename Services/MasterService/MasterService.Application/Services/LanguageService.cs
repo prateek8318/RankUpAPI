@@ -76,6 +76,12 @@ namespace MasterService.Application.Services
             return languages.OrderBy(l => l.Name).Select(l => _mapper.Map<LanguageDto>(l));
         }
 
+        public async Task<IEnumerable<LanguageDto>> GetAllLanguagesIncludingInactiveAsync()
+        {
+            var languages = await _languageRepository.GetAllAsync();
+            return languages.OrderBy(l => l.Name).Select(l => _mapper.Map<LanguageDto>(l));
+        }
+
         public async Task<bool> ToggleLanguageStatusAsync(int id, bool isActive)
         {
             var language = await _languageRepository.GetByIdAsync(id);

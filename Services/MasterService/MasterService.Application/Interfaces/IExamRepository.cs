@@ -8,7 +8,9 @@ namespace MasterService.Application.Interfaces
         Task<Exam?> GetByIdLocalizedAsync(int id, string? languageCode);
         Task<IEnumerable<Exam>> GetAllAsync();
         Task<IEnumerable<Exam>> GetActiveAsync();
+        Task<IEnumerable<Exam>> GetAllIncludingInactiveAsync();
         Task<IEnumerable<Exam>> GetActiveLocalizedAsync(string? languageCode);
+        Task<IEnumerable<Exam>> GetAllIncludingInactiveLocalizedAsync(string? languageCode);
         Task<IEnumerable<Exam>> GetByFilterAsync(string? countryCode, int? qualificationId, int? streamId, int? minAge, int? maxAge);
         Task<IEnumerable<Exam>> GetByFilterLocalizedAsync(string? languageCode, string? countryCode, int? qualificationId, int? streamId, int? minAge, int? maxAge);
         Task<Exam> AddAsync(Exam exam);

@@ -8,6 +8,7 @@ namespace ExamService.Application.Interfaces
         Task<Exam?> GetByIdWithQualificationsAsync(int id);
         Task<IEnumerable<Exam>> GetAllAsync();
         Task<IEnumerable<Exam>> GetActiveAsync();
+        Task<IEnumerable<Exam>> GetAllIncludingInactiveAsync();
         Task<IEnumerable<Exam>> GetByQualificationIdAsync(int qualificationId);
         Task<IEnumerable<Exam>> GetByQualificationAndStreamAsync(int qualificationId, int? streamId);
         Task<Exam> AddAsync(Exam exam);

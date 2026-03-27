@@ -111,10 +111,10 @@ namespace MasterService.Application.Services
             if (languageId.HasValue)
             {
                 var langName = stream.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
-                if (!string.IsNullOrEmpty(langName))
+                if (!string.IsNullOrEmpty(langName) && IsValidStreamName(langName))
                     dto.Name = langName;
                 var langDesc = stream.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Description;
-                if (langDesc != null)
+                if (langDesc != null && IsValidStreamName(langDesc))
                     dto.Description = langDesc;
             }
             return dto;
@@ -162,10 +162,10 @@ namespace MasterService.Application.Services
                     if (s != null)
                     {
                         var langName = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
-                        if (!string.IsNullOrEmpty(langName))
+                        if (!string.IsNullOrEmpty(langName) && IsValidStreamName(langName))
                             dto.Name = langName;
                         var langDesc = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Description;
-                        if (langDesc != null)
+                        if (langDesc != null && IsValidStreamName(langDesc))
                             dto.Description = langDesc;
                     }
                 }
@@ -190,10 +190,10 @@ namespace MasterService.Application.Services
                     if (s != null)
                     {
                         var langName = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
-                        if (!string.IsNullOrEmpty(langName))
+                        if (!string.IsNullOrEmpty(langName) && IsValidStreamName(langName))
                             dto.Name = langName;
                         var langDesc = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Description;
-                        if (langDesc != null)
+                        if (langDesc != null && IsValidStreamName(langDesc))
                             dto.Description = langDesc;
                     }
                 }
@@ -220,6 +220,21 @@ namespace MasterService.Application.Services
         public async Task<bool> ToggleStreamStatusAsync(int id, bool isActive)
         {
             return await _streamRepository.SetActiveAsync(id, isActive);
+        }
+
+        private static bool IsValidStreamName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+                
+            // Check if the name looks like a language name rather than a stream name
+            var invalidNames = new[] { "English", "अंग्रेज़ी", "Hindi", "हिंदी", "English / अंग्रेज़ी", "अंग्रेज़ी / English" };
+            
+            return !invalidNames.Contains(name.Trim()) && 
+                   !name.Contains("English") && 
+                   !name.Contains("अंग्रेज़ी") &&
+                   !name.Contains("Hindi") &&
+                   !name.Contains("हिंदी");
         }
 
         private StreamDto MapToOptimizedStreamDto(StreamEntity stream, string language)

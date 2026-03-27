@@ -23,11 +23,11 @@ namespace MasterService.Application.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<SubjectDto>> GetAllSubjectsAsync()
+        public async Task<IEnumerable<SubjectDto>> GetAllSubjectsAsync(int? languageId = null)
         {
             try
             {
-                var subjects = await _subjectRepository.GetAllAsync();
+                var subjects = await _subjectRepository.GetAllAsync(languageId);
                 return subjects.Select(MapToSubjectDto);
             }
             catch (Exception ex)
@@ -37,11 +37,11 @@ namespace MasterService.Application.Services
             }
         }
 
-        public async Task<SubjectDto?> GetSubjectByIdAsync(int id)
+        public async Task<SubjectDto?> GetSubjectByIdAsync(int id, int? languageId = null)
         {
             try
             {
-                var subject = await _subjectRepository.GetByIdAsync(id);
+                var subject = await _subjectRepository.GetByIdAsync(id, languageId);
                 return subject == null ? null : MapToSubjectDto(subject);
             }
             catch (Exception ex)
@@ -51,11 +51,11 @@ namespace MasterService.Application.Services
             }
         }
 
-        public async Task<IEnumerable<SubjectListDto>> GetActiveSubjectsAsync()
+        public async Task<IEnumerable<SubjectListDto>> GetActiveSubjectsAsync(int? languageId = null)
         {
             try
             {
-                var subjects = await _subjectRepository.GetActiveSubjectsAsync();
+                var subjects = await _subjectRepository.GetActiveSubjectsAsync(languageId);
                 return subjects.Select(MapToSubjectListDto);
             }
             catch (Exception ex)
@@ -155,12 +155,32 @@ namespace MasterService.Application.Services
                 }
 
                 await _subjectRepository.DeleteAsync(subject);
+                await _subjectRepository.SaveChangesAsync();
 
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting subject with id: {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<bool> ToggleSubjectStatusAsync(int id, bool isActive)
+        {
+            try
+            {
+                var subject = await _subjectRepository.GetByIdAsync(id);
+                if (subject == null)
+                {
+                    return false;
+                }
+
+                return await _subjectRepository.ToggleSubjectStatusAsync(id, isActive);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling subject status with id: {Id}", id);
                 throw;
             }
         }

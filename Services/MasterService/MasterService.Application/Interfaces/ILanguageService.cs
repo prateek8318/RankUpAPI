@@ -9,6 +9,7 @@ namespace MasterService.Application.Interfaces
         Task<bool> DeleteLanguageAsync(int id);
         Task<LanguageDto?> GetLanguageByIdAsync(int id);
         Task<IEnumerable<LanguageDto>> GetAllLanguagesAsync();
+        Task<IEnumerable<LanguageDto>> GetAllLanguagesIncludingInactiveAsync();
         Task<bool> ToggleLanguageStatusAsync(int id, bool isActive);
     }
 }

@@ -44,7 +44,16 @@ namespace ExamService.API.Controllers
             
             if (qualificationId.HasValue)
             {
-                var exams = await _examService.GetExamsByQualificationAsync(qualificationId.Value, streamId);
+                IEnumerable<ExamDto> exams;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    exams = await _examService.GetExamsByQualificationAsync(qualificationId.Value, language, streamId);
+                }
+                else
+                {
+                    exams = await _examService.GetExamsByQualificationAsync(qualificationId.Value, streamId);
+                }
                 
                 // Filter by international status if provided
                 if (isInternational.HasValue)
@@ -82,7 +91,17 @@ namespace ExamService.API.Controllers
         public async Task<ActionResult<ExamDto>> GetExam(int id, [FromQuery] string? language = null)
         {
             var currentLanguage = language ?? _languageService.GetCurrentLanguage();
-            var exam = await _examService.GetExamByIdAsync(id);
+            ExamDto? exam;
+            
+            if (!string.IsNullOrEmpty(language))
+            {
+                exam = await _examService.GetExamByIdAsync(id, language);
+            }
+            else
+            {
+                exam = await _examService.GetExamByIdAsync(id);
+            }
+            
             if (exam == null)
                 return NotFound(new { success = false, message = "Exam not found" });
 
@@ -274,6 +293,69 @@ namespace ExamService.API.Controllers
             catch (Exception ex)
             {
                 return BadRequest($"Error seeding international exams: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get all exams including inactive ones (Admin only)
+        /// </summary>
+        /// <param name="isInternational">Optional filter for international exams (true/false)</param>
+        /// <param name="language">Optional language code (e.g., 'en', 'hi'). Defaults to header value or 'en'</param>
+        /// <returns>List of all exams including inactive</returns>
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> GetAllExamsForAdmin(
+            [FromQuery] bool? isInternational = null,
+            [FromQuery] string? language = null)
+        {
+            var currentLanguage = language ?? _languageService.GetCurrentLanguage();
+            
+            IEnumerable<ExamDto> exams;
+            if (!string.IsNullOrEmpty(language))
+            {
+                exams = await _examService.GetAllExamsIncludingInactiveAsync(language, isInternational);
+            }
+            else
+            {
+                exams = await _examService.GetAllExamsIncludingInactiveAsync(isInternational);
+            }
+            
+            return Ok(new
+            {
+                success = true,
+                data = exams,
+                language = currentLanguage,
+                message = "All exams fetched successfully"
+            });
+        }
+
+        /// <summary>
+        /// Update exam status (active/inactive)
+        /// </summary>
+        /// <param name="id">Exam ID</param>
+        /// <param name="isActive">Active status (true/false)</param>
+        /// <returns>Updated exam status</returns>
+        [HttpPatch("{id}/status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> UpdateExamStatus(int id, [FromBody] bool isActive)
+        {
+            try
+            {
+                var result = await _examService.ToggleExamStatusAsync(id, isActive);
+                if (!result)
+                    return NotFound(new { success = false, message = "Exam not found" });
+
+                var message = isActive ? "Exam activated successfully" : "Exam deactivated successfully";
+                return Ok(new
+                {
+                    success = true,
+                    message = message,
+                    data = true
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Error updating exam status" });
             }
         }
     }

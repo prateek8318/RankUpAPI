@@ -21,11 +21,25 @@ namespace MasterService.Application.Services
             try
             {
                 var countries = await _countryRepository.GetAllAsync();
-                return countries.Select(c => MapToDto(c));
+                return countries.Where(c => c.IsActive).Select(c => MapToDto(c));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all countries");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<CountryDto>> GetAllCountriesIncludingInactiveAsync(string? language = null)
+        {
+            try
+            {
+                var countries = await _countryRepository.GetAllAsync();
+                return countries.Select(c => MapToDto(c, language));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all countries including inactive");
                 throw;
             }
         }

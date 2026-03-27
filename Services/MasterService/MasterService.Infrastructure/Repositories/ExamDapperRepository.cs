@@ -103,6 +103,53 @@ namespace MasterService.Infrastructure.Repositories
             });
         }
 
+        public async Task<IEnumerable<Exam>> GetAllIncludingInactiveAsync()
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetAllWithLanguagesIncludingInactive]",
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
+                
+                // Map languages to exams
+                foreach (var exam in exams)
+                {
+                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                    exam.ExamQualifications = qualifications.Where(eq => eq.ExamId == exam.Id).ToList();
+                }
+                
+                return exams;
+            });
+        }
+
+        public async Task<IEnumerable<Exam>> GetAllIncludingInactiveLocalizedAsync(string? languageCode)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetAllWithLanguagesIncludingInactiveLocalized]",
+                    new { LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
+                
+                // Map languages to exams
+                foreach (var exam in exams)
+                {
+                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
+                    exam.ExamQualifications = qualifications.Where(eq => eq.ExamId == exam.Id).ToList();
+                }
+                
+                return exams;
+            });
+        }
+
         public async Task<IEnumerable<Exam>> GetActiveLocalizedAsync(string? languageCode)
         {
             return await WithConnectionAsync(async connection =>
@@ -259,10 +306,19 @@ namespace MasterService.Infrastructure.Repositories
         public async Task DeleteAsync(Exam exam)
         {
             await WithConnectionAsync(async connection =>
-                await connection.ExecuteAsync(
-                    "[dbo].[Exam_Delete]",
-                    new { Id = exam.Id },
-                    commandType: CommandType.StoredProcedure));
+            {
+                // Set QUOTED_IDENTIFIER ON for this connection
+                await connection.ExecuteAsync("SET QUOTED_IDENTIFIER ON");
+                
+                // Delete related ExamLanguages first
+                await connection.ExecuteAsync("DELETE FROM dbo.ExamLanguages WHERE ExamId = @ExamId", new { ExamId = exam.Id });
+                
+                // Delete related ExamQualifications
+                await connection.ExecuteAsync("DELETE FROM dbo.ExamQualifications WHERE ExamId = @ExamId", new { ExamId = exam.Id });
+                
+                // Finally delete the exam
+                await connection.ExecuteAsync("DELETE FROM dbo.Exams WHERE Id = @Id", new { Id = exam.Id });
+            });
         }
 
         public async Task<bool> SoftDeleteByIdAsync(int id)

@@ -162,22 +162,116 @@ namespace MasterService.API.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> DeleteExam(int id)
+        public async Task<ActionResult<object>> DeleteExam(int id)
         {
-            var result = await _examService.DeleteExamAsync(id);
-            if (!result)
-                return NotFound();
-            return NoContent();
+            try
+            {
+                _logger.LogInformation("DELETE request received for exam ID {ExamId}", id);
+                
+                var result = await _examService.DeleteExamAsync(id);
+                if (!result)
+                {
+                    _logger.LogWarning("Failed to delete exam with ID {ExamId}", id);
+                    return NotFound(new { success = false, message = "Exam not found" });
+                }
+
+                _logger.LogInformation("Exam with ID {ExamId} deleted successfully", id);
+                return Ok(new { success = true, message = "Exam deleted permanently from database" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting exam");
+                return StatusCode(500, new { success = false, message = "Error deleting exam" });
+            }
         }
 
         [HttpPatch("{id}/status")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateExamStatus(int id, [FromBody] bool isActive)
+        public async Task<ActionResult<object>> UpdateExamStatus(int id, [FromBody] bool isActive)
         {
-            var result = await _examService.ToggleExamStatusAsync(id, isActive);
-            if (!result)
-                return NotFound();
-            return NoContent();
+            try
+            {
+                var result = await _examService.ToggleExamStatusAsync(id, isActive);
+                if (!result)
+                    return NotFound(new { success = false, message = "Exam not found" });
+
+                var message = isActive ? "Exam activated successfully" : "Exam deactivated successfully";
+                return Ok(new
+                {
+                    success = true,
+                    message = message,
+                    data = true
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating exam status");
+                return StatusCode(500, new { success = false, message = "Error updating exam status" });
+            }
+        }
+
+        /// <summary>
+        /// Get all exams including inactive ones (Admin only)
+        /// </summary>
+        /// <param name="language">Optional language code (e.g., 'en', 'hi')</param>
+        /// <param name="languageId">Optional language ID</param>
+        /// <param name="countryCode">Optional country code filter</param>
+        /// <param name="qualificationId">Optional qualification ID filter</param>
+        /// <param name="streamId">Optional stream ID filter</param>
+        /// <param name="minAge">Optional minimum age filter</param>
+        /// <param name="maxAge">Optional maximum age filter</param>
+        /// <returns>List of all exams including inactive</returns>
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> GetAllExamsForAdmin(
+            [FromQuery] string? language = null,
+            [FromQuery] int? languageId = null,
+            [FromQuery] string? countryCode = null,
+            [FromQuery] int? qualificationId = null,
+            [FromQuery] int? streamId = null,
+            [FromQuery] int? minAge = null,
+            [FromQuery] int? maxAge = null)
+        {
+            try
+            {
+                // Priority: language parameter > languageId > header
+                string? selectedLanguage = null;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    selectedLanguage = language;
+                }
+                else if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+
+                IEnumerable<ExamDto> exams;
+                
+                if (countryCode != null || qualificationId != null || streamId != null || minAge != null || maxAge != null)
+                {
+                    // Use filter method when filters are applied
+                    exams = await _examService.GetExamsByFilterAsync(selectedLanguage ?? "en", countryCode, qualificationId, streamId, minAge, maxAge);
+                }
+                else
+                {
+                    // Use new method to get all including inactive
+                    exams = await _examService.GetAllExamsIncludingInactiveAsync(selectedLanguage, languageId);
+                }
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = exams,
+                    language = selectedLanguage,
+                    message = "All exams fetched successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all exams for admin");
+                return StatusCode(500, new { success = false, message = "Error fetching exams" });
+            }
         }
 
         private int? GetLanguageIdFromHeader()

@@ -7,6 +7,10 @@ using Microsoft.Extensions.Logging;
 using MasterService.Application.DTOs;
 using MasterService.Application.Interfaces;
 using Microsoft.Data.SqlClient;
+using Common.Services;
+using Common.Language;
+using ILanguageService = Common.Services.ILanguageService;
+using ILanguageDataService = Common.Language.ILanguageDataService;
 
 namespace MasterService.API.Controllers
 {
@@ -16,22 +20,30 @@ namespace MasterService.API.Controllers
     {
         private readonly ISubjectService _subjectService;
         private readonly ILogger<SubjectController> _logger;
+        private readonly ILanguageService _languageService;
 
         public SubjectController(
             ISubjectService subjectService,
-            ILogger<SubjectController> logger)
+            ILogger<SubjectController> logger,
+            ILanguageService languageService)
         {
             _subjectService = subjectService;
             _logger = logger;
+            _languageService = languageService;
         }
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllSubjects()
+        public async Task<IActionResult> GetAllSubjects([FromQuery] int? languageId = null)
         {
             try
             {
-                var subjects = await _subjectService.GetAllSubjectsAsync();
+                if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+
+                var subjects = await _subjectService.GetAllSubjectsAsync(languageId);
                 return Ok(new
                 {
                     success = true,
@@ -48,11 +60,16 @@ namespace MasterService.API.Controllers
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetSubjectById(int id)
+        public async Task<IActionResult> GetSubjectById(int id, [FromQuery] int? languageId = null)
         {
             try
             {
-                var subject = await _subjectService.GetSubjectByIdAsync(id);
+                if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+
+                var subject = await _subjectService.GetSubjectByIdAsync(id, languageId);
                 if (subject == null)
                 {
                     return NotFound(new { success = false, message = "Subject not found" });
@@ -74,11 +91,16 @@ namespace MasterService.API.Controllers
 
         [HttpGet("active")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetActiveSubjects()
+        public async Task<IActionResult> GetActiveSubjects([FromQuery] int? languageId = null)
         {
             try
             {
-                var subjects = await _subjectService.GetActiveSubjectsAsync();
+                if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+
+                var subjects = await _subjectService.GetActiveSubjectsAsync(languageId);
                 return Ok(new
                 {
                     success = true,
@@ -187,6 +209,32 @@ namespace MasterService.API.Controllers
             }
         }
 
+        [HttpPatch("{id}/toggle-status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ToggleSubjectStatus(int id, [FromBody] ToggleStatusDto toggleStatusDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new { success = false, message = "Invalid request data", errors = ModelState });
+                }
+
+                var result = await _subjectService.ToggleSubjectStatusAsync(id, toggleStatusDto.IsActive);
+                if (!result)
+                {
+                    return NotFound(new { success = false, message = "Subject not found" });
+                }
+
+                return Ok(new { success = true, message = $"Subject {(toggleStatusDto.IsActive ? "activated" : "deactivated")} successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling subject status with id: {Id}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
         [HttpGet("exists/{id}")]
         public async Task<IActionResult> SubjectExists(int id)
         {
@@ -200,6 +248,19 @@ namespace MasterService.API.Controllers
                 _logger.LogError(ex, "Error checking if subject exists with id: {Id}", id);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
+        }
+
+        private int? GetLanguageIdFromHeader()
+        {
+            var code = _languageService.GetCurrentLanguage();
+            return code switch
+            {
+                "en" => 50, // English
+                "hi" => 49, // Hindi
+                "ta" => null, // Tamil - add ID when available
+                "gu" => null, // Gujarati - add ID when available
+                _ => 50 // Default to English
+            };
         }
     }
 }

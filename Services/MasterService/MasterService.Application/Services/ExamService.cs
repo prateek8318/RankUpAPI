@@ -134,7 +134,29 @@ namespace MasterService.Application.Services
 
         public async Task<bool> DeleteExamAsync(int id)
         {
-            return await _examRepository.SoftDeleteByIdAsync(id);
+            try
+            {
+                _logger.LogInformation("Attempting to delete exam with ID {ExamId}", id);
+                
+                var exam = await _examRepository.GetByIdAsync(id);
+                if (exam == null)
+                {
+                    _logger.LogWarning("Exam with ID {ExamId} not found", id);
+                    return false;
+                }
+
+                _logger.LogInformation("Exam found: {ExamName} - proceeding with deletion", exam.Name);
+                
+                await _examRepository.DeleteAsync(exam);
+                
+                _logger.LogInformation("Exam with ID {ExamId} deleted successfully", id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting exam with ID {ExamId}", id);
+                return false;
+            }
         }
 
         public async Task<ExamDto?> GetExamByIdAsync(int id, int? languageId = null)
@@ -277,6 +299,78 @@ namespace MasterService.Application.Services
         public async Task<bool> ToggleExamStatusAsync(int id, bool isActive)
         {
             return await _examRepository.SetActiveAsync(id, isActive);
+        }
+
+        public async Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(string? language = null, int? languageId = null)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(language))
+                {
+                    var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                    var exams = await _examRepository.GetAllIncludingInactiveLocalizedAsync(normalizedLanguage);
+                    var list = exams.Select(e => MapToOptimizedExamDto(e, normalizedLanguage)).ToList();
+                    return list;
+                }
+                else if (languageId.HasValue)
+                {
+                    var exams = await _examRepository.GetAllIncludingInactiveAsync();
+                    var dtos = exams.OrderBy(e => e.Name)
+                        .Select(e => _mapper.Map<ExamDto>(e))
+                        .ToList();
+
+                    // Populate QualificationIds and StreamIds for all exams
+                    foreach (var dto in dtos)
+                    {
+                        var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
+                        if (exam != null)
+                        {
+                            dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                            dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                            
+                            if (languageId.HasValue)
+                            {
+                                var langName = exam.ExamLanguages
+                                    .FirstOrDefault(el => el.LanguageId == languageId.Value && el.IsActive)?.Name;
+                                if (!string.IsNullOrEmpty(langName))
+                                    dto.Name = langName;
+
+                                var langDesc = exam.ExamLanguages
+                                    .FirstOrDefault(el => el.LanguageId == languageId.Value && el.IsActive)?.Description;
+                                if (langDesc != null)
+                                    dto.Description = langDesc;
+                            }
+                        }
+                    }
+
+                    return dtos;
+                }
+                else
+                {
+                    var exams = await _examRepository.GetAllIncludingInactiveAsync();
+                    var dtos = exams.OrderBy(e => e.Name)
+                        .Select(e => _mapper.Map<ExamDto>(e))
+                        .ToList();
+
+                    // Populate QualificationIds and StreamIds for all exams
+                    foreach (var dto in dtos)
+                    {
+                        var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
+                        if (exam != null)
+                        {
+                            dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
+                            dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                        }
+                    }
+
+                    return dtos;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all exams including inactive");
+                throw;
+            }
         }
 
         public async Task<bool> UpdateExamImageUrlAsync(int examId, string imageUrl)

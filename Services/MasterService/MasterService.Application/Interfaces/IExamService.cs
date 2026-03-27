@@ -10,6 +10,7 @@ namespace MasterService.Application.Interfaces
         Task<ExamDto?> GetExamByIdAsync(int id, int? languageId = null);
         Task<IEnumerable<ExamDto>> GetAllExamsAsync(string language);
         Task<IEnumerable<ExamDto>> GetAllExamsAsync(int? languageId = null);
+        Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(string? language = null, int? languageId = null);
         Task<IEnumerable<ExamDto>> GetExamsByFilterAsync(string? countryCode, int? qualificationId, int? streamId, int? minAge, int? maxAge, int? languageId = null);
         Task<IEnumerable<ExamDto>> GetExamsByFilterAsync(string language, string? countryCode, int? qualificationId, int? streamId, int? minAge, int? maxAge);
         Task<bool> ToggleExamStatusAsync(int id, bool isActive);

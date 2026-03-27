@@ -17,6 +17,9 @@ namespace MasterService.Domain.Entities
         [MaxLength(10)]
         public string? CountryCode { get; set; }
 
+        // JSON field for Names from localized stored procedures
+        public string? Names { get; set; }
+
         public Country? Country { get; set; }
         public ICollection<QualificationLanguage> QualificationLanguages { get; set; } = new List<QualificationLanguage>();
         public ICollection<Stream> Streams { get; set; } = new List<Stream>();

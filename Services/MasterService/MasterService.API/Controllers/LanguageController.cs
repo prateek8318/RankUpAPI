@@ -34,6 +34,22 @@ namespace MasterService.API.Controllers
             }
         }
 
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<IEnumerable<LanguageDto>>> GetAllLanguagesForAdmin()
+        {
+            try
+            {
+                var languages = await _languageService.GetAllLanguagesIncludingInactiveAsync();
+                return Ok(languages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all languages for admin");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<ActionResult<LanguageDto>> GetLanguage(int id)

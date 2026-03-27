@@ -32,41 +32,54 @@ WHERE sl.IsActive = 1
   AND sl.SubjectId IN @SubjectIds;";
 
 
-        public async Task<IEnumerable<Subject>> GetAllAsync()
+        public async Task<IEnumerable<Subject>> GetAllAsync(int? languageId = null)
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[Subject_GetAll]";
-                var subjectList = (await connection.QueryAsync<Subject>(sql)).ToList();
-                await PopulateSubjectLanguagesAsync(connection, subjectList);
+                var sql = languageId.HasValue 
+                    ? "EXEC [dbo].[Subject_GetAllByLanguage] @LanguageId"
+                    : "EXEC [dbo].[Subject_GetAll]";
+                
+                var parameters = new { LanguageId = languageId.HasValue ? (object?)languageId.Value : null };
+                var subjectList = (await connection.QueryAsync<Subject>(sql, parameters)).ToList();
+                await PopulateSubjectLanguagesAsync(connection, subjectList, languageId);
 
                 return subjectList;
             });
         }
 
-        public async Task<Subject?> GetByIdAsync(int id)
+        public async Task<Subject?> GetByIdAsync(int id, int? languageId = null)
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[Subject_GetById] @Id";
-                var subject = await connection.QueryFirstOrDefaultAsync<Subject>(sql, new { Id = id });
+                var sql = languageId.HasValue
+                    ? "EXEC [dbo].[Subject_GetByIdByLanguage] @Id, @LanguageId"
+                    : "EXEC [dbo].[Subject_GetById] @Id";
+                
+                var parameters = new { Id = id, LanguageId = languageId.HasValue ? (object?)languageId.Value : null };
+                    
+                var subject = await connection.QueryFirstOrDefaultAsync<Subject>(sql, parameters);
                 
                 if (subject != null)
                 {
-                    await PopulateSubjectLanguagesAsync(connection, new[] { subject });
+                    await PopulateSubjectLanguagesAsync(connection, new[] { subject }, languageId);
                 }
                 
                 return subject;
             });
         }
 
-        public async Task<IEnumerable<Subject>> GetActiveSubjectsAsync()
+        public async Task<IEnumerable<Subject>> GetActiveSubjectsAsync(int? languageId = null)
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[Subject_GetActive]";
-                var subjectList = (await connection.QueryAsync<Subject>(sql)).ToList();
-                await PopulateSubjectLanguagesAsync(connection, subjectList);
+                var sql = languageId.HasValue
+                    ? "EXEC [dbo].[Subject_GetActiveByLanguage] @LanguageId"
+                    : "EXEC [dbo].[Subject_GetActive]";
+                
+                var parameters = new { LanguageId = languageId.HasValue ? (object?)languageId.Value : null };
+                var subjectList = (await connection.QueryAsync<Subject>(sql, parameters)).ToList();
+                await PopulateSubjectLanguagesAsync(connection, subjectList, languageId);
 
                 return subjectList;
             });
@@ -163,7 +176,7 @@ WHERE sl.IsActive = 1
             return await Task.FromResult(1);
         }
 
-        private async Task PopulateSubjectLanguagesAsync(IDbConnection connection, IEnumerable<Subject> subjects)
+        private async Task PopulateSubjectLanguagesAsync(IDbConnection connection, IEnumerable<Subject> subjects, int? languageId = null)
         {
             var subjectList = subjects.ToList();
             if (subjectList.Count == 0)
@@ -172,7 +185,46 @@ WHERE sl.IsActive = 1
             }
 
             var subjectIds = subjectList.Select(subject => subject.Id).Distinct().ToArray();
-            var languages = await connection.QueryAsync<SubjectLanguage>(SubjectLanguageByIdsSql, new { SubjectIds = subjectIds });
+            var sql = languageId.HasValue
+                ? @"
+                SELECT
+                    sl.Id,
+                    sl.SubjectId,
+                    sl.LanguageId,
+                    sl.Name,
+                    sl.Description,
+                    sl.IsActive,
+                    sl.CreatedAt,
+                    sl.UpdatedAt,
+                    l.Id,
+                    l.Name,
+                    l.Code
+                FROM dbo.SubjectLanguages sl
+                LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
+                WHERE sl.IsActive = 1
+                  AND sl.SubjectId IN @SubjectIds
+                  AND sl.LanguageId = @LanguageId;"
+                : @"
+                SELECT
+                    sl.Id,
+                    sl.SubjectId,
+                    sl.LanguageId,
+                    sl.Name,
+                    sl.Description,
+                    sl.IsActive,
+                    sl.CreatedAt,
+                    sl.UpdatedAt,
+                    l.Id,
+                    l.Name,
+                    l.Code
+                FROM dbo.SubjectLanguages sl
+                LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
+                WHERE sl.IsActive = 1
+                  AND sl.SubjectId IN @SubjectIds;";
+                  
+            var parameters = new { SubjectIds = subjectIds, LanguageId = languageId.HasValue ? (object?)languageId.Value : null };
+                
+            var languages = await connection.QueryAsync<SubjectLanguage>(sql, parameters);
             RepositoryEntityMapper.AttachSubjectLanguages(subjectList, languages);
         }
     }

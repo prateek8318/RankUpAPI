@@ -72,5 +72,62 @@ namespace MasterService.Infrastructure.Repositories
                 throw;
             }
         }
+
+        protected async Task<T> WithTransactionAsync<T>(Func<IDbConnection, IDbTransaction, Task<T>> operation, [CallerMemberName] string operationName = "")
+        {
+            using var connection = GetConnection();
+            try
+            {
+                await EnsureOpenAsync(connection);
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    _logger?.LogDebug("Executing transaction {Repository}.{Operation}", GetType().Name, operationName);
+                    var result = await operation(connection, transaction);
+                    transaction.Commit();
+                    _logger?.LogDebug("Transaction committed {Repository}.{Operation}", GetType().Name, operationName);
+                    return result;
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    _logger?.LogError("Transaction rolled back {Repository}.{Operation}", GetType().Name, operationName);
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Transaction failed in {Repository}.{Operation}", GetType().Name, operationName);
+                throw;
+            }
+        }
+
+        protected async Task WithTransactionAsync(Func<IDbConnection, IDbTransaction, Task> operation, [CallerMemberName] string operationName = "")
+        {
+            using var connection = GetConnection();
+            try
+            {
+                await EnsureOpenAsync(connection);
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    _logger?.LogDebug("Executing transaction {Repository}.{Operation}", GetType().Name, operationName);
+                    await operation(connection, transaction);
+                    transaction.Commit();
+                    _logger?.LogDebug("Transaction committed {Repository}.{Operation}", GetType().Name, operationName);
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    _logger?.LogError("Transaction rolled back {Repository}.{Operation}", GetType().Name, operationName);
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Transaction failed in {Repository}.{Operation}", GetType().Name, operationName);
+                throw;
+            }
+        }
     }
 }

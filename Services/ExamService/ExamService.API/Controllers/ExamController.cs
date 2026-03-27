@@ -214,23 +214,6 @@ namespace ExamService.API.Controllers
         }
 
         /// <summary>
-        /// Update exam status (Admin only)
-        /// </summary>
-        /// <param name="id">Exam ID</param>
-        /// <param name="isActive">Active status</param>
-        /// <returns>No content</returns>
-        [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateExamStatus(int id, [FromBody] bool isActive)
-        {
-            var result = await _examService.ToggleExamStatusAsync(id, isActive);
-            if (!result)
-                return NotFound();
-
-            return NoContent();
-        }
-
-        /// <summary>
         /// Upload image for exam (Admin only)
         /// </summary>
         /// <param name="id">Exam ID</param>

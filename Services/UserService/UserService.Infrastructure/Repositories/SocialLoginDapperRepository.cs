@@ -1,33 +1,36 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using System.Data;
 using UserService.Application.Interfaces;
 using UserService.Domain.Entities;
 
 namespace UserService.Infrastructure.Repositories
 {
-    public class SocialLoginDapperRepository : ISocialLoginRepository
+    public class SocialLoginDapperRepository : BaseDapperRepository, ISocialLoginRepository
     {
-        private readonly IDbConnection _connection;
-
-        public SocialLoginDapperRepository(IDbConnection connection)
+        public SocialLoginDapperRepository(IConfiguration configuration) : base(configuration)
         {
-            _connection = connection;
         }
-
 
         public async Task<UserSocialLogin> GetByProviderAndGoogleIdAsync(string provider, string googleId)
         {
             var sql = "EXEC [dbo].[UserSocialLogin_GetByProviderAndGoogleId] @Provider, @GoogleId";
-            var result = await _connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { Provider = provider, GoogleId = googleId });
-            return result != null && result.Id > 0 ? result : null;
+            return await WithConnectionAsync(async connection => 
+            {
+                var result = await connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { Provider = provider, GoogleId = googleId });
+                return result != null && result.Id > 0 ? result : null;
+            });
         }
 
         public async Task<UserSocialLogin> GetByUserIdAndProviderAsync(int userId, string provider)
         {
             var sql = "EXEC [dbo].[UserSocialLogin_GetByUserIdAndProvider] @UserId, @Provider";
-            var result = await _connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { UserId = userId, Provider = provider });
-            return result != null && result.Id > 0 ? result : null;
+            return await WithConnectionAsync(async connection => 
+            {
+                var result = await connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { UserId = userId, Provider = provider });
+                return result != null && result.Id > 0 ? result : null;
+            });
         }
 
         public async Task<UserSocialLogin> AddAsync(UserSocialLogin socialLogin)
@@ -47,7 +50,8 @@ namespace UserService.Infrastructure.Repositories
             parameters.Add("@RefreshToken", socialLogin.RefreshToken);
             parameters.Add("@ExpiresAt", socialLogin.ExpiresAt);
 
-            await _connection.ExecuteAsync(sql, parameters);
+            await WithConnectionAsync(async connection => 
+                await connection.ExecuteAsync(sql, parameters));
             return socialLogin;
         }
 
@@ -66,14 +70,16 @@ namespace UserService.Infrastructure.Repositories
             parameters.Add("@RefreshToken", socialLogin.RefreshToken);
             parameters.Add("@ExpiresAt", socialLogin.ExpiresAt);
 
-            await _connection.ExecuteAsync(sql, parameters);
+            await WithConnectionAsync(async connection => 
+                await connection.ExecuteAsync(sql, parameters));
             return socialLogin;
         }
 
         public async Task DeleteAsync(UserSocialLogin socialLogin)
         {
             var sql = "EXEC [dbo].[UserSocialLogin_Delete] @UserId, @Provider";
-            await _connection.ExecuteAsync(sql, new { UserId = socialLogin.UserId, Provider = socialLogin.Provider });
+            await WithConnectionAsync(async connection => 
+                await connection.ExecuteAsync(sql, new { UserId = socialLogin.UserId, Provider = socialLogin.Provider }));
         }
 
         public async Task SaveChangesAsync()

@@ -1,28 +1,31 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using System.Data;
 
 namespace UserService.Infrastructure.Repositories
 {
     public abstract class BaseDapperRepository
     {
-        protected readonly string _connectionString;
+        protected readonly IConfiguration _configuration;
         
-        protected BaseDapperRepository(string connectionString)
+        protected BaseDapperRepository(IConfiguration configuration)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         protected async Task<T> WithConnectionAsync<T>(Func<IDbConnection, Task<T>> operation)
         {
-            using var connection = new SqlConnection(_connectionString);
+            var connectionString = _configuration.GetConnectionString("UserServiceConnection");
+            await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             return await operation(connection);
         }
 
         protected async Task WithConnectionAsync(Func<IDbConnection, Task> operation)
         {
-            using var connection = new SqlConnection(_connectionString);
+            var connectionString = _configuration.GetConnectionString("UserServiceConnection");
+            await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             await operation(connection);
         }

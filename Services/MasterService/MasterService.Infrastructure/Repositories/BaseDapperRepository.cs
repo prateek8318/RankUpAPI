@@ -1,21 +1,22 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 
 namespace MasterService.Infrastructure.Repositories
 {
     public abstract class BaseDapperRepository
     {
         protected readonly string _connectionString;
-        private IDbConnection? _connectionField;
+        protected readonly ILogger? _logger;
 
-        protected BaseDapperRepository(string connectionString)
+        protected BaseDapperRepository(string connectionString, ILogger? logger = null)
         {
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _logger = logger;
         }
-
-        protected IDbConnection _connection => _connectionField ??= GetConnection();
 
         protected IDbConnection GetConnection()
         {
@@ -37,18 +38,36 @@ namespace MasterService.Infrastructure.Repositories
             }
         }
 
-        protected async Task<T> WithConnectionAsync<T>(Func<IDbConnection, Task<T>> operation)
+        protected async Task<T> WithConnectionAsync<T>(Func<IDbConnection, Task<T>> operation, [CallerMemberName] string operationName = "")
         {
             using var connection = GetConnection();
-            await EnsureOpenAsync(connection);
-            return await operation(connection);
+            try
+            {
+                await EnsureOpenAsync(connection);
+                _logger?.LogDebug("Executing database operation {Repository}.{Operation}", GetType().Name, operationName);
+                return await operation(connection);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Database operation failed in {Repository}.{Operation}", GetType().Name, operationName);
+                throw;
+            }
         }
 
-        protected async Task WithConnectionAsync(Func<IDbConnection, Task> operation)
+        protected async Task WithConnectionAsync(Func<IDbConnection, Task> operation, [CallerMemberName] string operationName = "")
         {
             using var connection = GetConnection();
-            await EnsureOpenAsync(connection);
-            await operation(connection);
+            try
+            {
+                await EnsureOpenAsync(connection);
+                _logger?.LogDebug("Executing database operation {Repository}.{Operation}", GetType().Name, operationName);
+                await operation(connection);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Database operation failed in {Repository}.{Operation}", GetType().Name, operationName);
+                throw;
+            }
         }
     }
 }

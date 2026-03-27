@@ -110,7 +110,6 @@ namespace MasterService.Infrastructure.Repositories
             {
                 var sql = "EXEC [dbo].[Country_Delete] @Id";
                 await connection.ExecuteAsync(sql, new { Id = country.Id });
-                return Task.CompletedTask;
             });
         }
 

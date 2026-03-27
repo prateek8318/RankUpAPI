@@ -1,18 +1,49 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
+using Microsoft.Extensions.Logging;
 using System.Data;
 using StreamEntity = MasterService.Domain.Entities.Stream;
-using System.Text.Json;
 
 namespace MasterService.Infrastructure.Repositories
 {
     public class StreamDapperRepository : BaseDapperRepository, IStreamRepository
     {
-        public StreamDapperRepository(string connectionString) : base(connectionString)
+        public StreamDapperRepository(string connectionString, ILogger<StreamDapperRepository> logger) : base(connectionString, logger)
         {
         }
+
+        private const string StreamLanguageSql = @"
+SELECT
+    sl.Id,
+    sl.StreamId,
+    sl.LanguageId,
+    sl.Name,
+    sl.Description,
+    sl.IsActive,
+    sl.CreatedAt,
+    sl.UpdatedAt,
+    l.Id,
+    l.Code,
+    l.Name
+FROM dbo.StreamLanguages sl
+LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
+WHERE sl.IsActive = 1
+  AND sl.StreamId IN @StreamIds;";
+
+        private const string QualificationSql = @"
+SELECT
+    Id,
+    Name,
+    NameHi,
+    Description,
+    CountryCode,
+    IsActive,
+    CreatedAt,
+    UpdatedAt
+FROM dbo.Qualifications
+WHERE IsActive = 1
+  AND Id IN @Ids;";
 
 
         public async Task<StreamEntity?> GetByIdAsync(int id)
@@ -24,19 +55,7 @@ namespace MasterService.Infrastructure.Repositories
                 
                 if (stream != null)
                 {
-                    // Load StreamLanguages
-                    var languages = await connection.QueryAsync<StreamLanguage>(
-                        "SELECT * FROM StreamLanguages WHERE StreamId = @StreamId AND IsActive = 1",
-                        new { StreamId = stream.Id });
-                    stream.StreamLanguages = languages.ToList();
-
-                    // Load Qualification
-                    if (stream.QualificationId > 0)
-                    {
-                        stream.Qualification = await connection.QueryFirstOrDefaultAsync<Qualification>(
-                            "SELECT Id, Name, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive FROM Qualifications WHERE Id = @Id AND IsActive = 1",
-                            new { Id = stream.QualificationId });
-                    }
+                    await PopulateStreamDetailsAsync(connection, new[] { stream });
                 }
                 
                 return stream;
@@ -45,175 +64,92 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<StreamEntity?> GetByIdLocalizedAsync(int id, string? languageCode)
         {
-            var stream = await _connection.QueryFirstOrDefaultAsync<StreamEntity>(
-                "[dbo].[Stream_GetByIdLocalized]",
-                new { Id = id, LanguageCode = languageCode },
-                commandType: CommandType.StoredProcedure);
-
-            if (stream != null)
+            return await WithConnectionAsync(async connection =>
             {
-                // Load StreamLanguages
-                var languages = await _connection.QueryAsync<StreamLanguage>(
-                    "SELECT * FROM StreamLanguages WHERE StreamId = @StreamId AND IsActive = 1",
-                    new { StreamId = stream.Id });
-                stream.StreamLanguages = languages.ToList();
+                var stream = await connection.QueryFirstOrDefaultAsync<StreamEntity>(
+                    "[dbo].[Stream_GetByIdLocalized]",
+                    new { Id = id, LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure);
 
-                // Load Qualification
-                if (stream.QualificationId > 0)
+                if (stream != null)
                 {
-                    stream.Qualification = await _connection.QueryFirstOrDefaultAsync<Qualification>(
-                        "SELECT Id, Name, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive FROM Qualifications WHERE Id = @Id AND IsActive = 1",
-                        new { Id = stream.QualificationId });
+                    await PopulateStreamDetailsAsync(connection, new[] { stream });
                 }
-            }
 
-            return stream;
+                return stream;
+            });
         }
 
         public async Task<IEnumerable<StreamEntity>> GetAllAsync()
         {
-            return await _connection.QueryAsync<StreamEntity>(
-                "[dbo].[Stream_GetAll]",
-                commandType: CommandType.StoredProcedure);
+            return await WithConnectionAsync(async connection =>
+            {
+                var streams = (await connection.QueryAsync<StreamEntity>(
+                    "[dbo].[Stream_GetAll]",
+                    commandType: CommandType.StoredProcedure)).ToList();
+
+                await PopulateStreamDetailsAsync(connection, streams);
+                return streams;
+            });
         }
 
         public async Task<IEnumerable<StreamEntity>> GetActiveAsync()
         {
-            var streams = await _connection.QueryAsync<StreamEntity>(
-                "[dbo].[Stream_GetActive]",
-                commandType: CommandType.StoredProcedure);
-
-            // Load StreamLanguages and Qualification for each stream
-            var streamList = streams.ToList();
-            var qualificationIds = streamList.Select(s => s.QualificationId).Distinct().ToList();
-            
-            // Load qualifications in bulk
-            var qualifications = qualificationIds.Any() 
-                ? (await _connection.QueryAsync<Qualification>(
-                    "SELECT Id, Name, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive FROM Qualifications WHERE Id IN @Ids AND IsActive = 1",
-                    new { Ids = qualificationIds })).ToDictionary(q => q.Id)
-                : new Dictionary<int, Qualification>();
-
-            foreach (var stream in streamList)
+            return await WithConnectionAsync(async connection =>
             {
-                // Load StreamLanguages
-                var languages = await _connection.QueryAsync<StreamLanguage>(
-                    "SELECT * FROM StreamLanguages WHERE StreamId = @StreamId AND IsActive = 1",
-                    new { StreamId = stream.Id });
-                stream.StreamLanguages = languages.ToList();
+                var streams = (await connection.QueryAsync<StreamEntity>(
+                    "[dbo].[Stream_GetActive]",
+                    commandType: CommandType.StoredProcedure)).ToList();
 
-                // Set Qualification
-                if (qualifications.TryGetValue(stream.QualificationId, out var qualification))
-                {
-                    stream.Qualification = qualification;
-                }
-            }
-
-            return streamList;
+                await PopulateStreamDetailsAsync(connection, streams);
+                return streams;
+            });
         }
 
         public async Task<IEnumerable<StreamEntity>> GetActiveLocalizedAsync(string? languageCode)
         {
-            var streams = await _connection.QueryAsync<StreamEntity>(
-                "[dbo].[Stream_GetActiveLocalized]",
-                new { LanguageCode = languageCode },
-                commandType: CommandType.StoredProcedure);
-
-            // Load StreamLanguages and Qualification for each stream
-            var streamList = streams.ToList();
-            var qualificationIds = streamList.Select(s => s.QualificationId).Distinct().ToList();
-            
-            // Load qualifications in bulk
-            var qualifications = qualificationIds.Any() 
-                ? (await _connection.QueryAsync<Qualification>(
-                    "SELECT Id, Name, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive FROM Qualifications WHERE Id IN @Ids AND IsActive = 1",
-                    new { Ids = qualificationIds })).ToDictionary(q => q.Id)
-                : new Dictionary<int, Qualification>();
-
-            foreach (var stream in streamList)
+            return await WithConnectionAsync(async connection =>
             {
-                // Load StreamLanguages
-                var languages = await _connection.QueryAsync<StreamLanguage>(
-                    "SELECT * FROM StreamLanguages WHERE StreamId = @StreamId AND IsActive = 1",
-                    new { StreamId = stream.Id });
-                stream.StreamLanguages = languages.ToList();
+                var streams = (await connection.QueryAsync<StreamEntity>(
+                    "[dbo].[Stream_GetActiveLocalized]",
+                    new { LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure)).ToList();
 
-                // Set Qualification
-                if (qualifications.TryGetValue(stream.QualificationId, out var qualification))
-                {
-                    stream.Qualification = qualification;
-                }
-            }
-
-            return streamList;
+                await PopulateStreamDetailsAsync(connection, streams);
+                return streams;
+            });
         }
 
         public async Task<IEnumerable<StreamEntity>> GetActiveByQualificationIdAsync(int qualificationId)
         {
-            var streams = await _connection.QueryAsync<StreamEntity>(
-                "[dbo].[Stream_GetActiveByQualificationId]",
-                new { QualificationId = qualificationId },
-                commandType: CommandType.StoredProcedure);
-
-            // Load StreamLanguages and Qualification for each stream
-            var streamList = streams.ToList();
-            
-            // Load the specific qualification
-            var qualification = await _connection.QueryFirstOrDefaultAsync<Qualification>(
-                "SELECT Id, Name, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive FROM Qualifications WHERE Id = @Id AND IsActive = 1",
-                new { Id = qualificationId });
-
-            foreach (var stream in streamList)
+            return await WithConnectionAsync(async connection =>
             {
-                // Load StreamLanguages
-                var languages = await _connection.QueryAsync<StreamLanguage>(
-                    "SELECT * FROM StreamLanguages WHERE StreamId = @StreamId AND IsActive = 1",
-                    new { StreamId = stream.Id });
-                stream.StreamLanguages = languages.ToList();
+                var streams = (await connection.QueryAsync<StreamEntity>(
+                    "[dbo].[Stream_GetActiveByQualificationId]",
+                    new { QualificationId = qualificationId },
+                    commandType: CommandType.StoredProcedure)).ToList();
 
-                // Set Qualification
-                stream.Qualification = qualification;
-            }
-
-            return streamList;
+                await PopulateStreamDetailsAsync(connection, streams);
+                return streams;
+            });
         }
 
         public async Task<IEnumerable<StreamEntity>> GetActiveByQualificationIdLocalizedAsync(int qualificationId, string? languageCode)
         {
-            var streams = await _connection.QueryAsync<StreamEntity>(
-                "[dbo].[Stream_GetActiveByQualificationIdLocalized]",
-                new { QualificationId = qualificationId, LanguageCode = languageCode },
-                commandType: CommandType.StoredProcedure);
-
-            // Load StreamLanguages and Qualification for each stream
-            var streamList = streams.ToList();
-            
-            // Load the specific qualification
-            var qualification = await _connection.QueryFirstOrDefaultAsync<Qualification>(
-                "SELECT Id, Name, Description, CountryCode, CountryId, CreatedAt, UpdatedAt, IsActive FROM Qualifications WHERE Id = @Id AND IsActive = 1",
-                new { Id = qualificationId });
-
-            foreach (var stream in streamList)
+            return await WithConnectionAsync(async connection =>
             {
-                // Load StreamLanguages
-                var languages = await _connection.QueryAsync<StreamLanguage>(
-                    "SELECT * FROM StreamLanguages WHERE StreamId = @StreamId AND IsActive = 1",
-                    new { StreamId = stream.Id });
-                stream.StreamLanguages = languages.ToList();
+                var streams = (await connection.QueryAsync<StreamEntity>(
+                    "[dbo].[Stream_GetActiveByQualificationIdLocalized]",
+                    new { QualificationId = qualificationId, LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure)).ToList();
 
-                // Set Qualification
-                stream.Qualification = qualification;
-            }
-
-            return streamList;
+                await PopulateStreamDetailsAsync(connection, streams);
+                return streams;
+            });
         }
 
-        public async Task<StreamEntity> AddAsync(StreamEntity stream)
+        public async Task<StreamEntity> AddAsync(StreamEntity stream, string? namesJson = null)
         {
-            var namesJson = stream.StreamLanguages != null && stream.StreamLanguages.Any()
-                ? JsonSerializer.Serialize(stream.StreamLanguages.Select(x => new { x.LanguageId, x.Name, x.Description }))
-                : null;
-
             var parameters = new DynamicParameters();
             parameters.Add("@Name", stream.Name);
             parameters.Add("@Description", stream.Description);
@@ -224,10 +160,11 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await _connection.ExecuteAsync(
-                "[dbo].[Stream_Create]",
-                parameters,
-                commandType: CommandType.StoredProcedure);
+            await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Stream_Create]",
+                    parameters,
+                    commandType: CommandType.StoredProcedure));
             
             if (parameters.Get<int>("@Id") > 0)
             {
@@ -237,12 +174,8 @@ namespace MasterService.Infrastructure.Repositories
             return stream;
         }
 
-        public async Task UpdateAsync(StreamEntity stream)
+        public async Task UpdateAsync(StreamEntity stream, string? namesJson = null)
         {
-            var namesJson = stream.StreamLanguages != null && stream.StreamLanguages.Any()
-                ? JsonSerializer.Serialize(stream.StreamLanguages.Select(x => new { x.LanguageId, x.Name, x.Description }))
-                : null;
-
             var parameters = new DynamicParameters();
             parameters.Add("@Id", stream.Id);
             parameters.Add("@Name", stream.Name);
@@ -252,44 +185,73 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@NamesJson", namesJson);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            await _connection.ExecuteAsync(
-                "[dbo].[Stream_Update]",
-                parameters,
-                commandType: CommandType.StoredProcedure);
+            await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Stream_Update]",
+                    parameters,
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task DeleteAsync(StreamEntity stream)
         {
-            await _connection.ExecuteAsync(
-                "[dbo].[Stream_Delete]",
-                new { Id = stream.Id },
-                commandType: CommandType.StoredProcedure);
+            await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Stream_Delete]",
+                    new { Id = stream.Id },
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task<bool> SoftDeleteByIdAsync(int id)
         {
-            var affected = await _connection.ExecuteAsync(
-                "[dbo].[Stream_SoftDelete]",
-                new { Id = id },
-                commandType: CommandType.StoredProcedure);
+            var affected = await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Stream_SoftDelete]",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure));
 
             return affected > 0;
         }
 
         public async Task<bool> SetActiveAsync(int id, bool isActive)
         {
-            var affected = await _connection.ExecuteAsync(
-                "[dbo].[Stream_SetActive]",
-                new { Id = id, IsActive = isActive },
-                commandType: CommandType.StoredProcedure);
+            var affected = await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Stream_SetActive]",
+                    new { Id = id, IsActive = isActive },
+                    commandType: CommandType.StoredProcedure));
 
             return affected > 0;
         }
 
         public async Task<int> SaveChangesAsync()
         {
-            // Dapper commands are executed immediately; this exists for interface compatibility.
+            _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(StreamDapperRepository));
             return await Task.FromResult(1);
+        }
+
+        private async Task PopulateStreamDetailsAsync(IDbConnection connection, IList<StreamEntity> streams)
+        {
+            if (streams.Count == 0)
+            {
+                return;
+            }
+
+            var streamIds = streams.Select(stream => stream.Id).Distinct().ToArray();
+            var qualificationIds = streams
+                .Select(stream => stream.QualificationId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToArray();
+
+            var languages = streamIds.Length == 0
+                ? Array.Empty<StreamLanguage>()
+                : (await connection.QueryAsync<StreamLanguage>(StreamLanguageSql, new { StreamIds = streamIds })).ToArray();
+
+            var qualifications = qualificationIds.Length == 0
+                ? Array.Empty<Qualification>()
+                : (await connection.QueryAsync<Qualification>(QualificationSql, new { Ids = qualificationIds })).ToArray();
+
+            RepositoryEntityMapper.AttachStreamDetails(streams, languages, qualifications);
         }
     }
 }

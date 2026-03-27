@@ -2,15 +2,34 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace MasterService.Infrastructure.Repositories
 {
     public class SubjectDapperRepository : BaseDapperRepository, ISubjectRepository
     {
-        public SubjectDapperRepository(string connectionString) : base(connectionString)
+        public SubjectDapperRepository(string connectionString, ILogger<SubjectDapperRepository> logger) : base(connectionString, logger)
         {
         }
+
+        private const string SubjectLanguageByIdsSql = @"
+SELECT
+    sl.Id,
+    sl.SubjectId,
+    sl.LanguageId,
+    sl.Name,
+    sl.Description,
+    sl.IsActive,
+    sl.CreatedAt,
+    sl.UpdatedAt,
+    l.Id,
+    l.Name,
+    l.Code
+FROM dbo.SubjectLanguages sl
+LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
+WHERE sl.IsActive = 1
+  AND sl.SubjectId IN @SubjectIds;";
 
 
         public async Task<IEnumerable<Subject>> GetAllAsync()
@@ -18,21 +37,14 @@ namespace MasterService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[Subject_GetAll]";
-                var subjects = await connection.QueryAsync<Subject>(sql);
-
-                // Load SubjectLanguages for each subject
-                var subjectList = subjects.ToList();
-                foreach (var subject in subjectList)
-                {
-                    var languagesSql = "EXEC [dbo].[SubjectLanguage_GetBySubjectId] @SubjectId";
-                    subject.SubjectLanguages = (await connection.QueryAsync<SubjectLanguage>(languagesSql, new { SubjectId = subject.Id })).ToList();
-                }
+                var subjectList = (await connection.QueryAsync<Subject>(sql)).ToList();
+                await PopulateSubjectLanguagesAsync(connection, subjectList);
 
                 return subjectList;
             });
         }
 
-        public async Task<Subject> GetByIdAsync(int id)
+        public async Task<Subject?> GetByIdAsync(int id)
         {
             return await WithConnectionAsync(async connection =>
             {
@@ -41,12 +53,10 @@ namespace MasterService.Infrastructure.Repositories
                 
                 if (subject != null)
                 {
-                    // Load SubjectLanguages for the subject
-                    var languagesSql = "EXEC [dbo].[SubjectLanguage_GetBySubjectId] @SubjectId";
-                    subject.SubjectLanguages = (await connection.QueryAsync<SubjectLanguage>(languagesSql, new { SubjectId = id })).ToList();
+                    await PopulateSubjectLanguagesAsync(connection, new[] { subject });
                 }
                 
-                return subject ?? new Subject();
+                return subject;
             });
         }
 
@@ -55,32 +65,26 @@ namespace MasterService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[Subject_GetActive]";
-                var subjects = await connection.QueryAsync<Subject>(sql);
-
-                // Load SubjectLanguages for each subject
-                var subjectList = subjects.ToList();
-                foreach (var subject in subjectList)
-                {
-                    var languagesSql = "EXEC [dbo].[SubjectLanguage_GetBySubjectId] @SubjectId";
-                    subject.SubjectLanguages = (await connection.QueryAsync<SubjectLanguage>(languagesSql, new { SubjectId = subject.Id })).ToList();
-                }
+                var subjectList = (await connection.QueryAsync<Subject>(sql)).ToList();
+                await PopulateSubjectLanguagesAsync(connection, subjectList);
 
                 return subjectList;
             });
         }
 
-        public async Task<Subject> AddAsync(Subject subject)
+        public async Task<Subject> AddAsync(Subject subject, string? namesJson = null)
         {
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"
                     EXEC [dbo].[Subject_Create] 
-                        @Name, @Description, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
+                        @Name, @Description, @IsActive, @NamesJson, @CreatedAt, @UpdatedAt, @Id OUTPUT";
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@Name", subject.Name);
                 parameters.Add("@Description", subject.Description ?? (object?)null);
                 parameters.Add("@IsActive", subject.IsActive);
+                parameters.Add("@NamesJson", namesJson);
                 parameters.Add("@CreatedAt", DateTime.UtcNow);
                 parameters.Add("@UpdatedAt", DateTime.UtcNow);
                 parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
@@ -96,19 +100,20 @@ namespace MasterService.Infrastructure.Repositories
             });
         }
 
-        public async Task<Subject> UpdateAsync(Subject subject)
+        public async Task<Subject> UpdateAsync(Subject subject, string? namesJson = null)
         {
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"
                     EXEC [dbo].[Subject_Update] 
-                        @Id, @Name, @Description, @IsActive, @UpdatedAt";
+                        @Id, @Name, @Description, @IsActive, @NamesJson, @UpdatedAt";
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@Id", subject.Id);
                 parameters.Add("@Name", subject.Name);
                 parameters.Add("@Description", subject.Description ?? (object?)null);
                 parameters.Add("@IsActive", subject.IsActive);
+                parameters.Add("@NamesJson", namesJson);
                 parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
                 await connection.ExecuteAsync(sql, parameters);
@@ -154,8 +159,21 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<int> SaveChangesAsync()
         {
-            // Dapper operations are executed immediately. Returning 1 to indicate success.
+            _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(SubjectDapperRepository));
             return await Task.FromResult(1);
+        }
+
+        private async Task PopulateSubjectLanguagesAsync(IDbConnection connection, IEnumerable<Subject> subjects)
+        {
+            var subjectList = subjects.ToList();
+            if (subjectList.Count == 0)
+            {
+                return;
+            }
+
+            var subjectIds = subjectList.Select(subject => subject.Id).Distinct().ToArray();
+            var languages = await connection.QueryAsync<SubjectLanguage>(SubjectLanguageByIdsSql, new { SubjectIds = subjectIds });
+            RepositoryEntityMapper.AttachSubjectLanguages(subjectList, languages);
         }
     }
 }

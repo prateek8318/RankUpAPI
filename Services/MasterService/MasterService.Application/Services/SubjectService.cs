@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MasterService.Application.DTOs;
+using MasterService.Application.Helpers;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 
@@ -12,16 +13,13 @@ namespace MasterService.Application.Services
     public class SubjectService : ISubjectService
     {
         private readonly ISubjectRepository _subjectRepository;
-        private readonly ISubjectLanguageRepository _subjectLanguageRepository;
         private readonly ILogger<SubjectService> _logger;
 
         public SubjectService(
             ISubjectRepository subjectRepository,
-            ISubjectLanguageRepository subjectLanguageRepository,
             ILogger<SubjectService> logger)
         {
             _subjectRepository = subjectRepository;
-            _subjectLanguageRepository = subjectLanguageRepository;
             _logger = logger;
         }
 
@@ -39,7 +37,7 @@ namespace MasterService.Application.Services
             }
         }
 
-        public async Task<SubjectDto> GetSubjectByIdAsync(int id)
+        public async Task<SubjectDto?> GetSubjectByIdAsync(int id)
         {
             try
             {
@@ -80,29 +78,19 @@ namespace MasterService.Application.Services
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                var createdSubject = await _subjectRepository.AddAsync(subject);
-
-                // Add subject languages if provided
-                if (createSubjectDto.SubjectLanguages != null && createSubjectDto.SubjectLanguages.Any())
-                {
-                    foreach (var langDto in createSubjectDto.SubjectLanguages)
+                var namesJson = LanguagePayloadSerializer.SerializeNames(
+                    createSubjectDto.SubjectLanguages,
+                    lang => new
                     {
-                        var subjectLanguage = new SubjectLanguage
-                        {
-                            SubjectId = createdSubject.Id,
-                            LanguageId = langDto.LanguageId,
-                            Name = langDto.Name,
-                            Description = langDto.Description,
-                            IsActive = langDto.IsActive,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow
-                        };
+                        lang.LanguageId,
+                        lang.Name,
+                        lang.Description,
+                        IsActive = lang.IsActive
+                    });
 
-                        await _subjectLanguageRepository.AddAsync(subjectLanguage);
-                    }
-                }
-
-                return MapToSubjectDto(createdSubject);
+                var createdSubject = await _subjectRepository.AddAsync(subject, namesJson);
+                await _subjectRepository.SaveChangesAsync();
+                return (await GetSubjectByIdAsync(createdSubject.Id))!;
             }
             catch (Exception ex)
             {
@@ -111,7 +99,7 @@ namespace MasterService.Application.Services
             }
         }
 
-        public async Task<SubjectDto> UpdateSubjectAsync(int id, UpdateSubjectDto updateSubjectDto)
+        public async Task<SubjectDto?> UpdateSubjectAsync(int id, UpdateSubjectDto updateSubjectDto)
         {
             try
             {
@@ -133,36 +121,21 @@ namespace MasterService.Application.Services
 
                 existingSubject.UpdatedAt = DateTime.UtcNow;
 
-                var updatedSubject = await _subjectRepository.UpdateAsync(existingSubject);
-
-                // Update subject languages if provided
-                if (updateSubjectDto.SubjectLanguages != null && updateSubjectDto.SubjectLanguages.Any())
-                {
-                    var existingLanguages = await _subjectLanguageRepository.GetBySubjectIdAsync(id);
-                    
-                    foreach (var langDto in updateSubjectDto.SubjectLanguages)
-                    {
-                        var existingLang = existingLanguages.FirstOrDefault(l => l.LanguageId == langDto.LanguageId);
-                        
-                        if (existingLang != null)
+                var namesJson = updateSubjectDto.SubjectLanguages == null
+                    ? null
+                    : LanguagePayloadSerializer.SerializeNames(
+                        updateSubjectDto.SubjectLanguages,
+                        lang => new
                         {
-                            // Update existing
-                            if (!string.IsNullOrEmpty(langDto.Name))
-                                existingLang.Name = langDto.Name;
-                            
-                            if (langDto.Description != null)
-                                existingLang.Description = langDto.Description;
-                            
-                            if (langDto.IsActive.HasValue)
-                                existingLang.IsActive = langDto.IsActive.Value;
-                            
-                            existingLang.UpdatedAt = DateTime.UtcNow;
-                            await _subjectLanguageRepository.UpdateAsync(existingLang);
-                        }
-                    }
-                }
+                            lang.LanguageId,
+                            Name = lang.Name ?? string.Empty,
+                            lang.Description,
+                            IsActive = lang.IsActive ?? true
+                        });
 
-                return MapToSubjectDto(updatedSubject);
+                await _subjectRepository.UpdateAsync(existingSubject, namesJson);
+                await _subjectRepository.SaveChangesAsync();
+                return await GetSubjectByIdAsync(id);
             }
             catch (Exception ex)
             {

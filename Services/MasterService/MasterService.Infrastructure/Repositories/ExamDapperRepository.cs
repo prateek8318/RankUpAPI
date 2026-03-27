@@ -4,12 +4,13 @@ using System.Data;
 using System.Text.Json;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace MasterService.Infrastructure.Repositories
 {
     public class ExamDapperRepository : BaseDapperRepository, IExamRepository
     {
-        public ExamDapperRepository(string connectionString) : base(connectionString)
+        public ExamDapperRepository(string connectionString, ILogger<ExamDapperRepository> logger) : base(connectionString, logger)
         {
         }
 
@@ -38,21 +39,24 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<Exam?> GetByIdLocalizedAsync(int id, string? languageCode)
         {
-            using var multi = await _connection.QueryMultipleAsync(
-                "[dbo].[Exam_GetByIdWithRelationsLocalized]",
-                new { Id = id, LanguageCode = languageCode },
-                commandType: CommandType.StoredProcedure);
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetByIdWithRelationsLocalized]",
+                    new { Id = id, LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure);
 
-            var exam = await multi.ReadFirstOrDefaultAsync<Exam>();
-            if (exam == null)
-                return null;
+                var exam = await multi.ReadFirstOrDefaultAsync<Exam>();
+                if (exam == null)
+                    return null;
 
-            var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
-            var relations = (await multi.ReadAsync<ExamQualification>()).ToList();
-            
-            exam.ExamLanguages = languages;
-            exam.ExamQualifications = relations;
-            return exam;
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                var relations = (await multi.ReadAsync<ExamQualification>()).ToList();
+
+                exam.ExamLanguages = languages;
+                exam.ExamQualifications = relations;
+                return exam;
+            });
         }
 
         public async Task<IEnumerable<Exam>> GetAllAsync()
@@ -207,10 +211,11 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await _connection.ExecuteAsync(
-                "[dbo].[Exam_Create]",
-                parameters,
-                commandType: CommandType.StoredProcedure);
+            await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Exam_Create]",
+                    parameters,
+                    commandType: CommandType.StoredProcedure));
             
             if (parameters.Get<int>("@Id") > 0)
             {
@@ -244,43 +249,47 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@RelationsJson", relationsJson);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-            await _connection.ExecuteAsync(
-                "[dbo].[Exam_Update]",
-                parameters,
-                commandType: CommandType.StoredProcedure);
+            await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Exam_Update]",
+                    parameters,
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task DeleteAsync(Exam exam)
         {
-            await _connection.ExecuteAsync(
-                "[dbo].[Exam_Delete]",
-                new { Id = exam.Id },
-                commandType: CommandType.StoredProcedure);
+            await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Exam_Delete]",
+                    new { Id = exam.Id },
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task<bool> SoftDeleteByIdAsync(int id)
         {
-            var affected = await _connection.ExecuteAsync(
-                "[dbo].[Exam_SoftDelete]",
-                new { Id = id },
-                commandType: CommandType.StoredProcedure);
+            var affected = await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Exam_SoftDelete]",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure));
 
             return affected > 0;
         }
 
         public async Task<bool> SetActiveAsync(int id, bool isActive)
         {
-            var affected = await _connection.ExecuteAsync(
-                "[dbo].[Exam_SetActive]",
-                new { Id = id, IsActive = isActive },
-                commandType: CommandType.StoredProcedure);
+            var affected = await WithConnectionAsync(async connection =>
+                await connection.ExecuteAsync(
+                    "[dbo].[Exam_SetActive]",
+                    new { Id = id, IsActive = isActive },
+                    commandType: CommandType.StoredProcedure));
 
             return affected > 0;
         }
 
         public async Task<int> SaveChangesAsync()
         {
-            // Dapper commands are executed immediately; this exists for interface compatibility.
+            _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(ExamDapperRepository));
             return await Task.FromResult(1);
         }
     }

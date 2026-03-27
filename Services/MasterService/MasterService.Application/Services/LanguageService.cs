@@ -59,8 +59,7 @@ namespace MasterService.Application.Services
             if (language == null)
                 return false;
 
-            language.IsActive = false;
-            language.UpdatedAt = DateTime.UtcNow;
+            await _languageRepository.DeleteAsync(language);
             await _languageRepository.SaveChangesAsync();
             return true;
         }

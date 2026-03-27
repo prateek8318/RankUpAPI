@@ -13,7 +13,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    SELECT sl.Id, sl.SubjectId, sl.LanguageId, sl.Name, sl.IsActive, sl.CreatedAt, sl.UpdatedAt,
+    SELECT sl.Id, sl.SubjectId, sl.LanguageId, sl.Name, sl.Description, sl.IsActive, sl.CreatedAt, sl.UpdatedAt,
            l.Id as LanguageId, l.Code as LanguageCode, l.Name as LanguageName
     FROM SubjectLanguages sl WITH (NOLOCK)
     INNER JOIN Languages l WITH (NOLOCK) ON sl.LanguageId = l.Id
@@ -33,7 +33,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    SELECT sl.Id, sl.SubjectId, sl.LanguageId, sl.Name, sl.IsActive, sl.CreatedAt, sl.UpdatedAt,
+    SELECT sl.Id, sl.SubjectId, sl.LanguageId, sl.Name, sl.Description, sl.IsActive, sl.CreatedAt, sl.UpdatedAt,
            l.Id as LanguageId, l.Code as LanguageCode, l.Name as LanguageName
     FROM SubjectLanguages sl WITH (NOLOCK)
     INNER JOIN Languages l WITH (NOLOCK) ON sl.LanguageId = l.Id
@@ -50,6 +50,7 @@ CREATE PROCEDURE [dbo].[SubjectLanguage_Create]
     @SubjectId INT,
     @LanguageId INT,
     @Name NVARCHAR(200),
+    @Description NVARCHAR(1000) = NULL,
     @IsActive BIT = 1,
     @CreatedAt DATETIME2,
     @UpdatedAt DATETIME2
@@ -57,9 +58,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
-        INSERT INTO SubjectLanguages (SubjectId, LanguageId, Name, IsActive, CreatedAt, UpdatedAt)
+        INSERT INTO SubjectLanguages (SubjectId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
         OUTPUT INSERTED.Id
-        VALUES (@SubjectId, @LanguageId, @Name, @IsActive, @CreatedAt, @UpdatedAt);
+        VALUES (@SubjectId, @LanguageId, @Name, @Description, @IsActive, @CreatedAt, @UpdatedAt);
         
         RETURN 0; -- Success
     END TRY
@@ -79,6 +80,7 @@ CREATE PROCEDURE [dbo].[SubjectLanguage_Update]
     @SubjectId INT,
     @LanguageId INT,
     @Name NVARCHAR(200),
+    @Description NVARCHAR(1000) = NULL,
     @IsActive BIT = 1,
     @UpdatedAt DATETIME2
 AS
@@ -86,7 +88,7 @@ BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
         UPDATE SubjectLanguages 
-        SET SubjectId = @SubjectId, LanguageId = @LanguageId, Name = @Name, 
+        SET SubjectId = @SubjectId, LanguageId = @LanguageId, Name = @Name, Description = @Description,
             IsActive = @IsActive, UpdatedAt = @UpdatedAt
         WHERE Id = @Id;
         

@@ -83,7 +83,6 @@ namespace MasterService.Infrastructure.Repositories
                 parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
                 await connection.ExecuteAsync(sql, parameters);
-                return Task.CompletedTask;
             });
         }
 
@@ -93,7 +92,6 @@ namespace MasterService.Infrastructure.Repositories
             {
                 var sql = "EXEC [dbo].[Language_Delete] @Id";
                 await connection.ExecuteAsync(sql, new { Id = language.Id });
-                return Task.CompletedTask;
             });
         }
 

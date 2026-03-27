@@ -11,8 +11,8 @@ namespace MasterService.Application.Interfaces
         Task<IEnumerable<StreamEntity>> GetActiveLocalizedAsync(string? languageCode);
         Task<IEnumerable<StreamEntity>> GetActiveByQualificationIdAsync(int qualificationId);
         Task<IEnumerable<StreamEntity>> GetActiveByQualificationIdLocalizedAsync(int qualificationId, string? languageCode);
-        Task<StreamEntity> AddAsync(StreamEntity stream);
-        Task UpdateAsync(StreamEntity stream);
+        Task<StreamEntity> AddAsync(StreamEntity stream, string? namesJson = null);
+        Task UpdateAsync(StreamEntity stream, string? namesJson = null);
         Task DeleteAsync(StreamEntity stream);
         Task<bool> SoftDeleteByIdAsync(int id);
         Task<bool> SetActiveAsync(int id, bool isActive);

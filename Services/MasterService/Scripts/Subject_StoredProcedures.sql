@@ -81,6 +81,7 @@ CREATE PROCEDURE [dbo].[Subject_Create]
     @Name NVARCHAR(100),
     @Description NVARCHAR(500) = NULL,
     @IsActive BIT = 1,
+    @NamesJson NVARCHAR(MAX) = NULL,
     @CreatedAt DATETIME2,
     @UpdatedAt DATETIME2,
     @Id INT OUTPUT
@@ -95,10 +96,39 @@ BEGIN
         RETURN -1;
     END
     
-    INSERT INTO Subjects (Name, Description, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @Description, @IsActive, @CreatedAt, @UpdatedAt);
-    
-    SET @Id = SCOPE_IDENTITY();
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        INSERT INTO Subjects (Name, Description, IsActive, CreatedAt, UpdatedAt)
+        VALUES (@Name, @Description, @IsActive, @CreatedAt, @UpdatedAt);
+        
+        SET @Id = SCOPE_IDENTITY();
+
+        IF @NamesJson IS NOT NULL AND @Id > 0
+        BEGIN
+            INSERT INTO SubjectLanguages (SubjectId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+            SELECT
+                @Id,
+                LanguageId,
+                Name,
+                Description,
+                ISNULL(IsActive, 1),
+                @CreatedAt,
+                @UpdatedAt
+            FROM OPENJSON(@NamesJson)
+            WITH (
+                LanguageId INT '$.LanguageId',
+                Name NVARCHAR(200) '$.Name',
+                Description NVARCHAR(1000) '$.Description',
+                IsActive BIT '$.IsActive'
+            );
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
     RETURN 0;
 END
 GO
@@ -113,6 +143,7 @@ CREATE PROCEDURE [dbo].[Subject_Update]
     @Name NVARCHAR(100) = NULL,
     @Description NVARCHAR(500) = NULL,
     @IsActive BIT = NULL,
+    @NamesJson NVARCHAR(MAX) = NULL,
     @UpdatedAt DATETIME2
 AS
 BEGIN
@@ -132,13 +163,44 @@ BEGIN
         RETURN -1;
     END
     
-    UPDATE Subjects
-    SET 
-        Name = ISNULL(@Name, Name),
-        Description = ISNULL(@Description, Description),
-        IsActive = ISNULL(@IsActive, IsActive),
-        UpdatedAt = @UpdatedAt
-    WHERE Id = @Id;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        UPDATE Subjects
+        SET 
+            Name = ISNULL(@Name, Name),
+            Description = ISNULL(@Description, Description),
+            IsActive = ISNULL(@IsActive, IsActive),
+            UpdatedAt = @UpdatedAt
+        WHERE Id = @Id;
+
+        IF @NamesJson IS NOT NULL
+        BEGIN
+            DELETE FROM SubjectLanguages WHERE SubjectId = @Id;
+
+            INSERT INTO SubjectLanguages (SubjectId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+            SELECT
+                @Id,
+                LanguageId,
+                Name,
+                Description,
+                ISNULL(IsActive, 1),
+                @UpdatedAt,
+                @UpdatedAt
+            FROM OPENJSON(@NamesJson)
+            WITH (
+                LanguageId INT '$.LanguageId',
+                Name NVARCHAR(200) '$.Name',
+                Description NVARCHAR(1000) '$.Description',
+                IsActive BIT '$.IsActive'
+            );
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
     
     RETURN 0;
 END

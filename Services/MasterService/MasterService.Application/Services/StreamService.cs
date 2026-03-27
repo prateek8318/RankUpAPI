@@ -1,6 +1,7 @@
 using AutoMapper;
 using Common.Language;
 using MasterService.Application.DTOs;
+using MasterService.Application.Helpers;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -45,7 +46,11 @@ namespace MasterService.Application.Services
                 }
             }
 
-            await _streamRepository.AddAsync(stream);
+            var namesJson = LanguagePayloadSerializer.SerializeNames(
+                createDto.Names,
+                lang => new { lang.LanguageId, lang.Name, lang.Description });
+
+            await _streamRepository.AddAsync(stream, namesJson);
             await _streamRepository.SaveChangesAsync();
             return (await GetStreamByIdAsync(stream.Id))!;
         }
@@ -81,7 +86,11 @@ namespace MasterService.Application.Services
                 }
             }
 
-            await _streamRepository.UpdateAsync(stream);
+            var namesJson = LanguagePayloadSerializer.SerializeNames(
+                updateDto.Names,
+                lang => new { lang.LanguageId, lang.Name, lang.Description });
+
+            await _streamRepository.UpdateAsync(stream, namesJson);
             await _streamRepository.SaveChangesAsync();
             return await GetStreamByIdAsync(stream.Id);
         }

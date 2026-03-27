@@ -11,8 +11,8 @@ namespace MasterService.Application.Interfaces
         Task<IEnumerable<Qualification>> GetActiveLocalizedAsync(string? languageCode);
         Task<IEnumerable<Qualification>> GetActiveByCountryCodeAsync(string countryCode);
         Task<IEnumerable<Qualification>> GetActiveByCountryCodeLocalizedAsync(string countryCode, string? languageCode);
-        Task<Qualification> AddAsync(Qualification qualification);
-        Task UpdateAsync(Qualification qualification);
+        Task<Qualification> AddAsync(Qualification qualification, string? namesJson = null);
+        Task UpdateAsync(Qualification qualification, string? namesJson = null);
         Task DeleteAsync(Qualification qualification);
         Task<bool> HardDeleteByIdAsync(int id);
         Task<bool> SoftDeleteByIdAsync(int id);

@@ -1014,15 +1014,45 @@ CREATE PROCEDURE dbo.Subject_Create
     @Name        NVARCHAR(200),
     @Description NVARCHAR(1000) = NULL,
     @IsActive    BIT = 1,
+    @NamesJson   NVARCHAR(MAX) = NULL,
     @CreatedAt   DATETIME2,
     @UpdatedAt   DATETIME2,
     @Id          INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.Subjects (Name, Description, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @Description, @IsActive, @CreatedAt, @UpdatedAt);
-    SET @Id = SCOPE_IDENTITY();
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        INSERT INTO dbo.Subjects (Name, Description, IsActive, CreatedAt, UpdatedAt)
+        VALUES (@Name, @Description, @IsActive, @CreatedAt, @UpdatedAt);
+        SET @Id = SCOPE_IDENTITY();
+
+        IF @NamesJson IS NOT NULL AND @Id > 0
+        BEGIN
+            INSERT INTO dbo.SubjectLanguages (SubjectId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+            SELECT
+                @Id,
+                LanguageId,
+                Name,
+                Description,
+                ISNULL(IsActive, 1),
+                @CreatedAt,
+                @UpdatedAt
+            FROM OPENJSON(@NamesJson)
+            WITH (
+                LanguageId INT '$.LanguageId',
+                Name NVARCHAR(200) '$.Name',
+                Description NVARCHAR(1000) '$.Description',
+                IsActive BIT '$.IsActive'
+            );
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END
 GO
 
@@ -1034,16 +1064,48 @@ CREATE PROCEDURE dbo.Subject_Update
     @Name        NVARCHAR(200),
     @Description NVARCHAR(1000) = NULL,
     @IsActive    BIT,
+    @NamesJson   NVARCHAR(MAX) = NULL,
     @UpdatedAt   DATETIME2
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.Subjects
-    SET Name = @Name,
-        Description = @Description,
-        IsActive = @IsActive,
-        UpdatedAt = @UpdatedAt
-    WHERE Id = @Id;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        UPDATE dbo.Subjects
+        SET Name = @Name,
+            Description = @Description,
+            IsActive = @IsActive,
+            UpdatedAt = @UpdatedAt
+        WHERE Id = @Id;
+
+        IF @NamesJson IS NOT NULL
+        BEGIN
+            DELETE FROM dbo.SubjectLanguages WHERE SubjectId = @Id;
+
+            INSERT INTO dbo.SubjectLanguages (SubjectId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+            SELECT
+                @Id,
+                LanguageId,
+                Name,
+                Description,
+                ISNULL(IsActive, 1),
+                @UpdatedAt,
+                @UpdatedAt
+            FROM OPENJSON(@NamesJson)
+            WITH (
+                LanguageId INT '$.LanguageId',
+                Name NVARCHAR(200) '$.Name',
+                Description NVARCHAR(1000) '$.Description',
+                IsActive BIT '$.IsActive'
+            );
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END
 GO
 

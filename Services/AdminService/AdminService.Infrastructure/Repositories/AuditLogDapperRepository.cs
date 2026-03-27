@@ -1,47 +1,58 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 using AdminService.Domain.Interfaces;
 using AdminService.Domain.Entities;
 
 namespace AdminService.Infrastructure.Repositories
 {
-    public class AuditLogDapperRepository : IAuditLogRepository
+    public class AuditLogDapperRepository : BaseDapperRepository, IAuditLogRepository
     {
-        private readonly IDbConnection _connection;
-
-        public AuditLogDapperRepository(IDbConnection connection)
+        public AuditLogDapperRepository(string connectionString, ILogger<AuditLogDapperRepository> logger)
+            : base(connectionString, logger)
         {
-            _connection = connection;
         }
-
 
         public async Task<AuditLog> AddAsync(AuditLog auditLog)
         {
-            var sql = @"
-                EXEC [dbo].[AuditLog_Insert] 
-                    @AdminId, @ServiceName, @Action, @EntityType, @EntityId,
-                    @OldValues, @NewValues, @IpAddress, @UserAgent, @CreatedAt";
-
-            await _connection.ExecuteAsync(sql, auditLog);
+            await WithConnectionAsync(connection =>
+                connection.ExecuteAsync(
+                    "[dbo].[AuditLog_Create]",
+                    new
+                    {
+                        auditLog.AdminId,
+                        auditLog.ServiceName,
+                        auditLog.Action,
+                        auditLog.Endpoint,
+                        auditLog.HttpMethod,
+                        auditLog.RequestPayload,
+                        auditLog.ResponsePayload,
+                        auditLog.StatusCode,
+                        auditLog.IpAddress,
+                        auditLog.UserAgent,
+                        auditLog.ResponseTimeMs,
+                        auditLog.ErrorMessage,
+                        auditLog.CreatedAt
+                    },
+                    commandType: CommandType.StoredProcedure));
             return auditLog;
         }
 
         public async Task<IEnumerable<AuditLog>> GetAuditLogsAsync(int? adminId = null, string? serviceName = null, DateTime? startDate = null, DateTime? endDate = null, int page = 1, int pageSize = 50)
         {
-            var sql = "EXEC [dbo].[AuditLog_GetAuditLogs] @AdminId, @ServiceName, @StartDate, @EndDate, @Page, @PageSize";
-            
-            var parameters = new
-            {
-                AdminId = adminId,
-                ServiceName = serviceName,
-                StartDate = startDate,
-                EndDate = endDate,
-                Page = page,
-                PageSize = pageSize
-            };
-
-            return await _connection.QueryAsync<AuditLog>(sql, parameters);
+            return await WithConnectionAsync(connection =>
+                connection.QueryAsync<AuditLog>(
+                    "[dbo].[AuditLog_GetAuditLogs]",
+                    new
+                    {
+                        AdminId = adminId,
+                        ServiceName = serviceName,
+                        StartDate = startDate,
+                        EndDate = endDate,
+                        Page = page,
+                        PageSize = pageSize
+                    },
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task<int> SaveChangesAsync()

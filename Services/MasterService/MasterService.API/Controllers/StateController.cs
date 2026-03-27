@@ -28,24 +28,22 @@ namespace MasterService.API.Controllers
         public async Task<ActionResult<IEnumerable<StateDto>>> GetStates(
             [FromQuery] string? language = null,
             [FromQuery] int? languageId = null,
-            [FromQuery] string? countryCode = null)
+            [FromQuery] string? countryCode = null,
+            [FromQuery] bool includeInactive = false)
         {
             try
             {
                 // Priority: language parameter > languageId > header
                 string? selectedLanguage = null;
+                int? effectiveLanguageId = null;
                 
                 if (!string.IsNullOrEmpty(language))
                 {
                     selectedLanguage = language;
                 }
-                else if (!languageId.HasValue)
-                {
-                    languageId = GetLanguageIdFromHeader();
-                }
                 else
                 {
-                    languageId = GetLanguageIdFromHeader();
+                    effectiveLanguageId = languageId ?? GetLanguageIdFromHeader();
                 }
 
                 IEnumerable<StateDto> states;
@@ -67,22 +65,88 @@ namespace MasterService.API.Controllers
                     // Use existing languageId-based method
                     if (!string.IsNullOrEmpty(countryCode))
                     {
-                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, languageId);
+                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, effectiveLanguageId);
                     }
                     else
                     {
-                        states = await _stateService.GetAllStatesAsync(languageId);
+                        states = await _stateService.GetAllStatesAsync(effectiveLanguageId);
                     }
                 }
 
-                // Filter names array to show only selected language
-                var filteredStates = FilterStatesByLanguage(states, languageId);
-                
-                return Ok(filteredStates);
+                // Role-based filtering: Admins can see inactive states, regular users only see active
+                var isAdmin = User.IsInRole("Admin");
+                var shouldIncludeInactive = includeInactive || isAdmin;
+
+                // Filter by status if not including inactive
+                if (!shouldIncludeInactive)
+                {
+                    states = states.Where(s => s.IsActive);
+                }
+
+                return Ok(states);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving states");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<IEnumerable<StateDto>>> GetAllStatesForAdmin(
+            [FromQuery] string? language = null,
+            [FromQuery] int? languageId = null,
+            [FromQuery] string? countryCode = null)
+        {
+            try
+            {
+                // Priority: language parameter > languageId > header
+                string? selectedLanguage = null;
+                int? effectiveLanguageId = null;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    selectedLanguage = language;
+                }
+                else
+                {
+                    effectiveLanguageId = languageId ?? GetLanguageIdFromHeader();
+                }
+
+                IEnumerable<StateDto> states;
+                
+                if (!string.IsNullOrEmpty(selectedLanguage))
+                {
+                    // Use new language-based method
+                    if (!string.IsNullOrEmpty(countryCode))
+                    {
+                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, selectedLanguage);
+                    }
+                    else
+                    {
+                        states = await _stateService.GetAllStatesAsync(selectedLanguage);
+                    }
+                }
+                else
+                {
+                    // Use existing languageId-based method
+                    if (!string.IsNullOrEmpty(countryCode))
+                    {
+                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, effectiveLanguageId);
+                    }
+                    else
+                    {
+                        states = await _stateService.GetAllStatesAsync(effectiveLanguageId);
+                    }
+                }
+
+                // Admin sees all states (both active and inactive)
+                return Ok(states);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving states for admin");
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -103,10 +167,7 @@ namespace MasterService.API.Controllers
                 if (state == null)
                     return NotFound();
 
-                // Filter names array to show only selected language
-                var filteredState = FilterStatesByLanguage(new[] { state }, languageId).FirstOrDefault();
-                
-                return Ok(filteredState);
+                return Ok(state);
             }
             catch (Exception ex)
             {
@@ -240,23 +301,6 @@ namespace MasterService.API.Controllers
                 "gu" => null, // Gujarati - add ID when available
                 _ => 50 // Default to English
             };
-        }
-
-        private IEnumerable<StateDto> FilterStatesByLanguage(IEnumerable<StateDto> states, int? languageId)
-        {
-            if (!languageId.HasValue)
-                return states;
-
-            return states.Select(state => new StateDto
-            {
-                Id = state.Id,
-                Name = state.Name,
-                Code = state.Code,
-                CountryCode = state.CountryCode,
-                IsActive = state.IsActive,
-                CreatedAt = state.CreatedAt,
-                Names = state.Names?.Where(n => n.LanguageId == languageId.Value).ToList() ?? new List<StateLanguageDto>()
-            });
         }
     }
 }

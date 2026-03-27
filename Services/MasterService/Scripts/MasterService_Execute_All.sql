@@ -225,7 +225,7 @@ CREATE PROCEDURE dbo.State_GetAll
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, CountryCode, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, Code, CountryCode, IsActive, CreatedAt, UpdatedAt
     FROM dbo.States;
 END
 GO
@@ -251,7 +251,7 @@ CREATE PROCEDURE dbo.State_GetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, CountryCode, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, Code, CountryCode, IsActive, CreatedAt, UpdatedAt
     FROM dbo.States
     WHERE Id = @Id;
 END
@@ -265,9 +265,82 @@ CREATE PROCEDURE dbo.State_GetActiveByCountryCode
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, CountryCode, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, Code, CountryCode, IsActive, CreatedAt, UpdatedAt
     FROM dbo.States
     WHERE IsActive = 1 AND CountryCode = @CountryCode;
+END
+GO
+
+-- State_GetActiveLocalized
+IF OBJECT_ID('dbo.State_GetActiveLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.State_GetActiveLocalized;
+GO
+CREATE PROCEDURE dbo.State_GetActiveLocalized
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        s.Id,
+        ISNULL(sl.Name, s.Name) AS Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM dbo.States s
+    LEFT JOIN dbo.Languages l ON l.Code = @LanguageCode AND l.IsActive = 1
+    LEFT JOIN dbo.StateLanguages sl ON sl.StateId = s.Id AND sl.LanguageId = l.Id AND sl.IsActive = 1
+    WHERE s.IsActive = 1
+    ORDER BY ISNULL(sl.Name, s.Name);
+END
+GO
+
+-- State_GetActiveByCountryCodeLocalized
+IF OBJECT_ID('dbo.State_GetActiveByCountryCodeLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.State_GetActiveByCountryCodeLocalized;
+GO
+CREATE PROCEDURE dbo.State_GetActiveByCountryCodeLocalized
+    @CountryCode NVARCHAR(10),
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        s.Id,
+        ISNULL(sl.Name, s.Name) AS Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM dbo.States s
+    LEFT JOIN dbo.Languages l ON l.Code = @LanguageCode AND l.IsActive = 1
+    LEFT JOIN dbo.StateLanguages sl ON sl.StateId = s.Id AND sl.LanguageId = l.Id AND sl.IsActive = 1
+    WHERE s.IsActive = 1 AND s.CountryCode = @CountryCode
+    ORDER BY ISNULL(sl.Name, s.Name);
+END
+GO
+
+-- State_GetByIdLocalized
+IF OBJECT_ID('dbo.State_GetByIdLocalized', 'P') IS NOT NULL DROP PROCEDURE dbo.State_GetByIdLocalized;
+GO
+CREATE PROCEDURE dbo.State_GetByIdLocalized
+    @Id INT,
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        s.Id,
+        ISNULL(sl.Name, s.Name) AS Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM dbo.States s
+    LEFT JOIN dbo.Languages l ON l.Code = @LanguageCode AND l.IsActive = 1
+    LEFT JOIN dbo.StateLanguages sl ON sl.StateId = s.Id AND sl.LanguageId = l.Id AND sl.IsActive = 1
+    WHERE s.Id = @Id;
 END
 GO
 
@@ -361,6 +434,35 @@ BEGIN
 END
 GO
 
+-- State_SoftDelete
+IF OBJECT_ID('dbo.State_SoftDelete', 'P') IS NOT NULL DROP PROCEDURE dbo.State_SoftDelete;
+GO
+CREATE PROCEDURE dbo.State_SoftDelete
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.States
+    SET IsActive = 0, UpdatedAt = GETUTCDATE()
+    WHERE Id = @Id;
+END
+GO
+
+-- State_SetActive
+IF OBJECT_ID('dbo.State_SetActive', 'P') IS NOT NULL DROP PROCEDURE dbo.State_SetActive;
+GO
+CREATE PROCEDURE dbo.State_SetActive
+    @Id INT,
+    @IsActive BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.States
+    SET IsActive = @IsActive, UpdatedAt = GETUTCDATE()
+    WHERE Id = @Id;
+END
+GO
+
 -- State_GetWithEmptyNames
 IF OBJECT_ID('dbo.State_GetWithEmptyNames', 'P') IS NOT NULL DROP PROCEDURE dbo.State_GetWithEmptyNames;
 GO
@@ -368,7 +470,7 @@ CREATE PROCEDURE dbo.State_GetWithEmptyNames
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, CountryCode, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, Code, CountryCode, IsActive, CreatedAt, UpdatedAt
     FROM dbo.States
     WHERE Name IS NULL OR Name = '';
 END
@@ -992,16 +1094,155 @@ CREATE PROCEDURE dbo.Exam_Delete
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET QUOTED_IDENTIFIER ON;
-    
-    -- Delete related ExamLanguages first
-    DELETE FROM dbo.ExamLanguages WHERE ExamId = @Id;
-    
-    -- Delete related ExamQualifications
-    DELETE FROM dbo.ExamQualifications WHERE ExamId = @Id;
-    
-    -- Finally delete the exam
-    DELETE FROM dbo.Exams WHERE Id = @Id;
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        DELETE FROM dbo.ExamLanguages WHERE ExamId = @Id;
+        DELETE FROM dbo.ExamQualifications WHERE ExamId = @Id;
+        DELETE FROM dbo.Exams WHERE Id = @Id;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+-- QualificationLanguage_GetByQualificationIds
+IF OBJECT_ID('dbo.QualificationLanguage_GetByQualificationIds', 'P') IS NOT NULL DROP PROCEDURE dbo.QualificationLanguage_GetByQualificationIds;
+GO
+CREATE PROCEDURE dbo.QualificationLanguage_GetByQualificationIds
+    @QualificationIds NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ql.Id,
+        ql.QualificationId,
+        ql.LanguageId,
+        ql.Name,
+        ql.Description,
+        ql.IsActive,
+        ql.CreatedAt,
+        ql.UpdatedAt,
+        l.Id,
+        l.Code,
+        l.Name
+    FROM dbo.QualificationLanguages ql
+    LEFT JOIN dbo.Languages l ON l.Id = ql.LanguageId
+    INNER JOIN STRING_SPLIT(@QualificationIds, ',') ids ON TRY_CAST(ids.value AS INT) = ql.QualificationId
+    WHERE ql.IsActive = 1;
+END
+GO
+
+-- StreamLanguage_GetByStreamIds
+IF OBJECT_ID('dbo.StreamLanguage_GetByStreamIds', 'P') IS NOT NULL DROP PROCEDURE dbo.StreamLanguage_GetByStreamIds;
+GO
+CREATE PROCEDURE dbo.StreamLanguage_GetByStreamIds
+    @StreamIds NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        sl.Id,
+        sl.StreamId,
+        sl.LanguageId,
+        sl.Name,
+        sl.Description,
+        sl.IsActive,
+        sl.CreatedAt,
+        sl.UpdatedAt,
+        l.Id,
+        l.Code,
+        l.Name
+    FROM dbo.StreamLanguages sl
+    LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
+    INNER JOIN STRING_SPLIT(@StreamIds, ',') ids ON TRY_CAST(ids.value AS INT) = sl.StreamId
+    WHERE sl.IsActive = 1;
+END
+GO
+
+-- Qualification_GetByIds
+IF OBJECT_ID('dbo.Qualification_GetByIds', 'P') IS NOT NULL DROP PROCEDURE dbo.Qualification_GetByIds;
+GO
+CREATE PROCEDURE dbo.Qualification_GetByIds
+    @Ids NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        q.Id,
+        q.Name,
+        q.NameHi,
+        q.Description,
+        q.CountryCode,
+        q.IsActive,
+        q.CreatedAt,
+        q.UpdatedAt
+    FROM dbo.Qualifications q
+    INNER JOIN STRING_SPLIT(@Ids, ',') ids ON TRY_CAST(ids.value AS INT) = q.Id
+    WHERE q.IsActive = 1;
+END
+GO
+
+-- SubjectLanguage_GetBySubjectIds
+IF OBJECT_ID('dbo.SubjectLanguage_GetBySubjectIds', 'P') IS NOT NULL DROP PROCEDURE dbo.SubjectLanguage_GetBySubjectIds;
+GO
+CREATE PROCEDURE dbo.SubjectLanguage_GetBySubjectIds
+    @SubjectIds NVARCHAR(MAX),
+    @LanguageId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        sl.Id,
+        sl.SubjectId,
+        sl.LanguageId,
+        sl.Name,
+        sl.Description,
+        sl.IsActive,
+        sl.CreatedAt,
+        sl.UpdatedAt,
+        l.Id,
+        l.Name,
+        l.Code
+    FROM dbo.SubjectLanguages sl
+    LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
+    INNER JOIN STRING_SPLIT(@SubjectIds, ',') ids ON TRY_CAST(ids.value AS INT) = sl.SubjectId
+    WHERE sl.IsActive = 1
+      AND (@LanguageId IS NULL OR sl.LanguageId = @LanguageId);
+END
+GO
+
+-- StateLanguage_GetByStateIds
+IF OBJECT_ID('dbo.StateLanguage_GetByStateIds', 'P') IS NOT NULL DROP PROCEDURE dbo.StateLanguage_GetByStateIds;
+GO
+CREATE PROCEDURE dbo.StateLanguage_GetByStateIds
+    @StateIds NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        sl.Id,
+        sl.StateId,
+        sl.LanguageId,
+        sl.Name,
+        sl.IsActive,
+        sl.CreatedAt,
+        sl.UpdatedAt,
+        l.Code AS LanguageCode,
+        l.Name AS LanguageName
+    FROM dbo.StateLanguages sl
+    LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
+    INNER JOIN STRING_SPLIT(@StateIds, ',') ids ON TRY_CAST(ids.value AS INT) = sl.StateId
+    WHERE sl.IsActive = 1;
 END
 GO
 

@@ -1,6 +1,7 @@
 using AutoMapper;
 using Common.Language;
 using MasterService.Application.DTOs;
+using MasterService.Application.Helpers;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -31,37 +32,44 @@ namespace MasterService.Application.Services
                 throw new ArgumentException("At least one language name must be provided for the state.");
             }
 
-            // Check for existing state with same name or code (case-insensitive)
+            // Check for existing state with same code (case-insensitive)
             var existingStates = await _stateRepository.GetActiveAsync();
             var duplicateState = existingStates.FirstOrDefault(s => 
-                s.Name.Equals(createDto.Name, StringComparison.OrdinalIgnoreCase) ||
-                (s.Code != null && createDto.Code != null && s.Code.Equals(createDto.Code, StringComparison.OrdinalIgnoreCase)));
+                s.Code != null && createDto.Code != null && s.Code.Equals(createDto.Code, StringComparison.OrdinalIgnoreCase));
 
             if (duplicateState != null)
             {
-                throw new InvalidOperationException($"A state with name '{createDto.Name}' or code '{createDto.Code}' already exists.");
+                throw new InvalidOperationException($"A state with code '{createDto.Code}' already exists.");
             }
 
-            var state = _mapper.Map<State>(createDto);
-            state.CreatedAt = DateTime.UtcNow;
-            state.IsActive = true;
-
-            // Add state languages if provided
-            if (createDto.Names != null && createDto.Names.Any())
+            // Create state with the first language name as the primary name
+            var primaryLanguage = createDto.Names.First();
+            var state = new State
             {
-                foreach (var langDto in createDto.Names)
+                Name = primaryLanguage.Name,
+                Code = createDto.Code,
+                CountryCode = createDto.CountryCode,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            // Add all state languages
+            foreach (var langDto in createDto.Names)
+            {
+                state.StateLanguages.Add(new StateLanguage
                 {
-                    state.StateLanguages.Add(new StateLanguage
-                    {
-                        LanguageId = langDto.LanguageId,
-                        Name = langDto.Name,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
+                    LanguageId = langDto.LanguageId,
+                    Name = langDto.Name,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
             }
 
-            await _stateRepository.AddAsync(state);
+            var namesJson = LanguagePayloadSerializer.SerializeItems(
+                state.StateLanguages,
+                language => new { language.LanguageId, language.Name });
+
+            await _stateRepository.AddAsync(state, namesJson);
             await _stateRepository.SaveChangesAsync();
 
             return await GetStateByIdAsync(state.Id);
@@ -73,7 +81,20 @@ namespace MasterService.Application.Services
             if (state == null)
                 return null;
 
-            _mapper.Map(updateDto, state);
+            // Check for existing state with same code (excluding current state)
+            var existingStates = await _stateRepository.GetActiveAsync();
+            var duplicateState = existingStates.FirstOrDefault(s => 
+                s.Id != id && s.Code != null && updateDto.Code != null && 
+                s.Code.Equals(updateDto.Code, StringComparison.OrdinalIgnoreCase));
+
+            if (duplicateState != null)
+            {
+                throw new InvalidOperationException($"A state with code '{updateDto.Code}' already exists.");
+            }
+
+            // Update basic properties
+            state.Code = updateDto.Code;
+            state.CountryCode = updateDto.CountryCode;
             state.UpdatedAt = DateTime.UtcNow;
 
             // Update state languages if provided
@@ -85,6 +106,10 @@ namespace MasterService.Application.Services
                 {
                     state.StateLanguages.Remove(existingLang);
                 }
+
+                // Update primary name to first language name
+                var primaryLanguage = updateDto.Names.First();
+                state.Name = primaryLanguage.Name;
 
                 // Add new languages
                 foreach (var langDto in updateDto.Names)
@@ -99,7 +124,11 @@ namespace MasterService.Application.Services
                 }
             }
 
-            await _stateRepository.UpdateAsync(state);
+            var namesJson = LanguagePayloadSerializer.SerializeItems(
+                state.StateLanguages,
+                language => new { language.LanguageId, language.Name });
+
+            await _stateRepository.UpdateAsync(state, namesJson);
             await _stateRepository.SaveChangesAsync();
 
             return await GetStateByIdAsync(state.Id);
@@ -118,6 +147,15 @@ namespace MasterService.Application.Services
 
             var stateDto = _mapper.Map<StateDto>(state);
             
+            // Populate Names collection with all available languages
+            stateDto.Names = state.StateLanguages?.Select(sl => new StateLanguageDto
+            {
+                LanguageId = sl.LanguageId,
+                LanguageCode = sl.Language?.Code ?? string.Empty,
+                LanguageName = sl.Language?.Name ?? string.Empty,
+                Name = sl.Name
+            }).ToList() ?? new List<StateLanguageDto>();
+            
             // Set the primary name based on language preference
             if (languageId.HasValue)
             {
@@ -134,23 +172,32 @@ namespace MasterService.Application.Services
         public async Task<IEnumerable<StateDto>> GetAllStatesAsync(int? languageId = null)
         {
             var states = await _stateRepository.GetActiveAsync();
-            var stateDtos = states.OrderBy(s => s.Name).Select(s => _mapper.Map<StateDto>(s)).ToList();
+            var stateDtos = new List<StateDto>();
 
-            // Set names based on language preference
-            if (languageId.HasValue)
+            foreach (var state in states.OrderBy(s => s.Name))
             {
-                foreach (var stateDto in stateDtos)
+                var stateDto = _mapper.Map<StateDto>(state);
+                
+                // Populate Names collection with all available languages
+                stateDto.Names = state.StateLanguages?.Select(sl => new StateLanguageDto
                 {
-                    var state = states.FirstOrDefault(s => s.Id == stateDto.Id);
-                    if (state != null)
-                    {
-                        var languageName = state.StateLanguages
-                            .FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
-                        
-                        if (!string.IsNullOrEmpty(languageName))
-                            stateDto.Name = languageName;
-                    }
+                    LanguageId = sl.LanguageId,
+                    LanguageCode = sl.Language?.Code ?? string.Empty,
+                    LanguageName = sl.Language?.Name ?? string.Empty,
+                    Name = sl.Name
+                }).ToList() ?? new List<StateLanguageDto>();
+                
+                // Set the primary name based on language preference
+                if (languageId.HasValue)
+                {
+                    var languageName = state.StateLanguages
+                        .FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
+                    
+                    if (!string.IsNullOrEmpty(languageName))
+                        stateDto.Name = languageName;
                 }
+                
+                stateDtos.Add(stateDto);
             }
 
             return stateDtos;
@@ -312,23 +359,32 @@ namespace MasterService.Application.Services
         public async Task<IEnumerable<StateDto>> GetStatesByCountryCodeAsync(string countryCode, int? languageId = null)
         {
             var states = await _stateRepository.GetActiveByCountryCodeAsync(countryCode);
-            var stateDtos = states.OrderBy(s => s.Name).Select(s => _mapper.Map<StateDto>(s)).ToList();
+            var stateDtos = new List<StateDto>();
 
-            // Set names based on language preference
-            if (languageId.HasValue)
+            foreach (var state in states.OrderBy(s => s.Name))
             {
-                foreach (var stateDto in stateDtos)
+                var stateDto = _mapper.Map<StateDto>(state);
+                
+                // Populate Names collection with all available languages
+                stateDto.Names = state.StateLanguages?.Select(sl => new StateLanguageDto
                 {
-                    var state = states.FirstOrDefault(s => s.Id == stateDto.Id);
-                    if (state != null)
-                    {
-                        var languageName = state.StateLanguages
-                            .FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
-                        
-                        if (!string.IsNullOrEmpty(languageName))
-                            stateDto.Name = languageName;
-                    }
+                    LanguageId = sl.LanguageId,
+                    LanguageCode = sl.Language?.Code ?? string.Empty,
+                    LanguageName = sl.Language?.Name ?? string.Empty,
+                    Name = sl.Name
+                }).ToList() ?? new List<StateLanguageDto>();
+                
+                // Set the primary name based on language preference
+                if (languageId.HasValue)
+                {
+                    var languageName = state.StateLanguages
+                        .FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
+                    
+                    if (!string.IsNullOrEmpty(languageName))
+                        stateDto.Name = languageName;
                 }
+                
+                stateDtos.Add(stateDto);
             }
 
             return stateDtos;

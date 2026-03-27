@@ -1,31 +1,34 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 using AdminService.Application.Interfaces;
 using AdminService.Domain.Entities;
 
 namespace AdminService.Infrastructure.Repositories
 {
-    public class AdminDapperRepository : IAdminRepository
+    public class AdminDapperRepository : BaseDapperRepository, IAdminRepository
     {
-        private readonly IDbConnection _connection;
-
-        public AdminDapperRepository(IDbConnection connection)
+        public AdminDapperRepository(string connectionString, ILogger<AdminDapperRepository> logger)
+            : base(connectionString, logger)
         {
-            _connection = connection;
         }
-
 
         public async Task<Admin?> GetByIdAsync(int id)
         {
-            var sql = "EXEC [dbo].[Admin_GetById] @Id";
-            return await _connection.QueryFirstOrDefaultAsync<Admin>(sql, new { Id = id });
+            return await WithConnectionAsync(connection =>
+                connection.QueryFirstOrDefaultAsync<Admin>(
+                    "[dbo].[Admin_GetById]",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task<Admin?> GetByUserIdAsync(int userId)
         {
-            var sql = "EXEC [dbo].[Admin_GetByUserId] @UserId";
-            return await _connection.QueryFirstOrDefaultAsync<Admin>(sql, new { UserId = userId });
+            return await WithConnectionAsync(connection =>
+                connection.QueryFirstOrDefaultAsync<Admin>(
+                    "[dbo].[Admin_GetByUserId]",
+                    new { UserId = userId },
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task<Admin?> GetByIdWithRolesAsync(int id)
@@ -37,29 +40,50 @@ namespace AdminService.Infrastructure.Repositories
 
         public async Task<IEnumerable<Admin>> GetAllAsync()
         {
-            var sql = "EXEC [dbo].[Admin_GetAll]";
-            return await _connection.QueryAsync<Admin>(sql);
+            return await WithConnectionAsync(connection =>
+                connection.QueryAsync<Admin>(
+                    "[dbo].[Admin_GetAll]",
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task<Admin> AddAsync(Admin admin)
         {
-            var sql = @"
-                EXEC [dbo].[Admin_Insert] 
-                    @UserId, @Name, @Email, @PhoneNumber, @IsActive, @CreatedAt, @UpdatedAt";
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", admin.UserId);
+            parameters.Add("@Role", admin.Role);
+            parameters.Add("@IsTwoFactorEnabled", admin.IsTwoFactorEnabled);
+            parameters.Add("@MobileNumber", admin.MobileNumber);
+            parameters.Add("@AdminId", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            await _connection.ExecuteAsync(sql, admin);
+            await WithConnectionAsync(connection =>
+                connection.ExecuteAsync(
+                    "[dbo].[Admin_Create]",
+                    parameters,
+                    commandType: CommandType.StoredProcedure));
+
+            admin.Id = parameters.Get<int>("@AdminId");
             return admin;
         }
 
-        public Task UpdateAsync(Admin admin)
+        public async Task UpdateAsync(Admin admin)
         {
-            // For updates, create separate SP if needed
-            return Task.CompletedTask;
+            await WithConnectionAsync(connection =>
+                connection.ExecuteAsync(
+                    "[dbo].[Admin_Update]",
+                    new
+                    {
+                        admin.Id,
+                        admin.Role,
+                        admin.IsTwoFactorEnabled,
+                        admin.MobileNumber
+                    },
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task<int> SaveChangesAsync()
         {
-            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
+            _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(AdminDapperRepository));
+            return await Task.FromResult(0);
         }
     }
 }

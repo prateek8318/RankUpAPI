@@ -13,35 +13,17 @@ namespace MasterService.Infrastructure.Repositories
         {
         }
 
-        private const string SubjectLanguageByIdsSql = @"
-SELECT
-    sl.Id,
-    sl.SubjectId,
-    sl.LanguageId,
-    sl.Name,
-    sl.Description,
-    sl.IsActive,
-    sl.CreatedAt,
-    sl.UpdatedAt,
-    l.Id,
-    l.Name,
-    l.Code
-FROM dbo.SubjectLanguages sl
-LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
-WHERE sl.IsActive = 1
-  AND sl.SubjectId IN @SubjectIds;";
-
-
         public async Task<IEnumerable<Subject>> GetAllAsync(int? languageId = null)
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = languageId.HasValue 
-                    ? "EXEC [dbo].[Subject_GetAllByLanguage] @LanguageId"
-                    : "EXEC [dbo].[Subject_GetAll]";
-                
-                var parameters = new { LanguageId = languageId.HasValue ? (object?)languageId.Value : null };
-                var subjectList = (await connection.QueryAsync<Subject>(sql, parameters)).ToList();
+                var procedure = languageId.HasValue
+                    ? "[dbo].[Subject_GetAllByLanguage]"
+                    : "[dbo].[Subject_GetAll]";
+                var subjectList = (await connection.QueryAsync<Subject>(
+                    procedure,
+                    new { LanguageId = languageId },
+                    commandType: CommandType.StoredProcedure)).ToList();
                 await PopulateSubjectLanguagesAsync(connection, subjectList, languageId);
 
                 return subjectList;
@@ -52,13 +34,13 @@ WHERE sl.IsActive = 1
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = languageId.HasValue
-                    ? "EXEC [dbo].[Subject_GetByIdByLanguage] @Id, @LanguageId"
-                    : "EXEC [dbo].[Subject_GetById] @Id";
-                
-                var parameters = new { Id = id, LanguageId = languageId.HasValue ? (object?)languageId.Value : null };
-                    
-                var subject = await connection.QueryFirstOrDefaultAsync<Subject>(sql, parameters);
+                var procedure = languageId.HasValue
+                    ? "[dbo].[Subject_GetByIdByLanguage]"
+                    : "[dbo].[Subject_GetById]";
+                var subject = await connection.QueryFirstOrDefaultAsync<Subject>(
+                    procedure,
+                    new { Id = id, LanguageId = languageId },
+                    commandType: CommandType.StoredProcedure);
                 
                 if (subject != null)
                 {
@@ -73,12 +55,13 @@ WHERE sl.IsActive = 1
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = languageId.HasValue
-                    ? "EXEC [dbo].[Subject_GetActiveByLanguage] @LanguageId"
-                    : "EXEC [dbo].[Subject_GetActive]";
-                
-                var parameters = new { LanguageId = languageId.HasValue ? (object?)languageId.Value : null };
-                var subjectList = (await connection.QueryAsync<Subject>(sql, parameters)).ToList();
+                var procedure = languageId.HasValue
+                    ? "[dbo].[Subject_GetActiveByLanguage]"
+                    : "[dbo].[Subject_GetActive]";
+                var subjectList = (await connection.QueryAsync<Subject>(
+                    procedure,
+                    new { LanguageId = languageId },
+                    commandType: CommandType.StoredProcedure)).ToList();
                 await PopulateSubjectLanguagesAsync(connection, subjectList, languageId);
 
                 return subjectList;
@@ -89,10 +72,6 @@ WHERE sl.IsActive = 1
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = @"
-                    EXEC [dbo].[Subject_Create] 
-                        @Name, @Description, @IsActive, @NamesJson, @CreatedAt, @UpdatedAt, @Id OUTPUT";
-
                 var parameters = new DynamicParameters();
                 parameters.Add("@Name", subject.Name);
                 parameters.Add("@Description", subject.Description ?? (object?)null);
@@ -102,7 +81,7 @@ WHERE sl.IsActive = 1
                 parameters.Add("@UpdatedAt", DateTime.UtcNow);
                 parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-                await connection.ExecuteAsync(sql, parameters);
+                await connection.ExecuteAsync("[dbo].[Subject_Create]", parameters, commandType: CommandType.StoredProcedure);
                 
                 if (parameters.Get<int>("@Id") > 0)
                 {
@@ -117,10 +96,6 @@ WHERE sl.IsActive = 1
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = @"
-                    EXEC [dbo].[Subject_Update] 
-                        @Id, @Name, @Description, @IsActive, @NamesJson, @UpdatedAt";
-
                 var parameters = new DynamicParameters();
                 parameters.Add("@Id", subject.Id);
                 parameters.Add("@Name", subject.Name);
@@ -129,7 +104,7 @@ WHERE sl.IsActive = 1
                 parameters.Add("@NamesJson", namesJson);
                 parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
-                await connection.ExecuteAsync(sql, parameters);
+                await connection.ExecuteAsync("[dbo].[Subject_Update]", parameters, commandType: CommandType.StoredProcedure);
                 return subject;
             });
         }
@@ -138,8 +113,7 @@ WHERE sl.IsActive = 1
         {
             await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[Subject_Delete] @Id";
-                await connection.ExecuteAsync(sql, new { Id = subject.Id });
+                await connection.ExecuteAsync("[dbo].[Subject_Delete]", new { Id = subject.Id }, commandType: CommandType.StoredProcedure);
             });
         }
 
@@ -149,8 +123,7 @@ WHERE sl.IsActive = 1
             {
                 return await WithConnectionAsync(async connection =>
                 {
-                    var sql = "EXEC [dbo].[Subject_ToggleStatus] @Id, @IsActive";
-                    var result = await connection.ExecuteAsync(sql, new { Id = id, IsActive = isActive });
+                    var result = await connection.ExecuteAsync("[dbo].[Subject_ToggleStatus]", new { Id = id, IsActive = isActive }, commandType: CommandType.StoredProcedure);
                     return result > 0;
                 });
             }
@@ -164,8 +137,7 @@ WHERE sl.IsActive = 1
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[Subject_Exists] @Id";
-                var result = await connection.QueryFirstOrDefaultAsync<int>(sql, new { Id = id });
+                var result = await connection.QueryFirstOrDefaultAsync<int>("[dbo].[Subject_Exists]", new { Id = id }, commandType: CommandType.StoredProcedure);
                 return result > 0;
             });
         }
@@ -173,7 +145,7 @@ WHERE sl.IsActive = 1
         public async Task<int> SaveChangesAsync()
         {
             _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(SubjectDapperRepository));
-            return await Task.FromResult(1);
+            return await Task.FromResult(0);
         }
 
         private async Task PopulateSubjectLanguagesAsync(IDbConnection connection, IEnumerable<Subject> subjects, int? languageId = null)
@@ -185,46 +157,14 @@ WHERE sl.IsActive = 1
             }
 
             var subjectIds = subjectList.Select(subject => subject.Id).Distinct().ToArray();
-            var sql = languageId.HasValue
-                ? @"
-                SELECT
-                    sl.Id,
-                    sl.SubjectId,
-                    sl.LanguageId,
-                    sl.Name,
-                    sl.Description,
-                    sl.IsActive,
-                    sl.CreatedAt,
-                    sl.UpdatedAt,
-                    l.Id,
-                    l.Name,
-                    l.Code
-                FROM dbo.SubjectLanguages sl
-                LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
-                WHERE sl.IsActive = 1
-                  AND sl.SubjectId IN @SubjectIds
-                  AND sl.LanguageId = @LanguageId;"
-                : @"
-                SELECT
-                    sl.Id,
-                    sl.SubjectId,
-                    sl.LanguageId,
-                    sl.Name,
-                    sl.Description,
-                    sl.IsActive,
-                    sl.CreatedAt,
-                    sl.UpdatedAt,
-                    l.Id,
-                    l.Name,
-                    l.Code
-                FROM dbo.SubjectLanguages sl
-                LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
-                WHERE sl.IsActive = 1
-                  AND sl.SubjectId IN @SubjectIds;";
-                  
-            var parameters = new { SubjectIds = subjectIds, LanguageId = languageId.HasValue ? (object?)languageId.Value : null };
-                
-            var languages = await connection.QueryAsync<SubjectLanguage>(sql, parameters);
+            var languages = await connection.QueryAsync<SubjectLanguage>(
+                "[dbo].[SubjectLanguage_GetBySubjectIds]",
+                new
+                {
+                    SubjectIds = string.Join(",", subjectIds),
+                    LanguageId = languageId
+                },
+                commandType: CommandType.StoredProcedure);
             RepositoryEntityMapper.AttachSubjectLanguages(subjectList, languages);
         }
     }

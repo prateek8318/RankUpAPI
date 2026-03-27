@@ -14,5 +14,10 @@ namespace MasterService.Application.Helpers
             var materialized = items.Select(selector).ToList();
             return materialized.Count == 0 ? null : JsonSerializer.Serialize(materialized);
         }
+
+        public static string? SerializeItems<T>(IEnumerable<T>? items, Func<T, object> selector)
+        {
+            return SerializeNames(items, selector);
+        }
     }
 }

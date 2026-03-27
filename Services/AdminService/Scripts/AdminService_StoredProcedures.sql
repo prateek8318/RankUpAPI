@@ -172,6 +172,135 @@ BEGIN
 END
 GO
 
+-- ExportLog_Create
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ExportLog_Create]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[ExportLog_Create]
+GO
+
+CREATE PROCEDURE [dbo].[ExportLog_Create]
+    @AdminId INT,
+    @ExportType NVARCHAR(100),
+    @FileName NVARCHAR(200) = NULL,
+    @FilePath NVARCHAR(500) = NULL,
+    @FileSizeBytes BIGINT = NULL,
+    @Format NVARCHAR(50),
+    @Status INT,
+    @RecordCount INT = NULL,
+    @ErrorMessage NVARCHAR(1000) = NULL,
+    @CompletedAt DATETIME = NULL,
+    @FilterCriteria NVARCHAR(2000) = NULL,
+    @CreatedAt DATETIME,
+    @UpdatedAt DATETIME,
+    @Id INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO ExportLogs
+    (
+        AdminId,
+        ExportType,
+        FilePath,
+        FileName,
+        FileSizeBytes,
+        Format,
+        RecordCount,
+        Status,
+        ErrorMessage,
+        CompletedAt,
+        FilterCriteria,
+        CreatedAt,
+        UpdatedAt
+    )
+    VALUES
+    (
+        @AdminId,
+        @ExportType,
+        @FilePath,
+        @FileName,
+        @FileSizeBytes,
+        @Format,
+        @RecordCount,
+        @Status,
+        @ErrorMessage,
+        @CompletedAt,
+        @FilterCriteria,
+        @CreatedAt,
+        @UpdatedAt
+    );
+
+    SET @Id = SCOPE_IDENTITY();
+END
+GO
+
+-- ExportLog_GetById
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ExportLog_GetById]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[ExportLog_GetById]
+GO
+
+CREATE PROCEDURE [dbo].[ExportLog_GetById]
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        AdminId,
+        ExportType,
+        FilePath,
+        FileName,
+        FileSizeBytes,
+        Format,
+        RecordCount,
+        Status,
+        ErrorMessage,
+        CompletedAt,
+        FilterCriteria,
+        CreatedAt,
+        UpdatedAt,
+        IsActive
+    FROM ExportLogs
+    WHERE Id = @Id;
+END
+GO
+
+-- ExportLog_GetAll
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ExportLog_GetAll]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[ExportLog_GetAll]
+GO
+
+CREATE PROCEDURE [dbo].[ExportLog_GetAll]
+    @AdminId INT = NULL,
+    @Page INT = 1,
+    @PageSize INT = 50
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        AdminId,
+        ExportType,
+        FilePath,
+        FileName,
+        FileSizeBytes,
+        Format,
+        RecordCount,
+        Status,
+        ErrorMessage,
+        CompletedAt,
+        FilterCriteria,
+        CreatedAt,
+        UpdatedAt,
+        IsActive
+    FROM ExportLogs
+    WHERE @AdminId IS NULL OR AdminId = @AdminId
+    ORDER BY CreatedAt DESC
+    OFFSET ((@Page - 1) * @PageSize) ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+
 
 -- ROLE PROCEDURES
 
@@ -543,44 +672,46 @@ GO
 
 PRINT 'Creating AuditLog procedures...';
 
--- AuditLog_GetAll
-IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[AuditLog_GetAll]') AND type in (N'P', N'PC'))
-    DROP PROCEDURE [dbo].[AuditLog_GetAll]
+-- AuditLog_GetAuditLogs
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[AuditLog_GetAuditLogs]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[AuditLog_GetAuditLogs]
 GO
 
-CREATE PROCEDURE [dbo].[AuditLog_GetAll]
-    @PageNumber INT = 1,
-    @PageSize INT = 50,
+CREATE PROCEDURE [dbo].[AuditLog_GetAuditLogs]
     @AdminId INT = NULL,
-    @Action NVARCHAR(100) = NULL,
-    @StartDate DATETIME = NULL,
-    @EndDate DATETIME = NULL
+    @ServiceName NVARCHAR(100) = NULL,
+    @StartDate DATETIME2 = NULL,
+    @EndDate DATETIME2 = NULL,
+    @Page INT = 1,
+    @PageSize INT = 50
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    DECLARE @Offset INT = (@PageNumber - 1) * @PageSize;
-    
     SELECT 
         al.Id,
         al.AdminId,
+        al.ServiceName,
         al.Action,
-        al.EntityType,
-        al.EntityId,
-        al.OldValues,
-        al.NewValues,
+        al.Endpoint,
+        al.HttpMethod,
+        al.RequestPayload,
+        al.ResponsePayload,
+        al.StatusCode,
         al.IpAddress,
         al.UserAgent,
+        al.ResponseTimeMs,
+        al.ErrorMessage,
         al.CreatedAt,
-        a.Name as AdminName
+        a.Email as AdminEmail
     FROM AuditLogs al
     LEFT JOIN Admins a ON al.AdminId = a.Id
     WHERE (@AdminId IS NULL OR al.AdminId = @AdminId)
-    AND (@Action IS NULL OR al.Action LIKE '%' + @Action + '%')
+    AND (@ServiceName IS NULL OR al.ServiceName = @ServiceName)
     AND (@StartDate IS NULL OR al.CreatedAt >= @StartDate)
     AND (@EndDate IS NULL OR al.CreatedAt <= @EndDate)
     ORDER BY al.CreatedAt DESC
-    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+    OFFSET ((@Page - 1) * @PageSize) ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
 
@@ -591,19 +722,54 @@ GO
 
 CREATE PROCEDURE [dbo].[AuditLog_Create]
     @AdminId INT,
+    @ServiceName NVARCHAR(100),
     @Action NVARCHAR(100),
-    @EntityType NVARCHAR(100) = NULL,
-    @EntityId INT = NULL,
-    @OldValues NVARCHAR(MAX) = NULL,
-    @NewValues NVARCHAR(MAX) = NULL,
+    @Endpoint NVARCHAR(200),
+    @HttpMethod NVARCHAR(50) = NULL,
+    @RequestPayload NVARCHAR(2000) = NULL,
+    @ResponsePayload NVARCHAR(2000) = NULL,
+    @StatusCode INT = NULL,
     @IpAddress NVARCHAR(45) = NULL,
-    @UserAgent NVARCHAR(500) = NULL
+    @UserAgent NVARCHAR(500) = NULL,
+    @ResponseTimeMs BIGINT = NULL,
+    @ErrorMessage NVARCHAR(1000) = NULL,
+    @CreatedAt DATETIME2
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    INSERT INTO AuditLogs (AdminId, Action, EntityType, EntityId, OldValues, NewValues, IpAddress, UserAgent, CreatedAt)
-    VALUES (@AdminId, @Action, @EntityType, @EntityId, @OldValues, @NewValues, @IpAddress, @UserAgent, GETUTCDATE());
+    INSERT INTO AuditLogs
+    (
+        AdminId,
+        ServiceName,
+        Action,
+        Endpoint,
+        HttpMethod,
+        RequestPayload,
+        ResponsePayload,
+        StatusCode,
+        IpAddress,
+        UserAgent,
+        ResponseTimeMs,
+        ErrorMessage,
+        CreatedAt
+    )
+    VALUES
+    (
+        @AdminId,
+        @ServiceName,
+        @Action,
+        @Endpoint,
+        @HttpMethod,
+        @RequestPayload,
+        @ResponsePayload,
+        @StatusCode,
+        @IpAddress,
+        @UserAgent,
+        @ResponseTimeMs,
+        @ErrorMessage,
+        @CreatedAt
+    );
     
     SELECT SCOPE_IDENTITY() as Id;
 END

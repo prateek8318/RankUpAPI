@@ -20,6 +20,7 @@ PRINT '2. Role Procedures (5 procedures)';
 PRINT '3. Permission Procedures (5 procedures)';
 PRINT '4. SubscriptionPlan Procedures (5 procedures)';
 PRINT '5. AuditLog Procedures (2 procedures)';
+PRINT '6. ExportLog Procedures (3 procedures)';
 PRINT '====================================================';
 PRINT 'Total Procedures: 23+';
 PRINT 'Your AdminService Dapper repositories should now work correctly!';
@@ -49,6 +50,9 @@ SELECT 'AdminService', 'SubscriptionPlan_GetAll',
 UNION ALL
 SELECT 'AdminService', 'AuditLog_Create', 
        CASE WHEN EXISTS(SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[AuditLog_Create]') AND type in (N'P', N'PC')) THEN 'EXISTS' ELSE 'MISSING' END
+UNION ALL
+SELECT 'AdminService', 'ExportLog_GetAll', 
+       CASE WHEN EXISTS(SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ExportLog_GetAll]') AND type in (N'P', N'PC')) THEN 'EXISTS' ELSE 'MISSING' END
 ORDER BY ServiceName, ProcedureName;
 
 PRINT '====================================================';

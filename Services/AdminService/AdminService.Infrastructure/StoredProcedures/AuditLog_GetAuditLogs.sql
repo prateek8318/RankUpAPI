@@ -8,26 +8,30 @@ CREATE PROCEDURE [dbo].[AuditLog_GetAuditLogs]
 AS
 BEGIN
     SET NOCOUNT ON;
-    
-    BEGIN TRY
-        SELECT 
-            al.Id, al.AdminId, al.ServiceName, al.Action, al.EntityType,
-            al.EntityId, al.OldValues, al.NewValues, al.IpAddress,
-            al.UserAgent, al.CreatedAt,
-            a.Name AS AdminName, a.Email AS AdminEmail
-        FROM AuditLogs al
-        LEFT JOIN Admins a ON al.AdminId = a.Id
-        WHERE (@AdminId IS NULL OR al.AdminId = @AdminId)
-            AND (@ServiceName IS NULL OR al.ServiceName = @ServiceName)
-            AND (@StartDate IS NULL OR al.CreatedAt >= @StartDate)
-            AND (@EndDate IS NULL OR al.CreatedAt <= @EndDate)
-        ORDER BY al.CreatedAt DESC
-        OFFSET ((@Page - 1) * @PageSize) ROWS
-        FETCH NEXT @PageSize ROWS ONLY;
-    END TRY
-    BEGIN CATCH
-        SELECT NULL AS Id, 
-               ERROR_MESSAGE() AS Message,
-               ERROR_NUMBER() AS ErrorNumber;
-    END CATCH
+
+    SELECT 
+        al.Id,
+        al.AdminId,
+        al.ServiceName,
+        al.Action,
+        al.Endpoint,
+        al.HttpMethod,
+        al.RequestPayload,
+        al.ResponsePayload,
+        al.StatusCode,
+        al.IpAddress,
+        al.UserAgent,
+        al.ResponseTimeMs,
+        al.ErrorMessage,
+        al.CreatedAt,
+        a.Email AS AdminEmail
+    FROM AuditLogs al
+    LEFT JOIN Admins a ON al.AdminId = a.Id
+    WHERE (@AdminId IS NULL OR al.AdminId = @AdminId)
+        AND (@ServiceName IS NULL OR al.ServiceName = @ServiceName)
+        AND (@StartDate IS NULL OR al.CreatedAt >= @StartDate)
+        AND (@EndDate IS NULL OR al.CreatedAt <= @EndDate)
+    ORDER BY al.CreatedAt DESC
+    OFFSET ((@Page - 1) * @PageSize) ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
 END

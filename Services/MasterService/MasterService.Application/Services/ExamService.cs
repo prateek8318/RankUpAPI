@@ -1,6 +1,7 @@
 using AutoMapper;
 using Common.Language;
 using MasterService.Application.DTOs;
+using MasterService.Application.Helpers;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -62,7 +63,14 @@ namespace MasterService.Application.Services
                 }
             }
 
-            await _examRepository.AddAsync(exam);
+            var namesJson = LanguagePayloadSerializer.SerializeItems(
+                exam.ExamLanguages,
+                language => new { language.LanguageId, language.Name, language.Description });
+            var relationsJson = LanguagePayloadSerializer.SerializeItems(
+                exam.ExamQualifications,
+                relation => new { relation.QualificationId, relation.StreamId });
+
+            await _examRepository.AddAsync(exam, namesJson, relationsJson);
             await _examRepository.SaveChangesAsync();
 
             return (await GetExamByIdAsync(exam.Id))!;
@@ -127,7 +135,14 @@ namespace MasterService.Application.Services
                 }
             }
 
-            await _examRepository.UpdateAsync(exam);
+            var namesJson = LanguagePayloadSerializer.SerializeItems(
+                exam.ExamLanguages,
+                language => new { language.LanguageId, language.Name, language.Description });
+            var relationsJson = LanguagePayloadSerializer.SerializeItems(
+                exam.ExamQualifications,
+                relation => new { relation.QualificationId, relation.StreamId });
+
+            await _examRepository.UpdateAsync(exam, namesJson, relationsJson);
             await _examRepository.SaveChangesAsync();
             return await GetExamByIdAsync(exam.Id);
         }

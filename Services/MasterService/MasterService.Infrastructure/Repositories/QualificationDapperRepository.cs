@@ -12,25 +12,6 @@ namespace MasterService.Infrastructure.Repositories
         {
         }
 
-        private const string QualificationLanguageSql = @"
-SELECT
-    ql.Id,
-    ql.QualificationId,
-    ql.LanguageId,
-    ql.Name,
-    ql.Description,
-    ql.IsActive,
-    ql.CreatedAt,
-    ql.UpdatedAt,
-    l.Id,
-    l.Code,
-    l.Name
-FROM dbo.QualificationLanguages ql
-LEFT JOIN dbo.Languages l ON l.Id = ql.LanguageId
-WHERE ql.IsActive = 1
-  AND ql.QualificationId IN @QualificationIds;";
-
-
         public async Task<Qualification?> GetByIdAsync(int id)
         {
             return await WithConnectionAsync(async connection =>
@@ -201,7 +182,7 @@ WHERE ql.IsActive = 1
         public async Task<int> SaveChangesAsync()
         {
             _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(QualificationDapperRepository));
-            return await Task.FromResult(1);
+            return await Task.FromResult(0);
         }
 
         public async Task<bool> HasRelatedStreamsAsync(int qualificationId)
@@ -244,7 +225,10 @@ WHERE ql.IsActive = 1
                 return Array.Empty<QualificationLanguage>();
             }
 
-            var languages = await connection.QueryAsync<QualificationLanguage>(QualificationLanguageSql, new { QualificationIds = ids });
+            var languages = await connection.QueryAsync<QualificationLanguage>(
+                "[dbo].[QualificationLanguage_GetByQualificationIds]",
+                new { QualificationIds = string.Join(",", ids) },
+                commandType: CommandType.StoredProcedure);
             return languages.ToList();
         }
     }

@@ -1,7 +1,5 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Text.Json;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -70,12 +68,7 @@ namespace MasterService.Infrastructure.Repositories
                 var exams = (await multi.ReadAsync<Exam>()).ToList();
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
                 
-                // Map languages to exams
-                foreach (var exam in exams)
-                {
-                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
-                }
-                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages);
                 return exams;
             });
         }
@@ -92,13 +85,7 @@ namespace MasterService.Infrastructure.Repositories
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
-                // Map languages to exams
-                foreach (var exam in exams)
-                {
-                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
-                    exam.ExamQualifications = qualifications.Where(eq => eq.ExamId == exam.Id).ToList();
-                }
-                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
                 return exams;
             });
         }
@@ -115,13 +102,7 @@ namespace MasterService.Infrastructure.Repositories
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
-                // Map languages to exams
-                foreach (var exam in exams)
-                {
-                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
-                    exam.ExamQualifications = qualifications.Where(eq => eq.ExamId == exam.Id).ToList();
-                }
-                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
                 return exams;
             });
         }
@@ -139,13 +120,7 @@ namespace MasterService.Infrastructure.Repositories
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
-                // Map languages to exams
-                foreach (var exam in exams)
-                {
-                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
-                    exam.ExamQualifications = qualifications.Where(eq => eq.ExamId == exam.Id).ToList();
-                }
-                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
                 return exams;
             });
         }
@@ -163,13 +138,7 @@ namespace MasterService.Infrastructure.Repositories
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
-                // Map languages and qualifications to exams
-                foreach (var exam in exams)
-                {
-                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
-                    exam.ExamQualifications = qualifications.Where(eq => eq.ExamId == exam.Id).ToList();
-                }
-                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
                 return exams;
             });
         }
@@ -193,12 +162,7 @@ namespace MasterService.Infrastructure.Repositories
                 var exams = (await multi.ReadAsync<Exam>()).ToList();
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
                 
-                // Map languages to exams
-                foreach (var exam in exams)
-                {
-                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
-                }
-                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages);
                 return exams;
             });
         }
@@ -223,26 +187,13 @@ namespace MasterService.Infrastructure.Repositories
                 var exams = (await multi.ReadAsync<Exam>()).ToList();
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
                 
-                // Map languages to exams
-                foreach (var exam in exams)
-                {
-                    exam.ExamLanguages = languages.Where(l => l.ExamId == exam.Id).ToList();
-                }
-                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages);
                 return exams;
             });
         }
 
-        public async Task<Exam> AddAsync(Exam exam)
+        public async Task<Exam> AddAsync(Exam exam, string? namesJson = null, string? relationsJson = null)
         {
-            var namesJson = exam.ExamLanguages != null && exam.ExamLanguages.Any()
-                ? JsonSerializer.Serialize(exam.ExamLanguages.Select(x => new { x.LanguageId, x.Name, x.Description }))
-                : null;
-
-            var relationsJson = exam.ExamQualifications != null && exam.ExamQualifications.Any()
-                ? JsonSerializer.Serialize(exam.ExamQualifications.Select(x => new { x.QualificationId, x.StreamId }))
-                : null;
-
             var parameters = new DynamicParameters();
             parameters.Add("@Name", exam.Name);
             parameters.Add("@Description", exam.Description);
@@ -272,16 +223,8 @@ namespace MasterService.Infrastructure.Repositories
             return exam;
         }
 
-        public async Task UpdateAsync(Exam exam)
+        public async Task UpdateAsync(Exam exam, string? namesJson = null, string? relationsJson = null)
         {
-            var namesJson = exam.ExamLanguages != null && exam.ExamLanguages.Any()
-                ? JsonSerializer.Serialize(exam.ExamLanguages.Select(x => new { x.LanguageId, x.Name, x.Description }))
-                : null;
-
-            var relationsJson = exam.ExamQualifications != null && exam.ExamQualifications.Any()
-                ? JsonSerializer.Serialize(exam.ExamQualifications.Select(x => new { x.QualificationId, x.StreamId }))
-                : null;
-
             var parameters = new DynamicParameters();
             parameters.Add("@Id", exam.Id);
             parameters.Add("@Name", exam.Name);
@@ -305,20 +248,11 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task DeleteAsync(Exam exam)
         {
-            await WithConnectionAsync(async connection =>
-            {
-                // Set QUOTED_IDENTIFIER ON for this connection
-                await connection.ExecuteAsync("SET QUOTED_IDENTIFIER ON");
-                
-                // Delete related ExamLanguages first
-                await connection.ExecuteAsync("DELETE FROM dbo.ExamLanguages WHERE ExamId = @ExamId", new { ExamId = exam.Id });
-                
-                // Delete related ExamQualifications
-                await connection.ExecuteAsync("DELETE FROM dbo.ExamQualifications WHERE ExamId = @ExamId", new { ExamId = exam.Id });
-                
-                // Finally delete the exam
-                await connection.ExecuteAsync("DELETE FROM dbo.Exams WHERE Id = @Id", new { Id = exam.Id });
-            });
+            await WithConnectionAsync(connection =>
+                connection.ExecuteAsync(
+                    "[dbo].[Exam_Delete]",
+                    new { Id = exam.Id },
+                    commandType: CommandType.StoredProcedure));
         }
 
         public async Task<bool> SoftDeleteByIdAsync(int id)
@@ -346,7 +280,7 @@ namespace MasterService.Infrastructure.Repositories
         public async Task<int> SaveChangesAsync()
         {
             _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(ExamDapperRepository));
-            return await Task.FromResult(1);
+            return await Task.FromResult(0);
         }
     }
 }

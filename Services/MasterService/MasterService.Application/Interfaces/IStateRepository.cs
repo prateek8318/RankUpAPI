@@ -11,8 +11,8 @@ namespace MasterService.Application.Interfaces
         Task<IEnumerable<State>> GetActiveLocalizedAsync(string? languageCode);
         Task<IEnumerable<State>> GetActiveByCountryCodeAsync(string countryCode);
         Task<IEnumerable<State>> GetActiveByCountryCodeLocalizedAsync(string countryCode, string? languageCode);
-        Task<State> AddAsync(State state);
-        Task UpdateAsync(State state);
+        Task<State> AddAsync(State state, string? namesJson = null);
+        Task UpdateAsync(State state, string? namesJson = null);
         Task DeleteAsync(State state);
         Task<bool> SoftDeleteByIdAsync(int id);
         Task<bool> SetActiveAsync(int id, bool isActive);

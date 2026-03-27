@@ -5,6 +5,26 @@ namespace MasterService.Infrastructure.Repositories
 {
     internal static class RepositoryEntityMapper
     {
+        public static void AttachExamRelations(IEnumerable<Exam> exams, IEnumerable<ExamLanguage> languages, IEnumerable<ExamQualification>? qualifications = null)
+        {
+            var languageLookup = languages
+                .GroupBy(language => language.ExamId)
+                .ToDictionary(group => group.Key, group => (ICollection<ExamLanguage>)group.ToList());
+            var qualificationLookup = (qualifications ?? Array.Empty<ExamQualification>())
+                .GroupBy(qualification => qualification.ExamId)
+                .ToDictionary(group => group.Key, group => (ICollection<ExamQualification>)group.ToList());
+
+            foreach (var exam in exams)
+            {
+                exam.ExamLanguages = languageLookup.TryGetValue(exam.Id, out var examLanguages)
+                    ? examLanguages
+                    : new List<ExamLanguage>();
+                exam.ExamQualifications = qualificationLookup.TryGetValue(exam.Id, out var examQualifications)
+                    ? examQualifications
+                    : new List<ExamQualification>();
+            }
+        }
+
         public static void AttachQualificationLanguages(IEnumerable<Qualification> qualifications, IEnumerable<QualificationLanguage> languages)
         {
             var languageLookup = languages

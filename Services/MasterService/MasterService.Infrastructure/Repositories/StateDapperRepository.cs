@@ -1,8 +1,5 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Data.Common;
-using System.Text.Json;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 
@@ -19,8 +16,17 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[State_GetById] @Id";
-                return await connection.QueryFirstOrDefaultAsync<State>(sql, new { Id = id });
+                var state = await connection.QueryFirstOrDefaultAsync<State>(
+                    "[dbo].[State_GetById]",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure);
+
+                if (state != null)
+                {
+                    await PopulateStateLanguagesAsync(connection, new[] { state });
+                }
+
+                return state;
             });
         }
 
@@ -28,8 +34,17 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[State_GetByIdLocalized] @Id, @LanguageCode";
-                return await connection.QueryFirstOrDefaultAsync<State>(sql, new { Id = id, LanguageCode = languageCode });
+                var state = await connection.QueryFirstOrDefaultAsync<State>(
+                    "[dbo].[State_GetByIdLocalized]",
+                    new { Id = id, LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure);
+
+                if (state != null)
+                {
+                    await PopulateStateLanguagesAsync(connection, new[] { state });
+                }
+
+                return state;
             });
         }
 
@@ -37,8 +52,12 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[State_GetAll]";
-                return await connection.QueryAsync<State>(sql);
+                var stateList = (await connection.QueryAsync<State>(
+                    "[dbo].[State_GetAll]",
+                    commandType: CommandType.StoredProcedure)).ToList();
+
+                await PopulateStateLanguagesAsync(connection, stateList);
+                return stateList;
             });
         }
 
@@ -46,22 +65,11 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[State_GetActive]";
-                var states = await connection.QueryAsync<State>(sql);
+                var stateList = (await connection.QueryAsync<State>(
+                    "[dbo].[State_GetActive]",
+                    commandType: CommandType.StoredProcedure)).ToList();
 
-                // Load StateLanguages for each state
-                var stateList = states.ToList();
-                foreach (var state in stateList)
-                {
-                    var languages = await connection.QueryAsync<StateLanguage>(
-                        "SELECT sl.*, l.Code as LanguageCode, l.Name as LanguageName FROM StateLanguages sl " +
-                        "LEFT JOIN Languages l ON sl.LanguageId = l.Id " +
-                        "WHERE sl.StateId = @StateId AND sl.IsActive = 1",
-                        new { StateId = state.Id });
-                    
-                    state.StateLanguages = languages.ToList();
-                }
-
+                await PopulateStateLanguagesAsync(connection, stateList);
                 return stateList;
             });
         }
@@ -70,8 +78,13 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[State_GetActiveLocalized] @LanguageCode";
-                return await connection.QueryAsync<State>(sql, new { LanguageCode = languageCode });
+                var stateList = (await connection.QueryAsync<State>(
+                    "[dbo].[State_GetActiveLocalized]",
+                    new { LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure)).ToList();
+
+                await PopulateStateLanguagesAsync(connection, stateList);
+                return stateList;
             });
         }
 
@@ -79,8 +92,13 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[State_GetActiveByCountryCode] @CountryCode";
-                return await connection.QueryAsync<State>(sql, new { CountryCode = countryCode });
+                var stateList = (await connection.QueryAsync<State>(
+                    "[dbo].[State_GetActiveByCountryCode]",
+                    new { CountryCode = countryCode },
+                    commandType: CommandType.StoredProcedure)).ToList();
+
+                await PopulateStateLanguagesAsync(connection, stateList);
+                return stateList;
             });
         }
 
@@ -88,19 +106,20 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[State_GetActiveByCountryCodeLocalized] @CountryCode, @LanguageCode";
-                return await connection.QueryAsync<State>(sql, new { CountryCode = countryCode, LanguageCode = languageCode });
+                var stateList = (await connection.QueryAsync<State>(
+                    "[dbo].[State_GetActiveByCountryCodeLocalized]",
+                    new { CountryCode = countryCode, LanguageCode = languageCode },
+                    commandType: CommandType.StoredProcedure)).ToList();
+
+                await PopulateStateLanguagesAsync(connection, stateList);
+                return stateList;
             });
         }
 
-        public async Task<State> AddAsync(State state)
+        public async Task<State> AddAsync(State state, string? namesJson = null)
         {
             return await WithConnectionAsync(async connection =>
             {
-                var namesJson = state.StateLanguages != null && state.StateLanguages.Any()
-                    ? JsonSerializer.Serialize(state.StateLanguages.Select(x => new { x.LanguageId, x.Name }))
-                    : null;
-
                 var parameters = new DynamicParameters();
                 parameters.Add("@Name", state.Name);
                 parameters.Add("@Code", state.Code);
@@ -125,14 +144,10 @@ namespace MasterService.Infrastructure.Repositories
             });
         }
 
-        public async Task UpdateAsync(State state)
+        public async Task UpdateAsync(State state, string? namesJson = null)
         {
             await WithConnectionAsync(async connection =>
             {
-                var namesJson = state.StateLanguages != null && state.StateLanguages.Any()
-                    ? JsonSerializer.Serialize(state.StateLanguages.Select(x => new { x.LanguageId, x.Name }))
-                    : null;
-
                 var parameters = new DynamicParameters();
                 parameters.Add("@Id", state.Id);
                 parameters.Add("@Name", state.Name);
@@ -188,8 +203,7 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<int> SaveChangesAsync()
         {
-            // Dapper commands are executed immediately; this exists for interface compatibility.
-            return await Task.FromResult(1);
+            return await Task.FromResult(0);
         }
 
         public async Task<IEnumerable<State>> GetStatesWithEmptyNamesAsync()
@@ -200,6 +214,30 @@ namespace MasterService.Infrastructure.Repositories
                     "[dbo].[State_GetWithEmptyNames]",
                     commandType: CommandType.StoredProcedure);
             });
+        }
+
+        private static async Task PopulateStateLanguagesAsync(IDbConnection connection, IList<State> states)
+        {
+            if (states.Count == 0)
+            {
+                return;
+            }
+
+            var languages = await connection.QueryAsync<StateLanguage>(
+                "[dbo].[StateLanguage_GetByStateIds]",
+                new { StateIds = string.Join(",", states.Select(state => state.Id).Distinct()) },
+                commandType: CommandType.StoredProcedure);
+
+            var languageLookup = languages
+                .GroupBy(language => language.StateId)
+                .ToDictionary(group => group.Key, group => (ICollection<StateLanguage>)group.ToList());
+
+            foreach (var state in states)
+            {
+                state.StateLanguages = languageLookup.TryGetValue(state.Id, out var items)
+                    ? items
+                    : new List<StateLanguage>();
+            }
         }
     }
 }

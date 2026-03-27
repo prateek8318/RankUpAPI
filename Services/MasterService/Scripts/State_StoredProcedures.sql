@@ -171,7 +171,7 @@ BEGIN
     SET NOCOUNT ON;
     
     -- Check if country exists
-    IF NOT EXISTS (SELECT 1 FROM Countries WHERE Code = @CountryCode AND IsActive = 1)
+    IF NOT EXISTS (SELECT 1 FROM Countries WHERE CountryCode = @CountryCode AND IsActive = 1)
     BEGIN
         RAISERROR('Invalid country code', 16, 1);
         RETURN -1;
@@ -234,7 +234,7 @@ BEGIN
     END
     
     -- Check if country exists
-    IF NOT EXISTS (SELECT 1 FROM Countries WHERE Code = @CountryCode AND IsActive = 1)
+    IF NOT EXISTS (SELECT 1 FROM Countries WHERE CountryCode = @CountryCode AND IsActive = 1)
     BEGIN
         RAISERROR('Invalid country code', 16, 1);
         RETURN -1;
@@ -336,8 +336,248 @@ BEGIN
 END
 GO
 
+-- State_GetActive
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[State_GetActive]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[State_GetActive]
+GO
+
+CREATE PROCEDURE [dbo].[State_GetActive]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        s.Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[States] s
+    WHERE s.IsActive = 1
+    ORDER BY s.Name;
+END
+GO
+
+-- State_GetActiveLocalized
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[State_GetActiveLocalized]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[State_GetActiveLocalized]
+GO
+
+CREATE PROCEDURE [dbo].[State_GetActiveLocalized]
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        ISNULL(sl.Name, s.Name) AS Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[States] s
+    LEFT JOIN [dbo].[Languages] l ON l.Code = @LanguageCode AND l.IsActive = 1
+    LEFT JOIN [dbo].[StateLanguages] sl ON sl.StateId = s.Id AND sl.LanguageId = l.Id AND sl.IsActive = 1
+    WHERE s.IsActive = 1
+    ORDER BY ISNULL(sl.Name, s.Name);
+END
+GO
+
+-- State_GetActiveByCountryCode
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[State_GetActiveByCountryCode]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[State_GetActiveByCountryCode]
+GO
+
+CREATE PROCEDURE [dbo].[State_GetActiveByCountryCode]
+    @CountryCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        s.Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[States] s
+    WHERE s.CountryCode = @CountryCode AND s.IsActive = 1
+    ORDER BY s.Name;
+END
+GO
+
+-- State_GetActiveByCountryCodeLocalized
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[State_GetActiveByCountryCodeLocalized]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[State_GetActiveByCountryCodeLocalized]
+GO
+
+CREATE PROCEDURE [dbo].[State_GetActiveByCountryCodeLocalized]
+    @CountryCode NVARCHAR(10),
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        ISNULL(sl.Name, s.Name) AS Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[States] s
+    LEFT JOIN [dbo].[Languages] l ON l.Code = @LanguageCode AND l.IsActive = 1
+    LEFT JOIN [dbo].[StateLanguages] sl ON sl.StateId = s.Id AND sl.LanguageId = l.Id AND sl.IsActive = 1
+    WHERE s.CountryCode = @CountryCode AND s.IsActive = 1
+    ORDER BY ISNULL(sl.Name, s.Name);
+END
+GO
+
+-- State_GetByIdLocalized
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[State_GetByIdLocalized]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[State_GetByIdLocalized]
+GO
+
+CREATE PROCEDURE [dbo].[State_GetByIdLocalized]
+    @Id INT,
+    @LanguageCode NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        ISNULL(sl.Name, s.Name) AS Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[States] s
+    LEFT JOIN [dbo].[Languages] l ON l.Code = @LanguageCode AND l.IsActive = 1
+    LEFT JOIN [dbo].[StateLanguages] sl ON sl.StateId = s.Id AND sl.LanguageId = l.Id AND sl.IsActive = 1
+    WHERE s.Id = @Id;
+END
+GO
+
+-- StateLanguage_GetByStateIds
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[StateLanguage_GetByStateIds]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[StateLanguage_GetByStateIds]
+GO
+
+CREATE PROCEDURE [dbo].[StateLanguage_GetByStateIds]
+    @StateIds NVARCHAR(MAX)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        sl.Id,
+        sl.StateId,
+        sl.LanguageId,
+        sl.Name,
+        sl.IsActive,
+        sl.CreatedAt,
+        sl.UpdatedAt,
+        l.Code AS LanguageCode,
+        l.Name AS LanguageName
+    FROM [dbo].[StateLanguages] sl
+    LEFT JOIN [dbo].[Languages] l ON l.Id = sl.LanguageId
+    INNER JOIN STRING_SPLIT(@StateIds, ',') ids ON TRY_CAST(ids.value AS INT) = sl.StateId
+    WHERE sl.IsActive = 1;
+END
+GO
+
+-- State_SoftDelete
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[State_SoftDelete]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[State_SoftDelete]
+GO
+
+CREATE PROCEDURE [dbo].[State_SoftDelete]
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Check if state exists
+    IF NOT EXISTS (SELECT 1 FROM States WHERE Id = @Id)
+    BEGIN
+        RAISERROR('State not found', 16, 1);
+        RETURN -1;
+    END
+    
+    UPDATE States
+    SET 
+        IsActive = 0,
+        UpdatedAt = GETUTCDATE()
+    WHERE Id = @Id;
+    
+    RETURN 0;
+END
+GO
+
+-- State_SetActive
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[State_SetActive]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[State_SetActive]
+GO
+
+CREATE PROCEDURE [dbo].[State_SetActive]
+    @Id INT,
+    @IsActive BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Check if state exists
+    IF NOT EXISTS (SELECT 1 FROM States WHERE Id = @Id)
+    BEGIN
+        RAISERROR('State not found', 16, 1);
+        RETURN -1;
+    END
+    
+    UPDATE States
+    SET 
+        IsActive = @IsActive,
+        UpdatedAt = GETUTCDATE()
+    WHERE Id = @Id;
+    
+    RETURN 0;
+END
+GO
+
+-- State_GetWithEmptyNames
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[State_GetWithEmptyNames]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[State_GetWithEmptyNames]
+GO
+
+CREATE PROCEDURE [dbo].[State_GetWithEmptyNames]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.Id,
+        s.Name,
+        s.Code,
+        s.CountryCode,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM [dbo].[States] s
+    WHERE (s.Name IS NULL OR s.Name = '' OR LTRIM(RTRIM(s.Name)) = '')
+    ORDER BY s.Name;
+END
+GO
+
 PRINT '====================================================';
 PRINT 'STATE STORED PROCEDURES CREATED SUCCESSFULLY!';
-PRINT 'Total Procedures: 7';
+PRINT 'Total Procedures: 15';
 PRINT '====================================================';
 GO

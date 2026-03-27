@@ -29,7 +29,9 @@ namespace MasterService.Application.DTOs
         [StringLength(10, ErrorMessage = "Country code cannot exceed 10 characters")]
         public string? CountryCode { get; set; }
 
-        public List<StateLanguageCreateDto>? Names { get; set; }
+        [Required(ErrorMessage = "At least one language name must be provided")]
+        [MinLength(1, ErrorMessage = "At least one language name must be provided")]
+        public List<StateLanguageCreateDto> Names { get; set; } = new();
     }
 
     public class StateLanguageCreateDto
@@ -52,6 +54,8 @@ namespace MasterService.Application.DTOs
         [StringLength(10, ErrorMessage = "Country code cannot exceed 10 characters")]
         public string? CountryCode { get; set; }
 
-        public List<StateLanguageCreateDto>? Names { get; set; }
+        [Required(ErrorMessage = "At least one language name must be provided")]
+        [MinLength(1, ErrorMessage = "At least one language name must be provided")]
+        public List<StateLanguageCreateDto> Names { get; set; } = new();
     }
 }

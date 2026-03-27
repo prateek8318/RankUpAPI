@@ -12,8 +12,6 @@ using System.Text;
 using Common.Middleware;
 using Common.Services;
 using Common.HttpClient;
-using System.Data;
-using Microsoft.Data.SqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,12 +43,11 @@ builder.Services.AddDbContext<AdminDbContext>(options =>
     });
 });
 
-// Add IDbConnection for Dapper repositories
-builder.Services.AddScoped<IDbConnection>(sp =>
+builder.Services.AddScoped(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    var connectionString = configuration.GetConnectionString("AdminServiceConnection");
-    return new SqlConnection(connectionString);
+    return configuration.GetConnectionString("AdminServiceConnection")
+           ?? throw new InvalidOperationException("AdminServiceConnection not found");
 });
 
 // Repositories

@@ -13,45 +13,12 @@ namespace MasterService.Infrastructure.Repositories
         {
         }
 
-        private const string StreamLanguageSql = @"
-SELECT
-    sl.Id,
-    sl.StreamId,
-    sl.LanguageId,
-    sl.Name,
-    sl.Description,
-    sl.IsActive,
-    sl.CreatedAt,
-    sl.UpdatedAt,
-    l.Id,
-    l.Code,
-    l.Name
-FROM dbo.StreamLanguages sl
-LEFT JOIN dbo.Languages l ON l.Id = sl.LanguageId
-WHERE sl.IsActive = 1
-  AND sl.StreamId IN @StreamIds;";
-
-        private const string QualificationSql = @"
-SELECT
-    Id,
-    Name,
-    NameHi,
-    Description,
-    CountryCode,
-    IsActive,
-    CreatedAt,
-    UpdatedAt
-FROM dbo.Qualifications
-WHERE IsActive = 1
-  AND Id IN @Ids;";
-
-
         public async Task<StreamEntity?> GetByIdAsync(int id)
         {
             return await WithConnectionAsync(async connection =>
             {
                 var stream = await connection.QueryFirstOrDefaultAsync<StreamEntity>(
-                    "EXEC [dbo].[Stream_GetById] @Id", new { Id = id });
+                    "[dbo].[Stream_GetById]", new { Id = id }, commandType: CommandType.StoredProcedure);
                 
                 if (stream != null)
                 {
@@ -226,7 +193,7 @@ WHERE IsActive = 1
         public async Task<int> SaveChangesAsync()
         {
             _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(StreamDapperRepository));
-            return await Task.FromResult(1);
+            return await Task.FromResult(0);
         }
 
         private async Task PopulateStreamDetailsAsync(IDbConnection connection, IList<StreamEntity> streams)
@@ -245,11 +212,17 @@ WHERE IsActive = 1
 
             var languages = streamIds.Length == 0
                 ? Array.Empty<StreamLanguage>()
-                : (await connection.QueryAsync<StreamLanguage>(StreamLanguageSql, new { StreamIds = streamIds })).ToArray();
+                : (await connection.QueryAsync<StreamLanguage>(
+                    "[dbo].[StreamLanguage_GetByStreamIds]",
+                    new { StreamIds = string.Join(",", streamIds) },
+                    commandType: CommandType.StoredProcedure)).ToArray();
 
             var qualifications = qualificationIds.Length == 0
                 ? Array.Empty<Qualification>()
-                : (await connection.QueryAsync<Qualification>(QualificationSql, new { Ids = qualificationIds })).ToArray();
+                : (await connection.QueryAsync<Qualification>(
+                    "[dbo].[Qualification_GetByIds]",
+                    new { Ids = string.Join(",", qualificationIds) },
+                    commandType: CommandType.StoredProcedure)).ToArray();
 
             RepositoryEntityMapper.AttachStreamDetails(streams, languages, qualifications);
         }

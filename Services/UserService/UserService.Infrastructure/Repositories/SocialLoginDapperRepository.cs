@@ -19,13 +19,15 @@ namespace UserService.Infrastructure.Repositories
         public async Task<UserSocialLogin> GetByProviderAndGoogleIdAsync(string provider, string googleId)
         {
             var sql = "EXEC [dbo].[UserSocialLogin_GetByProviderAndGoogleId] @Provider, @GoogleId";
-            return await _connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { Provider = provider, GoogleId = googleId }) ?? new UserSocialLogin();
+            var result = await _connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { Provider = provider, GoogleId = googleId });
+            return result != null && result.Id > 0 ? result : null;
         }
 
         public async Task<UserSocialLogin> GetByUserIdAndProviderAsync(int userId, string provider)
         {
             var sql = "EXEC [dbo].[UserSocialLogin_GetByUserIdAndProvider] @UserId, @Provider";
-            return await _connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { UserId = userId, Provider = provider }) ?? new UserSocialLogin();
+            var result = await _connection.QueryFirstOrDefaultAsync<UserSocialLogin>(sql, new { UserId = userId, Provider = provider });
+            return result != null && result.Id > 0 ? result : null;
         }
 
         public async Task<UserSocialLogin> AddAsync(UserSocialLogin socialLogin)

@@ -2,13 +2,20 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MasterService.Application.DTOs
 {
+    public class PhoneDto
+    {
+        public string CountryCode { get; set; } = string.Empty;
+        public int Length { get; set; }
+    }
+
     public class CountryDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Code { get; set; } = string.Empty;
-        public string? SubdivisionLabelEn { get; set; }
-        public string? SubdivisionLabelHi { get; set; }
+        public string Iso2 { get; set; } = string.Empty;
+        public PhoneDto Phone { get; set; } = new PhoneDto();
+        public string CurrencyCode { get; set; } = string.Empty;
+        public string? Image { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
@@ -18,21 +25,24 @@ namespace MasterService.Application.DTOs
     {
         [Required]
         [MaxLength(100)]
-        public string NameEn { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         
         [Required]
-        [MaxLength(100)]
-        public string NameHi { get; set; } = string.Empty;
+        [MaxLength(2)]
+        public string Iso2 { get; set; } = string.Empty;
         
         [Required]
-        [MaxLength(10)]
-        public string Code { get; set; } = string.Empty;
+        [MaxLength(5)]
+        public string CountryCode { get; set; } = string.Empty;
         
-        [MaxLength(50)]
-        public string? SubdivisionLabelEn { get; set; }
+        public int PhoneLength { get; set; } = 10;
         
-        [MaxLength(50)]
-        public string? SubdivisionLabelHi { get; set; }
+        [Required]
+        [MaxLength(3)]
+        public string CurrencyCode { get; set; } = string.Empty;
+        
+        [MaxLength(255)]
+        public string? Image { get; set; }
     }
 
     public class UpdateCountryDto
@@ -41,21 +51,24 @@ namespace MasterService.Application.DTOs
         
         [Required]
         [MaxLength(100)]
-        public string NameEn { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         
         [Required]
-        [MaxLength(100)]
-        public string NameHi { get; set; } = string.Empty;
+        [MaxLength(2)]
+        public string Iso2 { get; set; } = string.Empty;
         
         [Required]
-        [MaxLength(10)]
-        public string Code { get; set; } = string.Empty;
+        [MaxLength(5)]
+        public string CountryCode { get; set; } = string.Empty;
         
-        [MaxLength(50)]
-        public string? SubdivisionLabelEn { get; set; }
+        public int PhoneLength { get; set; } = 10;
         
-        [MaxLength(50)]
-        public string? SubdivisionLabelHi { get; set; }
+        [Required]
+        [MaxLength(3)]
+        public string CurrencyCode { get; set; } = string.Empty;
+        
+        [MaxLength(255)]
+        public string? Image { get; set; }
         
         public bool IsActive { get; set; }
     }

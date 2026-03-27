@@ -361,7 +361,7 @@ CREATE PROCEDURE dbo.Qualification_GetActive
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, CountryCode, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, NameHi, Description, CountryCode, IsActive, CreatedAt, UpdatedAt
     FROM dbo.Qualifications
     WHERE IsActive = 1;
 END
@@ -375,7 +375,7 @@ CREATE PROCEDURE dbo.Qualification_GetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, CountryCode, IsActive, CreatedAt, UpdatedAt
+    SELECT Id, Name, NameHi, Description, CountryCode, IsActive, CreatedAt, UpdatedAt
     FROM dbo.Qualifications
     WHERE Id = @Id;
 END
@@ -410,9 +410,28 @@ CREATE PROCEDURE dbo.Qualification_Create
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO dbo.Qualifications (Name, CountryCode, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @CountryCode, @IsActive, @CreatedAt, @UpdatedAt);
+    INSERT INTO dbo.Qualifications (Name, Description, CountryCode, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@Name, @Description, @CountryCode, @IsActive, @CreatedAt, @UpdatedAt);
     SET @Id = SCOPE_IDENTITY();
+
+    IF @NamesJson IS NOT NULL AND @Id > 0
+    BEGIN
+        INSERT INTO dbo.QualificationLanguages (QualificationId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+        SELECT
+            @Id as QualificationId,
+            LanguageId,
+            Name,
+            Description,
+            1 as IsActive,
+            @CreatedAt as CreatedAt,
+            @UpdatedAt as UpdatedAt
+        FROM OPENJSON(@NamesJson)
+        WITH (
+            LanguageId INT '$.LanguageId',
+            Name NVARCHAR(200) '$.Name',
+            Description NVARCHAR(1000) '$.Description'
+        );
+    END
 END
 GO
 
@@ -431,8 +450,30 @@ AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE dbo.Qualifications
-    SET Name = @Name, CountryCode = @CountryCode, IsActive = @IsActive, UpdatedAt = @UpdatedAt
+    SET Name = @Name, Description = @Description, CountryCode = @CountryCode, IsActive = @IsActive, UpdatedAt = @UpdatedAt
     WHERE Id = @Id;
+
+    -- Replace language rows when provided
+    IF @NamesJson IS NOT NULL
+    BEGIN
+        DELETE FROM dbo.QualificationLanguages WHERE QualificationId = @Id;
+
+        INSERT INTO dbo.QualificationLanguages (QualificationId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+        SELECT
+            @Id as QualificationId,
+            LanguageId,
+            Name,
+            Description,
+            1 as IsActive,
+            @UpdatedAt as CreatedAt,
+            @UpdatedAt as UpdatedAt
+        FROM OPENJSON(@NamesJson)
+        WITH (
+            LanguageId INT '$.LanguageId',
+            Name NVARCHAR(200) '$.Name',
+            Description NVARCHAR(1000) '$.Description'
+        );
+    END
 END
 GO
 

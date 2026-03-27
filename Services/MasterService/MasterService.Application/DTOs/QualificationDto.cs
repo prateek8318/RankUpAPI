@@ -50,11 +50,10 @@ namespace MasterService.Application.DTOs
         public int? MinAge { get; set; }
         public int? MaxAge { get; set; }
 
-        [Required(ErrorMessage = "Image URL is required")]
         [StringLength(500, ErrorMessage = "Image URL cannot exceed 500 characters")]
         [Url(ErrorMessage = "Please enter a valid URL")]
         [RegularExpression(@"^https?:\/\/.+", ErrorMessage = "Image URL must start with http:// or https://")]
-        public string ImageUrl { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
 
         public bool IsInternational { get; set; } = false;
 
@@ -83,11 +82,10 @@ namespace MasterService.Application.DTOs
         public int? MinAge { get; set; }
         public int? MaxAge { get; set; }
 
-        [Required(ErrorMessage = "Image URL is required")]
         [StringLength(500, ErrorMessage = "Image URL cannot exceed 500 characters")]
         [Url(ErrorMessage = "Please enter a valid URL")]
         [RegularExpression(@"^https?:\/\/.+", ErrorMessage = "Image URL must start with http:// or https://")]
-        public string ImageUrl { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
 
         public bool IsInternational { get; set; }
 
@@ -139,6 +137,9 @@ namespace MasterService.Application.DTOs
         [StringLength(10, ErrorMessage = "Country code cannot exceed 10 characters")]
         public string? CountryCode { get; set; }
 
+        [StringLength(100, ErrorMessage = "NameHi cannot exceed 100 characters")]
+        public string? NameHi { get; set; }
+
         public List<QualificationLanguageCreateDto>? Names { get; set; }
     }
 
@@ -149,6 +150,9 @@ namespace MasterService.Application.DTOs
 
         [StringLength(10, ErrorMessage = "Country code cannot exceed 10 characters")]
         public string? CountryCode { get; set; }
+
+        [StringLength(100, ErrorMessage = "NameHi cannot exceed 100 characters")]
+        public string? NameHi { get; set; }
 
         public List<QualificationLanguageCreateDto>? Names { get; set; }
     }

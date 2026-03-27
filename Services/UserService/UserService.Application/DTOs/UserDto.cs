@@ -42,6 +42,33 @@ namespace UserService.Application.DTOs
 
         public int? CategoryId { get; set; }
 
+        public int? StreamId { get; set; }
+
+        // Name fields for better frontend experience
+        public string? StateName { get; set; }
+        
+        public string? StateNameHi { get; set; }
+        
+        public string? LanguageName { get; set; }
+        
+        public string? LanguageNameHi { get; set; }
+        
+        public string? QualificationName { get; set; }
+        
+        public string? QualificationNameHi { get; set; }
+        
+        public string? ExamName { get; set; }
+        
+        public string? ExamNameHi { get; set; }
+        
+        public string? CategoryName { get; set; }
+        
+        public string? CategoryNameHi { get; set; }
+        
+        public string? StreamName { get; set; }
+        
+        public string? StreamNameHi { get; set; }
+
         public DateTime? LastLoginAt { get; set; }
 
         public bool IsPhoneVerified { get; set; }
@@ -54,7 +81,7 @@ namespace UserService.Application.DTOs
 
         public bool InterestedInIntlExam { get; set; }
         
-        public bool ProfileCompleted { get; set; }
+        public bool IsProfileComplete { get; set; } // Calculated property
         
         // Device information fields
         public string? DeviceId { get; set; }
@@ -71,8 +98,6 @@ namespace UserService.Application.DTOs
         public string? LastDeviceType { get; set; }
         
         public string? LastDeviceName { get; set; }
-        
-        public string? LoginType { get; set; } // "Mobile" or "Social"
         
         public DateTime CreatedAtIST { get; set; }
         
@@ -109,6 +134,8 @@ namespace UserService.Application.DTOs
         public int? ExamId { get; set; }
 
         public int? CategoryId { get; set; }
+
+        public int? StreamId { get; set; }
 
     }
 
@@ -214,6 +241,8 @@ namespace UserService.Application.DTOs
 
         public string? Email { get; set; }
 
+        public string? PhoneNumber { get; set; }
+
         public string? Gender { get; set; }
 
         public DateTime? Dob { get; set; }
@@ -227,6 +256,8 @@ namespace UserService.Application.DTOs
         public int? ExamId { get; set; }
 
         public int? CategoryId { get; set; }
+
+        public int? StreamId { get; set; }
 
         public bool? InterestedInIntlExam { get; set; }
 
@@ -328,6 +359,8 @@ namespace UserService.Application.DTOs
 
         public string? Email { get; set; }
 
+        public string? PhoneNumber { get; set; }
+
         public string? Gender { get; set; }
 
         public DateTime? Dob { get; set; }
@@ -341,6 +374,8 @@ namespace UserService.Application.DTOs
         public int? ExamId { get; set; }
 
         public int? CategoryId { get; set; }
+
+        public int? StreamId { get; set; }
 
         public bool? InterestedInIntlExam { get; set; }
 

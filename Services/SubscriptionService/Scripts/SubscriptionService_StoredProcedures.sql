@@ -287,3 +287,480 @@ END
 GO
 
 PRINT 'SubscriptionService stored procedures created successfully.';
+
+-- =============================================
+-- User Subscription Stored Procedures
+-- =============================================
+
+-- UserSubscription_GetAll
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetAll]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetAll]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetAll]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.UserId,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    ORDER BY us.CreatedAt DESC;
+END
+GO
+
+-- UserSubscription_GetById
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetById]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetById]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetById]
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.UserId,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    WHERE us.Id = @Id;
+END
+GO
+
+-- UserSubscription_GetByUserId
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetByUserId]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetByUserId]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetByUserId]
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    WHERE us.UserId = @UserId
+    ORDER BY us.CreatedAt DESC;
+END
+GO
+
+-- UserSubscription_GetActiveByUserId
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetActiveByUserId]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetActiveByUserId]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetActiveByUserId]
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    WHERE us.UserId = @UserId AND us.Status = 'Active' AND us.EndDate >= GETUTCDATE()
+    ORDER BY us.EndDate DESC;
+END
+GO
+
+-- UserSubscription_Create
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_Create]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_Create]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_Create]
+    @UserId INT,
+    @SubscriptionPlanId INT,
+    @RazorpayOrderId NVARCHAR(100),
+    @RazorpayPaymentId NVARCHAR(100),
+    @RazorpaySignature NVARCHAR(100),
+    @OriginalAmount DECIMAL(10,2),
+    @FinalAmount DECIMAL(10,2),
+    @StartDate DATETIME,
+    @EndDate DATETIME,
+    @Status NVARCHAR(50),
+    @AutoRenew BIT,
+    @RazorpaySubscriptionId NVARCHAR(100),
+    @CreatedAt DATETIME,
+    @UpdatedAt DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    INSERT INTO UserSubscriptions (
+        UserId, SubscriptionPlanId, RazorpayOrderId, RazorpayPaymentId, RazorpaySignature,
+        OriginalAmount, FinalAmount, StartDate, EndDate, Status, AutoRenew,
+        RazorpaySubscriptionId, CreatedAt, UpdatedAt
+    )
+    VALUES (
+        @UserId, @SubscriptionPlanId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
+        @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenew,
+        @RazorpaySubscriptionId, @CreatedAt, @UpdatedAt
+    );
+    
+    SELECT SCOPE_IDENTITY() AS Id;
+END
+GO
+
+-- UserSubscription_Update
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_Update]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_Update]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_Update]
+    @Id INT,
+    @UserId INT,
+    @SubscriptionPlanId INT,
+    @RazorpayOrderId NVARCHAR(100),
+    @RazorpayPaymentId NVARCHAR(100),
+    @RazorpaySignature NVARCHAR(100),
+    @OriginalAmount DECIMAL(10,2),
+    @FinalAmount DECIMAL(10,2),
+    @StartDate DATETIME,
+    @EndDate DATETIME,
+    @Status NVARCHAR(50),
+    @AutoRenew BIT,
+    @RazorpaySubscriptionId NVARCHAR(100),
+    @LastRenewalDate DATETIME,
+    @CancelledDate DATETIME,
+    @CancellationReason NVARCHAR(500),
+    @UpdatedAt DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE UserSubscriptions
+    SET 
+        UserId = @UserId,
+        SubscriptionPlanId = @SubscriptionPlanId,
+        RazorpayOrderId = @RazorpayOrderId,
+        RazorpayPaymentId = @RazorpayPaymentId,
+        RazorpaySignature = @RazorpaySignature,
+        OriginalAmount = @OriginalAmount,
+        FinalAmount = @FinalAmount,
+        StartDate = @StartDate,
+        EndDate = @EndDate,
+        Status = @Status,
+        AutoRenew = @AutoRenew,
+        RazorpaySubscriptionId = @RazorpaySubscriptionId,
+        LastRenewalDate = @LastRenewalDate,
+        CancelledDate = @CancelledDate,
+        CancellationReason = @CancellationReason,
+        UpdatedAt = @UpdatedAt
+    WHERE Id = @Id;
+END
+GO
+
+-- UserSubscription_Delete
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_Delete]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_Delete]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_Delete]
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DELETE FROM UserSubscriptions WHERE Id = @Id;
+END
+GO
+
+-- UserSubscription_Cancel
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_Cancel]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_Cancel]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_Cancel]
+    @Id INT,
+    @CancelledAt DATETIME,
+    @UpdatedAt DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE UserSubscriptions
+    SET 
+        IsActive = 0,
+        CancelledAt = @CancelledAt,
+        UpdatedAt = @UpdatedAt
+    WHERE Id = @Id;
+END
+GO
+
+-- UserSubscription_GetActive
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetActive]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetActive]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetActive]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.UserId,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    WHERE us.Status = 'Active' AND us.EndDate >= GETUTCDATE()
+    ORDER BY us.EndDate ASC;
+END
+GO
+
+-- UserSubscription_GetExpiring
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetExpiring]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetExpiring]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetExpiring]
+    @DaysBeforeExpiry INT = 7
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.UserId,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    WHERE us.Status = 'Active' 
+        AND us.EndDate >= GETUTCDATE() 
+        AND us.EndDate <= DATEADD(DAY, @DaysBeforeExpiry, GETUTCDATE())
+    ORDER BY us.EndDate ASC;
+END
+GO
+
+-- UserSubscription_Renew
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_Renew]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_Renew]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_Renew]
+    @Id INT,
+    @NewEndDate DATETIME,
+    @UpdatedAt DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE UserSubscriptions
+    SET 
+        EndDate = @NewEndDate,
+        IsActive = 1,
+        UpdatedAt = @UpdatedAt
+    WHERE Id = @Id;
+END
+GO
+
+PRINT 'UserSubscription stored procedures created successfully.';
+
+-- =============================================
+-- Additional Missing User Subscription Stored Procedures
+-- =============================================
+
+-- UserSubscription_GetByUserIdWithHistory
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetByUserIdWithHistory]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetByUserIdWithHistory]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetByUserIdWithHistory]
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.UserId,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    WHERE us.UserId = @UserId
+    ORDER BY us.CreatedAt DESC;
+END
+GO
+
+-- UserSubscription_GetByRazorpayOrderId
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetByRazorpayOrderId]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetByRazorpayOrderId]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetByRazorpayOrderId]
+    @OrderId NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.UserId,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    WHERE us.RazorpayOrderId = @OrderId;
+END
+GO
+
+-- UserSubscription_GetByRazorpayPaymentId
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UserSubscription_GetByRazorpayPaymentId]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[UserSubscription_GetByRazorpayPaymentId]
+GO
+
+CREATE PROCEDURE [dbo].[UserSubscription_GetByRazorpayPaymentId]
+    @PaymentId NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        us.Id,
+        us.UserId,
+        us.SubscriptionPlanId,
+        us.RazorpayOrderId,
+        us.RazorpayPaymentId,
+        us.RazorpaySignature,
+        us.OriginalAmount,
+        us.FinalAmount,
+        us.StartDate,
+        us.EndDate,
+        us.Status,
+        us.AutoRenew,
+        us.RazorpaySubscriptionId,
+        us.LastRenewalDate,
+        us.CancelledDate,
+        us.CancellationReason,
+        us.CreatedAt,
+        us.UpdatedAt
+    FROM UserSubscriptions us
+    WHERE us.RazorpayPaymentId = @PaymentId;
+END
+GO
+
+PRINT 'All UserSubscription stored procedures created successfully.';

@@ -58,34 +58,45 @@ namespace MasterService.Infrastructure.Repositories
 
         public async Task<Category> AddAsync(Category category)
         {
-            return await WithConnectionAsync(async connection =>
+            try
             {
-                var sql = @"
-                    EXEC [dbo].[Category_Create] 
-                        @NameEn, @NameHi, @Key, @Type, @Description, 
-                        @DisplayOrder, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
-
-                var parameters = new DynamicParameters();
-                parameters.Add("@NameEn", category.NameEn);
-                parameters.Add("@NameHi", category.NameHi ?? (object?)null);
-                parameters.Add("@Key", category.Key);
-                parameters.Add("@Type", category.Type);
-                parameters.Add("@Description", category.Description ?? (object?)null);
-                parameters.Add("@DisplayOrder", category.DisplayOrder);
-                parameters.Add("@IsActive", category.IsActive);
-                parameters.Add("@CreatedAt", DateTime.UtcNow);
-                parameters.Add("@UpdatedAt", DateTime.UtcNow);
-                parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
-
-                await connection.ExecuteAsync(sql, parameters);
-                
-                if (parameters.Get<int>("@Id") > 0)
+                return await WithConnectionAsync(async connection =>
                 {
-                    category.Id = parameters.Get<int>("@Id");
-                }
+                    var sql = @"
+                        EXEC [dbo].[Category_Create] 
+                            @NameEn, @NameHi, @Key, @Type, @Description, 
+                            @DisplayOrder, @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
 
-                return category;
-            });
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@NameEn", category.NameEn);
+                    parameters.Add("@NameHi", category.NameHi ?? (object?)null);
+                    parameters.Add("@Key", category.Key);
+                    parameters.Add("@Type", category.Type);
+                    parameters.Add("@Description", category.Description ?? (object?)null);
+                    parameters.Add("@DisplayOrder", category.DisplayOrder);
+                    parameters.Add("@IsActive", category.IsActive);
+                    parameters.Add("@CreatedAt", DateTime.UtcNow);
+                    parameters.Add("@UpdatedAt", DateTime.UtcNow);
+                    parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                    await connection.ExecuteAsync(sql, parameters);
+                    
+                    if (parameters.Get<int>("@Id") > 0)
+                    {
+                        category.Id = parameters.Get<int>("@Id");
+                    }
+
+                    return category;
+                });
+            }
+            catch (SqlException ex) when (ex.Number == 2601) // Unique constraint violation
+            {
+                throw new InvalidOperationException($"A category with key '{category.Key}' already exists. Category keys must be globally unique across all types.", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error creating category: {ex.Message}", ex);
+            }
         }
 
         public async Task UpdateAsync(Category category)
@@ -121,6 +132,10 @@ namespace MasterService.Infrastructure.Repositories
 
                     await connection.ExecuteAsync(sql, parameters);
                 });
+            }
+            catch (SqlException ex) when (ex.Number == 2601) // Unique constraint violation
+            {
+                throw new InvalidOperationException($"A category with key '{category.Key}' already exists. Category keys must be globally unique across all types.", ex);
             }
             catch (Exception ex)
             {

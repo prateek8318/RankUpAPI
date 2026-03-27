@@ -2,6 +2,11 @@ using MasterService.Application.DTOs;
 using MasterService.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Common.Services;
+using Common.Language;
+using ILanguageService = Common.Services.ILanguageService;
+using ILanguageDataService = Common.Language.ILanguageDataService;
 
 namespace MasterService.API.Controllers
 {
@@ -11,16 +16,20 @@ namespace MasterService.API.Controllers
     {
         private readonly ICountryService _countryService;
         private readonly ILogger<CountryController> _logger;
+        private readonly ILanguageService _languageService;
+        private readonly IImageService _imageService;
 
-        public CountryController(ICountryService countryService, ILogger<CountryController> logger)
+        public CountryController(ICountryService countryService, ILogger<CountryController> logger, ILanguageService languageService, IImageService imageService)
         {
             _countryService = countryService;
             _logger = logger;
+            _languageService = languageService;
+            _imageService = imageService;
         }
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<CountryDto>>> GetCountries([FromQuery] string? language = null)
+        public async Task<ActionResult<object>> GetCountries([FromQuery] string? language = null)
         {
             try
             {
@@ -35,18 +44,23 @@ namespace MasterService.API.Controllers
                     countries = await _countryService.GetAllCountriesAsync();
                 }
                 
-                return Ok(countries);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Countries fetched successfully",
+                    data = countries
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving countries");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Error fetching countries" });
             }
         }
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<ActionResult<CountryDto>> GetCountry(int id, [FromQuery] string? language = null)
+        public async Task<ActionResult<object>> GetCountry(int id, [FromQuery] string? language = null)
         {
             try
             {
@@ -62,20 +76,25 @@ namespace MasterService.API.Controllers
                 }
                 
                 if (country == null)
-                    return NotFound();
+                    return NotFound(new { success = false, message = "Country not found" });
 
-                return Ok(country);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Country fetched successfully",
+                    data = country
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving country {CountryId}", id);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Error fetching country" });
             }
         }
 
         [HttpGet("code/{code}")]
         [AllowAnonymous]
-        public async Task<ActionResult<CountryDto>> GetCountryByCode(string code, [FromQuery] string? language = null)
+        public async Task<ActionResult<object>> GetCountryByCode(string code, [FromQuery] string? language = null)
         {
             try
             {
@@ -91,93 +110,169 @@ namespace MasterService.API.Controllers
                 }
                 
                 if (country == null)
-                    return NotFound();
+                    return NotFound(new { success = false, message = "Country not found" });
 
-                return Ok(country);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Country fetched successfully",
+                    data = country
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving country by code {CountryCode}", code);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Error fetching country" });
             }
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<CountryDto>> CreateCountry(CreateCountryDto createDto)
+        public async Task<ActionResult<object>> CreateCountry([FromForm] CreateCountryWithImageDto createDto)
         {
             try
             {
                 if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+                    return BadRequest(new { success = false, message = "Invalid model data", errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
 
-                var country = await _countryService.CreateCountryAsync(createDto);
-                return CreatedAtAction(nameof(GetCountry), new { id = country.Id }, country);
+                // Handle image upload if provided
+                string? imagePath = null;
+                if (createDto.ImageFile != null)
+                {
+                    imagePath = await _imageService.UploadCountryImageAsync(createDto.ImageFile, createDto.Iso2);
+                }
+
+                // Create country DTO with image path
+                var countryDto = new CreateCountryDto
+                {
+                    Name = createDto.Name,
+                    Iso2 = createDto.Iso2,
+                    CountryCode = createDto.CountryCode,
+                    PhoneLength = createDto.PhoneLength,
+                    CurrencyCode = createDto.CurrencyCode,
+                    Image = imagePath
+                };
+
+                var country = await _countryService.CreateCountryAsync(countryDto);
+                return CreatedAtAction(nameof(GetCountry), new { id = country.Id }, new
+                {
+                    success = true,
+                    message = "Country created successfully",
+                    data = country
+                });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+            {
+                return BadRequest(new 
+                { 
+                    success = false, 
+                    message = ex.Message,
+                    error = "DUPLICATE_ISO2"
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating country");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Error creating country" });
             }
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateCountry(int id, UpdateCountryDto updateDto)
+        public async Task<ActionResult<object>> UpdateCountry(int id, [FromForm] UpdateCountryWithImageDto updateDto)
         {
             try
             {
                 if (id != updateDto.Id)
-                    return BadRequest("ID in URL does not match the ID in the request body.");
+                    return BadRequest(new { success = false, message = "ID in URL does not match the ID in the request body" });
 
-                var result = await _countryService.UpdateCountryAsync(id, updateDto);
+                if (!ModelState.IsValid)
+                    return BadRequest(new { success = false, message = "Invalid model data", errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+
+                // Handle image upload if provided
+                string? imagePath = null;
+                if (updateDto.ImageFile != null)
+                {
+                    imagePath = await _imageService.UploadCountryImageAsync(updateDto.ImageFile, updateDto.Iso2);
+                }
+
+                // Create update DTO with image path
+                var countryDto = new UpdateCountryDto
+                {
+                    Id = updateDto.Id,
+                    Name = updateDto.Name,
+                    Iso2 = updateDto.Iso2,
+                    CountryCode = updateDto.CountryCode,
+                    PhoneLength = updateDto.PhoneLength,
+                    CurrencyCode = updateDto.CurrencyCode,
+                    Image = imagePath,
+                    IsActive = updateDto.IsActive
+                };
+
+                var result = await _countryService.UpdateCountryAsync(id, countryDto);
                 if (result == null)
-                    return NotFound();
+                    return NotFound(new { success = false, message = "Country not found" });
 
-                return NoContent();
+                return Ok(new
+                {
+                    success = true,
+                    message = "Country updated successfully",
+                    data = result
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating country");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Error updating country" });
             }
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> DeleteCountry(int id)
+        public async Task<ActionResult<object>> DeleteCountry(int id)
         {
             try
             {
                 var result = await _countryService.DeleteCountryAsync(id);
                 if (!result)
-                    return NotFound();
+                    return NotFound(new { success = false, message = "Country not found" });
 
-                return NoContent();
+                return Ok(new
+                {
+                    success = true,
+                    message = "Country deleted successfully",
+                    data = true
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting country");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Error deleting country" });
             }
         }
 
         [HttpPatch("{id}/status")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateCountryStatus(int id, [FromBody] bool isActive)
+        public async Task<ActionResult<object>> UpdateCountryStatus(int id, [FromBody] bool isActive)
         {
             try
             {
                 var result = await _countryService.ToggleCountryStatusAsync(id, isActive);
                 if (!result)
-                    return NotFound();
+                    return NotFound(new { success = false, message = "Country not found" });
 
-                return NoContent();
+                var message = isActive ? "Country activated successfully" : "Country deactivated successfully";
+                return Ok(new
+                {
+                    success = true,
+                    message = message,
+                    data = true
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating country status");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { success = false, message = "Error updating country status" });
             }
         }
     }

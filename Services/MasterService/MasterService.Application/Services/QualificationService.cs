@@ -38,6 +38,8 @@ namespace MasterService.Application.Services
             var qualification = _mapper.Map<Qualification>(createDto);
             qualification.CreatedAt = DateTime.UtcNow;
             qualification.IsActive = true;
+            qualification.Description = createDto.Description;
+            qualification.NameHi = createDto.NameHi;
 
             if (createDto.Names != null && createDto.Names.Any())
             {
@@ -74,6 +76,7 @@ namespace MasterService.Application.Services
             qualification.Name = updateDto.Name;
             qualification.Description = updateDto.Description;
             qualification.CountryCode = updateDto.CountryCode;
+            qualification.NameHi = updateDto.NameHi;
             qualification.UpdatedAt = DateTime.UtcNow;
 
             if (updateDto.Names != null && updateDto.Names.Any())
@@ -124,6 +127,7 @@ namespace MasterService.Application.Services
             {
                 LanguageId = ql.LanguageId,
                 LanguageCode = ql.Language?.Code ?? string.Empty,
+                LanguageName = ql.Language?.Name ?? string.Empty,
                 Name = ql.Name,
                 Description = ql.Description
             }).ToList() ?? new List<QualificationLanguageDto>();
@@ -192,6 +196,7 @@ namespace MasterService.Application.Services
                     {
                         LanguageId = ql.LanguageId,
                         LanguageCode = ql.Language?.Code ?? string.Empty,
+                        LanguageName = ql.Language?.Name ?? string.Empty,
                         Name = ql.Name,
                         Description = ql.Description
                     }).ToList() ?? new List<QualificationLanguageDto>();
@@ -226,6 +231,7 @@ namespace MasterService.Application.Services
                     {
                         LanguageId = ql.LanguageId,
                         LanguageCode = ql.Language?.Code ?? string.Empty,
+                        LanguageName = ql.Language?.Name ?? string.Empty,
                         Name = ql.Name,
                         Description = ql.Description
                     }).ToList() ?? new List<QualificationLanguageDto>();

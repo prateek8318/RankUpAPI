@@ -44,9 +44,14 @@ namespace MasterService.Application.Services
                     {
                         Id = c.Id,
                         Name = c.Name, // Would be Hindi name in proper implementation
-                        Code = c.Code,
-                        SubdivisionLabelEn = c.SubdivisionLabelEn,
-                        SubdivisionLabelHi = c.SubdivisionLabelHi ?? c.SubdivisionLabelEn,
+                        Iso2 = c.Iso2,
+                        Phone = new PhoneDto
+                        {
+                            CountryCode = c.CountryCode,
+                            Length = c.PhoneLength
+                        },
+                        CurrencyCode = c.CurrencyCode,
+                        Image = c.Image,
                         IsActive = c.IsActive,
                         CreatedAt = c.CreatedAt,
                         UpdatedAt = c.UpdatedAt
@@ -102,10 +107,12 @@ namespace MasterService.Application.Services
             {
                 var country = new Country
                 {
-                    Name = createDto.NameEn, // Store English name for now
-                    Code = createDto.Code,
-                    SubdivisionLabelEn = createDto.SubdivisionLabelEn,
-                    SubdivisionLabelHi = createDto.SubdivisionLabelHi,
+                    Name = createDto.Name,
+                    Iso2 = createDto.Iso2,
+                    CountryCode = createDto.CountryCode,
+                    PhoneLength = createDto.PhoneLength,
+                    CurrencyCode = createDto.CurrencyCode,
+                    Image = createDto.Image,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -113,6 +120,10 @@ namespace MasterService.Application.Services
                 var createdCountry = await _countryRepository.AddAsync(country);
 
                 return MapToDto(createdCountry);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Country with this ISO2 code already exists"))
+            {
+                throw new InvalidOperationException($"Country with ISO2 code '{createDto.Iso2}' already exists", ex);
             }
             catch (Exception ex)
             {
@@ -129,10 +140,12 @@ namespace MasterService.Application.Services
                 if (existingCountry == null)
                     return null;
 
-                existingCountry.Name = updateDto.NameEn;
-                existingCountry.Code = updateDto.Code;
-                existingCountry.SubdivisionLabelEn = updateDto.SubdivisionLabelEn;
-                existingCountry.SubdivisionLabelHi = updateDto.SubdivisionLabelHi;
+                existingCountry.Name = updateDto.Name;
+                existingCountry.Iso2 = updateDto.Iso2;
+                existingCountry.CountryCode = updateDto.CountryCode;
+                existingCountry.PhoneLength = updateDto.PhoneLength;
+                existingCountry.CurrencyCode = updateDto.CurrencyCode;
+                existingCountry.Image = updateDto.Image;
                 existingCountry.IsActive = updateDto.IsActive;
                 existingCountry.UpdatedAt = DateTime.UtcNow;
 
@@ -185,9 +198,14 @@ namespace MasterService.Application.Services
             {
                 Id = country.Id,
                 Name = country.Name, // In proper implementation, this would be localized
-                Code = country.Code,
-                SubdivisionLabelEn = country.SubdivisionLabelEn,
-                SubdivisionLabelHi = country.SubdivisionLabelHi,
+                Iso2 = country.Iso2,
+                Phone = new PhoneDto
+                {
+                    CountryCode = country.CountryCode,
+                    Length = country.PhoneLength
+                },
+                CurrencyCode = country.CurrencyCode,
+                Image = country.Image,
                 IsActive = country.IsActive,
                 CreatedAt = country.CreatedAt,
                 UpdatedAt = country.UpdatedAt

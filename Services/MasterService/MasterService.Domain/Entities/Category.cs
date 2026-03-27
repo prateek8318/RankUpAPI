@@ -22,13 +22,12 @@ namespace MasterService.Domain.Entities
         // For backward compatibility with existing code
         public string Name => NameEn;
 
-        [MaxLength(500)]
-        public string? Description { get; set; }
-
-        public int DisplayOrder { get; set; } = 0;
-
         // Status field instead of IsActive
         public string Status { get; set; } = "active"; // active, inactive, draft, archived
+        
+        // Additional fields for category management
+        public string? Description { get; set; }
+        public int DisplayOrder { get; set; } = 0;
         
         // Keep IsActive for backward compatibility
         public bool IsActive 

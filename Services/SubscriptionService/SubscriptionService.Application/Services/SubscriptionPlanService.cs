@@ -58,7 +58,6 @@ namespace SubscriptionService.Application.Services
                 }
 
                 var createdPlan = await _subscriptionPlanRepository.AddAsync(plan);
-                await _subscriptionPlanRepository.SaveChangesAsync();
 
                 var result = _mapper.Map<SubscriptionPlanDto>(createdPlan);
                 result.ExamType = result.ExamCategory;
@@ -122,7 +121,6 @@ namespace SubscriptionService.Application.Services
                 }
 
                 var updatedPlan = await _subscriptionPlanRepository.UpdateAsync(existingPlan);
-                await _subscriptionPlanRepository.SaveChangesAsync();
 
                 var result = _mapper.Map<SubscriptionPlanDto>(updatedPlan);
                 result.ExamType = result.ExamCategory;
@@ -162,7 +160,6 @@ namespace SubscriptionService.Application.Services
                 existingPlan.UpdatedAt = DateTime.UtcNow;
 
                 await _subscriptionPlanRepository.UpdateAsync(existingPlan);
-                await _subscriptionPlanRepository.SaveChangesAsync();
 
                 _logger.LogInformation("Successfully deleted subscription plan with ID: {PlanId}", id);
                 return true;

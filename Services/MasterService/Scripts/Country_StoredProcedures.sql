@@ -18,9 +18,11 @@ BEGIN
     SELECT 
         Id,
         Name,
-        Code,
-        SubdivisionLabelEn,
-        SubdivisionLabelHi,
+        Iso2,
+        CountryCode,
+        PhoneLength,
+        CurrencyCode,
+        Image,
         IsActive,
         CreatedAt,
         UpdatedAt
@@ -42,13 +44,16 @@ BEGIN
     SELECT 
         Id,
         Name,
-        Code,
-        SubdivisionLabelEn,
-        SubdivisionLabelHi,
+        Iso2,
+        CountryCode,
+        PhoneLength,
+        CurrencyCode,
+        Image,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM [dbo].[Countries] 
+    WHERE IsActive = 1
     ORDER BY Name;
 END
 GO
@@ -59,7 +64,7 @@ IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Countr
 GO
 
 CREATE PROCEDURE [dbo].[Country_GetByCode]
-    @Code NVARCHAR(10)
+    @Iso2 NVARCHAR(2)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -67,14 +72,16 @@ BEGIN
     SELECT 
         Id,
         Name,
-        Code,
-        SubdivisionLabelEn,
-        SubdivisionLabelHi,
+        Iso2,
+        CountryCode,
+        PhoneLength,
+        CurrencyCode,
+        Image,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM [dbo].[Countries] 
-    WHERE Code = @Code;
+    WHERE Iso2 = @Iso2 AND IsActive = 1;
 END
 GO
 
@@ -85,9 +92,11 @@ GO
 
 CREATE PROCEDURE [dbo].[Country_Create]
     @Name NVARCHAR(100),
-    @Code NVARCHAR(10),
-    @SubdivisionLabelEn NVARCHAR(50) = NULL,
-    @SubdivisionLabelHi NVARCHAR(50) = NULL,
+    @Iso2 NVARCHAR(2),
+    @CountryCode NVARCHAR(5),
+    @PhoneLength INT = 10,
+    @CurrencyCode NVARCHAR(3),
+    @Image NVARCHAR(255) = NULL,
     @IsActive BIT = 1,
     @CreatedAt DATETIME2,
     @UpdatedAt DATETIME2,
@@ -96,10 +105,18 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    INSERT INTO Countries (Name, Code, SubdivisionLabelEn, SubdivisionLabelHi, IsActive, CreatedAt, UpdatedAt)
-    VALUES (@Name, @Code, @SubdivisionLabelEn, @SubdivisionLabelHi, @IsActive, @CreatedAt, @UpdatedAt);
+    -- Check if Iso2 already exists
+    IF EXISTS (SELECT 1 FROM Countries WHERE Iso2 = @Iso2)
+    BEGIN
+        RAISERROR('Country with this ISO2 code already exists', 16, 1);
+        RETURN -1;
+    END
+    
+    INSERT INTO Countries (Name, Iso2, CountryCode, PhoneLength, CurrencyCode, Image, IsActive, CreatedAt, UpdatedAt)
+    VALUES (@Name, @Iso2, @CountryCode, @PhoneLength, @CurrencyCode, @Image, @IsActive, @CreatedAt, @UpdatedAt);
     
     SET @Id = SCOPE_IDENTITY();
+    RETURN 0;
 END
 GO
 
@@ -111,24 +128,44 @@ GO
 CREATE PROCEDURE [dbo].[Country_Update]
     @Id INT,
     @Name NVARCHAR(100),
-    @Code NVARCHAR(10),
-    @SubdivisionLabelEn NVARCHAR(50) = NULL,
-    @SubdivisionLabelHi NVARCHAR(50) = NULL,
+    @Iso2 NVARCHAR(2),
+    @CountryCode NVARCHAR(5),
+    @PhoneLength INT = 10,
+    @CurrencyCode NVARCHAR(3),
+    @Image NVARCHAR(255) = NULL,
     @IsActive BIT = 1,
     @UpdatedAt DATETIME2
 AS
 BEGIN
     SET NOCOUNT ON;
     
+    -- Check if country exists
+    IF NOT EXISTS (SELECT 1 FROM Countries WHERE Id = @Id)
+    BEGIN
+        RAISERROR('Country not found', 16, 1);
+        RETURN -1;
+    END
+    
+    -- Check if Iso2 already exists for another country
+    IF EXISTS (SELECT 1 FROM Countries WHERE Iso2 = @Iso2 AND Id != @Id)
+    BEGIN
+        RAISERROR('Country with this ISO2 code already exists', 16, 1);
+        RETURN -1;
+    END
+    
     UPDATE Countries
     SET 
         Name = @Name,
-        Code = @Code,
-        SubdivisionLabelEn = @SubdivisionLabelEn,
-        SubdivisionLabelHi = @SubdivisionLabelHi,
+        Iso2 = @Iso2,
+        CountryCode = @CountryCode,
+        PhoneLength = @PhoneLength,
+        CurrencyCode = @CurrencyCode,
+        Image = @Image,
         IsActive = @IsActive,
         UpdatedAt = @UpdatedAt
     WHERE Id = @Id;
+    
+    RETURN 0;
 END
 GO
 
@@ -150,8 +187,8 @@ BEGIN
         RETURN -1;
     END
     
-    -- Check if country has states
-    IF EXISTS (SELECT 1 FROM States WHERE CountryCode = (SELECT Code FROM Countries WHERE Id = @Id))
+    -- Check if country has states (assuming States table has CountryCode or CountryId)
+    IF EXISTS (SELECT 1 FROM States WHERE CountryCode = (SELECT Iso2 FROM Countries WHERE Id = @Id))
     BEGIN
         -- Soft delete - set IsActive to 0 instead of hard delete
         UPDATE Countries

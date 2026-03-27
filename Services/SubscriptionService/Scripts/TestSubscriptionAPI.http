@@ -1,0 +1,248 @@
+### Subscription Service API Testing
+### Use this file to test all CRUD operations
+
+### Variables
+@baseUrl = http://localhost:5003
+@authToken = your_admin_token_here
+
+### ========================================
+### SUBSCRIPTION PLAN CRUD OPERATIONS
+### ========================================
+
+### 1. Get All Subscription Plans
+GET {{baseUrl}}/api/admin/subscription-plans
+Authorization: Bearer {{authToken}}
+
+###
+
+### 2. Get Subscription Plan by ID
+GET {{baseUrl}}/api/admin/subscription-plans/1
+Authorization: Bearer {{authToken}}
+
+###
+
+### 3. Create New Subscription Plan
+POST {{baseUrl}}/api/admin/subscription-plans
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "Basic Plan Test",
+    "description": "Basic subscription plan for testing",
+    "price": 99.00,
+    "duration": 30,
+    "type": 1,
+    "examCategory": "Engineering",
+    "examId": 1,
+    "features": ["Access to all mock tests", "Performance analytics", "Study materials"],
+    "isActive": true,
+    "sortOrder": 1,
+    "translations": [
+        {
+            "languageCode": "hi",
+            "name": "बेसिक प्लान टेस्ट",
+            "description": "परीक्षण के लिए बेसिक सदस्यता योजना",
+            "features": ["सभी मॉक टेस्ट तक पहुंच", "प्रदर्शन विश्लेषण", "अध्ययन सामग्री"]
+        }
+    ]
+}
+
+###
+
+### 4. Update Subscription Plan
+PUT {{baseUrl}}/api/admin/subscription-plans/1
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "Updated Basic Plan",
+    "description": "Updated basic subscription plan",
+    "price": 149.00,
+    "duration": 60,
+    "type": 1,
+    "examCategory": "Engineering",
+    "examId": 1,
+    "features": ["Updated features list", "New analytics", "Premium support"],
+    "isActive": true,
+    "sortOrder": 1
+}
+
+###
+
+### 5. Delete Subscription Plan (Soft Delete)
+DELETE {{baseUrl}}/api/admin/subscription-plans/1
+Authorization: Bearer {{authToken}}
+
+###
+
+### 6. Get Active Plans Only
+GET {{baseUrl}}/api/admin/subscription-plans/active
+Authorization: Bearer {{authToken}}
+
+###
+
+### 7. Get Plans by Exam Category
+GET {{baseUrl}}/api/admin/subscription-plans/by-exam/Engineering
+Authorization: Bearer {{authToken}}
+
+###
+
+### 8. Get Plans by Exam ID
+GET {{baseUrl}}/api/admin/subscription-plans/by-exam-id/1
+Authorization: Bearer {{authToken}}
+
+###
+
+### ========================================
+### USER SUBSCRIPTION CRUD OPERATIONS  
+### ========================================
+
+### Variables for User Subscription
+@userToken = your_user_token_here
+@userId = 1
+@planId = 1
+
+### 9. Create User Subscription
+POST {{baseUrl}}/api/user/subscriptions
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+    "subscriptionPlanId": {{planId}},
+    "razorpayOrderId": "order_test_123456",
+    "autoRenew": true
+}
+
+###
+
+### 10. Get User's Active Subscription
+GET {{baseUrl}}/api/user/subscriptions/my-subscription
+Authorization: Bearer {{userToken}}
+
+###
+
+### 11. Get User Subscription History
+GET {{baseUrl}}/api/user/subscriptions/history
+Authorization: Bearer {{userToken}}
+
+###
+
+### 12. Activate Subscription (After Payment)
+POST {{baseUrl}}/api/user/subscriptions/activate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+    "razorpayOrderId": "order_test_123456",
+    "razorpayPaymentId": "pay_test_789012",
+    "razorpaySignature": "signature_test_345678"
+}
+
+###
+
+### 13. Cancel User Subscription
+POST {{baseUrl}}/api/user/subscriptions/cancel
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+    "subscriptionId": 1,
+    "cancellationReason": "No longer needed"
+}
+
+###
+
+### ========================================
+### ADMIN USER SUBSCRIPTION OPERATIONS
+### ========================================
+
+### 14. Get All User Subscriptions (Admin)
+GET {{baseUrl}}/api/admin/user-subscriptions
+Authorization: Bearer {{authToken}}
+
+###
+
+### 15. Get User Subscription History (Admin)
+GET {{baseUrl}}/api/admin/user-subscriptions/user/{{userId}}
+Authorization: Bearer {{authToken}}
+
+###
+
+### 16. Get Active Subscriptions (Admin)
+GET {{baseUrl}}/api/admin/user-subscriptions/active
+Authorization: Bearer {{authToken}}
+
+###
+
+### 17. Get Expiring Subscriptions (Admin)
+GET {{baseUrl}}/api/admin/user-subscriptions/expiring?daysBeforeExpiry=7
+Authorization: Bearer {{authToken}}
+
+###
+
+### 18. Renew User Subscription (Admin)
+POST {{baseUrl}}/api/admin/user-subscriptions/renew
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "subscriptionId": 1,
+    "autoRenew": true
+}
+
+###
+
+### 19. Cancel User Subscription (Admin)
+POST {{baseUrl}}/api/admin/user-subscriptions/cancel
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "subscriptionId": 1,
+    "cancellationReason": "Admin cancellation - testing"
+}
+
+###
+
+### ========================================
+### ERROR TESTING
+### ========================================
+
+### 20. Test Invalid Plan ID
+GET {{baseUrl}}/api/admin/subscription-plans/99999
+Authorization: Bearer {{authToken}}
+
+###
+
+### 21. Test Duplicate Plan Creation
+POST {{baseUrl}}/api/admin/subscription-plans
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "Basic Plan Test",
+    "description": "This should fail as duplicate",
+    "price": 99.00,
+    "duration": 30,
+    "type": 1,
+    "examCategory": "Engineering",
+    "examId": 1,
+    "features": ["Test features"],
+    "isActive": true,
+    "sortOrder": 1
+}
+
+###
+
+### 22. Test Unauthorized Access
+GET {{baseUrl}}/api/admin/subscription-plans
+# No Authorization header - should return 401
+
+### ========================================
+### HEALTH CHECK
+### ========================================
+
+### 23. Service Health Check
+GET {{baseUrl}}/health
+# Or try the base URL
+GET {{baseUrl}}/

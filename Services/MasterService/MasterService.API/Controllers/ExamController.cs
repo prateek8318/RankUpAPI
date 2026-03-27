@@ -120,10 +120,6 @@ namespace MasterService.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(new { success = false, errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
 
-                // Additional validation for image URL
-                if (string.IsNullOrWhiteSpace(createDto.ImageUrl))
-                    return BadRequest(new { success = false, message = "Image URL is required for exam creation." });
-
                 var exam = await _examService.CreateExamAsync(createDto);
                 return CreatedAtAction(nameof(GetExam), new { id = exam.Id }, new { success = true, data = exam });
             }
@@ -147,10 +143,6 @@ namespace MasterService.API.Controllers
 
             try
             {
-                // Additional validation for image URL
-                if (string.IsNullOrWhiteSpace(updateDto.ImageUrl))
-                    return BadRequest(new { success = false, message = "Image URL is required for exam update." });
-
                 var result = await _examService.UpdateExamAsync(id, updateDto);
                 if (result == null)
                     return NotFound(new { success = false, message = "Exam not found." });

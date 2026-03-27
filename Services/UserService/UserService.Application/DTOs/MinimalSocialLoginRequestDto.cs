@@ -7,6 +7,7 @@ namespace UserService.Application.DTOs
         public string Email { get; set; }
         public string Name { get; set; }
         public string AvatarUrl { get; set; }
+        public string MobileNumber { get; set; }
         public string DeviceId { get; set; }
         public string DeviceType { get; set; }
         public string DeviceName { get; set; }

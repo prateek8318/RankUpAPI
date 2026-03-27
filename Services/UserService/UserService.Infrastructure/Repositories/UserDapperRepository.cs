@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
 using System.Data.Common;
+using UserService.Application.DTOs;
 using UserService.Application.Interfaces;
 using UserService.Domain.Entities;
 
@@ -17,9 +18,72 @@ namespace UserService.Infrastructure.Repositories
             _connection = connection;
         }
 
-        public async Task<User?> GetByIdAsync(int id)
+        public async Task<UserDto?> GetByIdAsync(int id)
         {
-            var sql = "EXEC [dbo].[User_GetById] @Id";
+            var sql = @"
+SELECT
+    u.Id,
+    u.Name,
+    u.Email,
+    u.PhoneNumber,
+    u.CountryCode,
+    u.Gender,
+    u.DateOfBirth,
+    u.Qualification,
+    u.PreferredLanguage AS LanguagePreference,
+    u.ProfilePhoto,
+    u.PreferredExam,
+    u.StateId,
+    s.Name AS StateName,
+    CAST(NULL AS NVARCHAR(100)) AS StateNameHi,
+    u.LanguageId,
+    l.Name AS LanguageName,
+    l.Name AS LanguageNameHi,
+    u.QualificationId,
+    q.Name AS QualificationName,
+    q.NameHi AS QualificationNameHi,
+    u.ExamId,
+    CAST(NULL AS NVARCHAR(100)) AS ExamName,
+    CAST(NULL AS NVARCHAR(100)) AS ExamNameHi,
+    u.CategoryId,
+    c.NameEn AS CategoryName,
+    c.NameHi AS CategoryNameHi,
+    u.StreamId,
+    st.Name AS StreamName,
+    st.NameHi AS StreamNameHi,
+    u.LastLoginAt,
+    u.IsPhoneVerified,
+    u.IsActive,
+    u.CreatedAt,
+    u.ProfileCompleted,
+    u.InterestedInIntlExam,
+    u.DeviceId,
+    u.DeviceType,
+    u.DeviceName,
+    u.FcmToken,
+    u.LastDeviceLoginAt,
+    u.LastDeviceType,
+    u.LastDeviceName,
+    u.LoginType,
+    DATEADD(MINUTE, 330, u.CreatedAt) AS CreatedAtIST,
+    CASE
+        WHEN u.LastLoginAt IS NULL THEN NULL
+        ELSE DATEADD(MINUTE, 330, u.LastLoginAt)
+    END AS LastLoginAtIST
+FROM [dbo].[Users] u
+LEFT JOIN [RankUp_MasterDB].[dbo].[States] s ON s.Id = u.StateId
+LEFT JOIN [RankUp_MasterDB].[dbo].[Languages] l ON l.Id = u.LanguageId
+LEFT JOIN [RankUp_MasterDB].[dbo].[Qualifications] q ON q.Id = u.QualificationId
+LEFT JOIN [RankUp_MasterDB].[dbo].[Categories] c ON c.Id = u.CategoryId
+LEFT JOIN [RankUp_MasterDB].[dbo].[Streams] st ON st.Id = u.StreamId
+WHERE u.Id = @Id
+  AND u.IsActive = 1;";
+            return await _connection.QueryFirstOrDefaultAsync<UserDto>(sql, new { Id = id });
+        }
+
+        public async Task<User?> GetUserEntityByIdAsync(int id)
+        {
+            var sql = "EXEC [dbo].[User_GetById_Basic] @Id";
             return await _connection.QueryFirstOrDefaultAsync<User>(sql, new { Id = id });
         }
 
@@ -58,7 +122,8 @@ namespace UserService.Infrastructure.Repositories
             var sql = @"EXEC [dbo].[User_Create] 
                     @Name, @Email, @PhoneNumber, @PasswordHash, 
                     @ProfilePhoto, @IsActive, 
-                    @PreferredLanguage, @IsPhoneVerified, @CreatedAt, @UpdatedAt, @UserId OUTPUT";
+                    @PreferredLanguage, @IsPhoneVerified, @InterestedInIntlExam,
+                    @CreatedAt, @UpdatedAt, @UserId OUTPUT";
 
             var parameters = new DynamicParameters();
             parameters.Add("@Name", user.Name);
@@ -69,6 +134,7 @@ namespace UserService.Infrastructure.Repositories
             parameters.Add("@IsActive", user.IsActive);
             parameters.Add("@PreferredLanguage", user.PreferredLanguage ?? "en");
             parameters.Add("@IsPhoneVerified", user.IsPhoneVerified);
+            parameters.Add("@InterestedInIntlExam", user.InterestedInIntlExam);
             parameters.Add("@CreatedAt", DateTime.UtcNow);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
             parameters.Add("@UserId", dbType: DbType.Int32, direction: ParameterDirection.Output);
@@ -106,7 +172,7 @@ namespace UserService.Infrastructure.Repositories
 
         public async Task<bool> ExistsAsync(int id)
         {
-            var user = await GetByIdAsync(id);
+            var user = await GetUserEntityByIdAsync(id);
             return user != null;
         }
 

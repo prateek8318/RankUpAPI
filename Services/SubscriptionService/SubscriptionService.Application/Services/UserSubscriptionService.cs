@@ -66,7 +66,6 @@ namespace SubscriptionService.Application.Services
                 };
 
                 var createdSubscription = await _userSubscriptionRepository.AddAsync(subscription);
-                await _userSubscriptionRepository.SaveChangesAsync();
 
                 var result = _mapper.Map<UserSubscriptionDto>(createdSubscription);
                 
@@ -132,7 +131,6 @@ namespace SubscriptionService.Application.Services
                 };
 
                 await _paymentTransactionRepository.AddAsync(paymentTransaction);
-                await _paymentTransactionRepository.SaveChangesAsync();
 
                 // Activate subscription
                 subscription.RazorpayPaymentId = activateSubscriptionDto.RazorpayPaymentId;
@@ -143,7 +141,6 @@ namespace SubscriptionService.Application.Services
                 subscription.UpdatedAt = DateTime.UtcNow;
 
                 await _userSubscriptionRepository.UpdateAsync(subscription);
-                await _userSubscriptionRepository.SaveChangesAsync();
 
                 // Generate invoice
                 await GenerateInvoiceForSubscription(subscription);
@@ -202,13 +199,11 @@ namespace SubscriptionService.Application.Services
                 };
 
                 var createdSubscription = await _userSubscriptionRepository.AddAsync(newSubscription);
-                await _userSubscriptionRepository.SaveChangesAsync();
 
                 // Update old subscription
                 subscription.Status = SubscriptionStatus.Expired;
                 subscription.UpdatedAt = DateTime.UtcNow;
                 await _userSubscriptionRepository.UpdateAsync(subscription);
-                await _userSubscriptionRepository.SaveChangesAsync();
 
                 var result = _mapper.Map<UserSubscriptionDto>(createdSubscription);
                 
@@ -240,7 +235,6 @@ namespace SubscriptionService.Application.Services
                 subscription.UpdatedAt = DateTime.UtcNow;
 
                 await _userSubscriptionRepository.UpdateAsync(subscription);
-                await _userSubscriptionRepository.SaveChangesAsync();
 
                 _logger.LogInformation("Successfully cancelled subscription: {SubscriptionId}", subscription.Id);
                 return true;
@@ -369,7 +363,6 @@ namespace SubscriptionService.Application.Services
                 };
 
                 await _invoiceRepository.AddAsync(invoice);
-                await _invoiceRepository.SaveChangesAsync();
             }
             catch (Exception ex)
             {

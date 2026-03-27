@@ -44,7 +44,23 @@ namespace SubscriptionService.Infrastructure.Repositories
                         @Name, @Description, @Price, @Duration, @Type, @ExamCategory, 
                         @ExamId, @Features, @IsActive, @SortOrder, @CreatedAt, @UpdatedAt";
 
-                await connection.ExecuteAsync(sql, entity);
+                var parameters = new
+                {
+                    Name = entity.Name,
+                    Description = entity.Description,
+                    Price = entity.Price,
+                    Duration = entity.Duration,
+                    Type = (int)entity.Type,
+                    ExamCategory = entity.ExamCategory,
+                    ExamId = entity.ExamId,
+                    Features = entity.Features != null ? string.Join(",", entity.Features) : null,
+                    IsActive = entity.IsActive,
+                    SortOrder = entity.SortOrder,
+                    CreatedAt = entity.CreatedAt,
+                    UpdatedAt = entity.UpdatedAt
+                };
+
+                await connection.ExecuteAsync(sql, parameters);
                 return entity;
             });
         }
@@ -58,7 +74,23 @@ namespace SubscriptionService.Infrastructure.Repositories
                         @Id, @Name, @Description, @Price, @Duration, @Type, @ExamCategory, 
                         @ExamId, @Features, @IsActive, @SortOrder, @UpdatedAt";
 
-                await connection.ExecuteAsync(sql, entity);
+                var parameters = new
+                {
+                    Id = entity.Id,
+                    Name = entity.Name,
+                    Description = entity.Description,
+                    Price = entity.Price,
+                    Duration = entity.Duration,
+                    Type = (int)entity.Type,
+                    ExamCategory = entity.ExamCategory,
+                    ExamId = entity.ExamId,
+                    Features = entity.Features != null ? string.Join(",", entity.Features) : null,
+                    IsActive = entity.IsActive,
+                    SortOrder = entity.SortOrder,
+                    UpdatedAt = entity.UpdatedAt
+                };
+
+                await connection.ExecuteAsync(sql, parameters);
                 return entity;
             });
         }

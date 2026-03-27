@@ -110,6 +110,8 @@ namespace UserService.API.Controllers
                         ErrorCodes.DATABASE_ERROR));
                 }
 
+                var isNewUser = userDto.IsNewUser;
+
                 await _userService.UpdateUserLoginInfoAsync(userDto.Id);
                 
                 // Update device information using the new device info service
@@ -125,6 +127,16 @@ namespace UserService.API.Controllers
                         request.DeviceName, 
                         request.FcmToken);
                 }
+
+                // Refresh user data after login/device updates so profile fields stay in sync.
+                userDto = await _userService.GetUserByIdAsync(userDto.Id);
+                if (userDto == null)
+                {
+                    return StatusCode(500, ApiResponse.CreateInternalServerError(
+                        "Unable to retrieve updated user data.",
+                        ErrorCodes.DATABASE_ERROR));
+                }
+                userDto.IsNewUser = isNewUser;
                 
                 _otpService.RemoveOtp(fullPhoneNumber);
 
@@ -134,13 +146,24 @@ namespace UserService.API.Controllers
                 {
                     ["token"] = token,
                     ["userId"] = userDto.Id,
-                    ["isNewUser"] = userDto.IsNewUser,
+                    ["isNewUser"] = isNewUser,
                     ["isProfileComplete"] = !userDto.IsNewUser && 
                                            !string.IsNullOrWhiteSpace(userDto.Name) && 
                                            userDto.Name != "User" &&
-                                           !string.IsNullOrWhiteSpace(userDto.Email),
+                                           !string.IsNullOrWhiteSpace(userDto.Email) &&
+                                           !string.IsNullOrWhiteSpace(userDto.Gender) &&
+                                           userDto.DateOfBirth.HasValue &&
+                                           userDto.StateId.HasValue &&
+                                           userDto.LanguageId.HasValue &&
+                                           userDto.QualificationId.HasValue &&
+                                           userDto.CategoryId.HasValue &&
+                                           userDto.StreamId.HasValue &&
+                                           !string.IsNullOrWhiteSpace(userDto.ProfilePhoto) &&
+                                           userDto.ExamId.HasValue &&
+                                           userDto.InterestedInIntlExam,
                     ["phoneNumber"] = fullPhoneNumber,
-                    ["isPhoneVerified"] = true  // OTP verification means phone is verified
+                    ["isPhoneVerified"] = true,  // OTP verification means phone is verified
+                    ["user"] = userDto  // Include user data with last login time
                 };
 
                 if (!string.IsNullOrWhiteSpace(request.FcmToken))

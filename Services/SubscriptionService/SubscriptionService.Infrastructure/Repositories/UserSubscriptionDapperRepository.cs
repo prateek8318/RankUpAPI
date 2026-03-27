@@ -35,11 +35,30 @@ namespace SubscriptionService.Infrastructure.Repositories
         {
             var sql = @"
                 EXEC [dbo].[UserSubscription_Create] 
-                    @UserId, @SubscriptionPlanId, @Status, @StartDate, @EndDate, 
-                    @RazorpayOrderId, @RazorpayPaymentId, @CreatedAt, @UpdatedAt";
+                    @UserId, @SubscriptionPlanId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
+                    @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenew,
+                    @RazorpaySubscriptionId, @CreatedAt, @UpdatedAt";
+
+            var parameters = new
+            {
+                UserId = entity.UserId,
+                SubscriptionPlanId = entity.SubscriptionPlanId,
+                RazorpayOrderId = entity.RazorpayOrderId,
+                RazorpayPaymentId = entity.RazorpayPaymentId,
+                RazorpaySignature = entity.RazorpaySignature,
+                OriginalAmount = entity.OriginalAmount,
+                FinalAmount = entity.FinalAmount,
+                StartDate = entity.StartDate,
+                EndDate = entity.EndDate,
+                Status = entity.Status.ToString(),
+                AutoRenew = entity.AutoRenew,
+                RazorpaySubscriptionId = entity.RazorpaySubscriptionId,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt
+            };
 
             await WithConnectionAsync(async connection => 
-                await connection.ExecuteAsync(sql, entity));
+                await connection.ExecuteAsync(sql, parameters));
             return entity;
         }
 
@@ -47,11 +66,33 @@ namespace SubscriptionService.Infrastructure.Repositories
         {
             var sql = @"
                 EXEC [dbo].[UserSubscription_Update] 
-                    @Id, @UserId, @SubscriptionPlanId, @Status, @StartDate, @EndDate, 
-                    @RazorpayOrderId, @RazorpayPaymentId, @UpdatedAt";
+                    @Id, @UserId, @SubscriptionPlanId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
+                    @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenew,
+                    @RazorpaySubscriptionId, @LastRenewalDate, @CancelledDate, @CancellationReason, @UpdatedAt";
+
+            var parameters = new
+            {
+                Id = entity.Id,
+                UserId = entity.UserId,
+                SubscriptionPlanId = entity.SubscriptionPlanId,
+                RazorpayOrderId = entity.RazorpayOrderId,
+                RazorpayPaymentId = entity.RazorpayPaymentId,
+                RazorpaySignature = entity.RazorpaySignature,
+                OriginalAmount = entity.OriginalAmount,
+                FinalAmount = entity.FinalAmount,
+                StartDate = entity.StartDate,
+                EndDate = entity.EndDate,
+                Status = entity.Status.ToString(),
+                AutoRenew = entity.AutoRenew,
+                RazorpaySubscriptionId = entity.RazorpaySubscriptionId,
+                LastRenewalDate = entity.LastRenewalDate,
+                CancelledDate = entity.CancelledDate,
+                CancellationReason = entity.CancellationReason,
+                UpdatedAt = entity.UpdatedAt
+            };
 
             await WithConnectionAsync(async connection => 
-                await connection.ExecuteAsync(sql, entity));
+                await connection.ExecuteAsync(sql, parameters));
             return entity;
         }
 

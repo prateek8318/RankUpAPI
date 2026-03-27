@@ -35,8 +35,8 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[Country_GetByCode] @Code";
-                return await connection.QueryFirstOrDefaultAsync<Country>(sql, new { Code = code });
+                var sql = "EXEC [dbo].[Country_GetByCode] @Iso2";
+                return await connection.QueryFirstOrDefaultAsync<Country>(sql, new { Iso2 = code });
             });
         }
 
@@ -46,27 +46,36 @@ namespace MasterService.Infrastructure.Repositories
             {
                 var sql = @"
                     EXEC [dbo].[Country_Create] 
-                        @Name, @Code, @SubdivisionLabelEn, @SubdivisionLabelHi, 
+                        @Name, @Iso2, @CountryCode, @PhoneLength, @CurrencyCode, @Image,
                         @IsActive, @CreatedAt, @UpdatedAt, @Id OUTPUT";
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@Name", country.Name);
-                parameters.Add("@Code", country.Code);
-                parameters.Add("@SubdivisionLabelEn", country.SubdivisionLabelEn);
-                parameters.Add("@SubdivisionLabelHi", country.SubdivisionLabelHi);
+                parameters.Add("@Iso2", country.Iso2);
+                parameters.Add("@CountryCode", country.CountryCode);
+                parameters.Add("@PhoneLength", country.PhoneLength);
+                parameters.Add("@CurrencyCode", country.CurrencyCode);
+                parameters.Add("@Image", country.Image);
                 parameters.Add("@IsActive", country.IsActive);
                 parameters.Add("@CreatedAt", DateTime.UtcNow);
                 parameters.Add("@UpdatedAt", DateTime.UtcNow);
                 parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-                await connection.ExecuteAsync(sql, parameters);
-                
-                if (parameters.Get<int>("@Id") > 0)
+                try
                 {
-                    country.Id = parameters.Get<int>("@Id");
-                }
+                    await connection.ExecuteAsync(sql, parameters);
+                    
+                    if (parameters.Get<int>("@Id") > 0)
+                    {
+                        country.Id = parameters.Get<int>("@Id");
+                    }
 
-                return country;
+                    return country;
+                }
+                catch (SqlException ex) when (ex.Number == 50000 && ex.Message.Contains("Country with this ISO2 code already exists"))
+                {
+                    throw new InvalidOperationException("Country with this ISO2 code already exists", ex);
+                }
             });
         }
 
@@ -76,15 +85,17 @@ namespace MasterService.Infrastructure.Repositories
             {
                 var sql = @"
                     EXEC [dbo].[Country_Update] 
-                        @Id, @Name, @Code, @SubdivisionLabelEn, @SubdivisionLabelHi, 
+                        @Id, @Name, @Iso2, @CountryCode, @PhoneLength, @CurrencyCode, @Image,
                         @IsActive, @UpdatedAt";
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@Id", country.Id);
                 parameters.Add("@Name", country.Name);
-                parameters.Add("@Code", country.Code);
-                parameters.Add("@SubdivisionLabelEn", country.SubdivisionLabelEn);
-                parameters.Add("@SubdivisionLabelHi", country.SubdivisionLabelHi);
+                parameters.Add("@Iso2", country.Iso2);
+                parameters.Add("@CountryCode", country.CountryCode);
+                parameters.Add("@PhoneLength", country.PhoneLength);
+                parameters.Add("@CurrencyCode", country.CurrencyCode);
+                parameters.Add("@Image", country.Image);
                 parameters.Add("@IsActive", country.IsActive);
                 parameters.Add("@UpdatedAt", DateTime.UtcNow);
 

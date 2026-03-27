@@ -41,13 +41,35 @@ namespace UserService.Application.Services
 
 
         public async Task<UserDto?> GetUserByIdAsync(int userId)
-
         {
-
-            var user = await _userRepository.GetByIdAsync(userId);
-
-            return user == null ? null : _mapper.Map<UserDto>(user);
-
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
+            if (user == null) return null;
+            
+            var userDto = _mapper.Map<UserDto>(user);
+            
+            // Set IST times
+            userDto.CreatedAtIST = user.CreatedAt.AddHours(5.5);
+            if (user.LastLoginAt.HasValue && !userDto.LastLoginAtIST.HasValue)
+            {
+                userDto.LastLoginAtIST = user.LastLoginAt.Value.AddHours(5.5);
+            }
+            
+            // Calculate profile completion - all required fields must be present
+            userDto.IsProfileComplete = 
+                !string.IsNullOrWhiteSpace(user.Name) &&
+                !string.IsNullOrWhiteSpace(user.Email) &&
+                !string.IsNullOrWhiteSpace(user.Gender) &&
+                user.DateOfBirth.HasValue &&
+                user.StateId.HasValue &&
+                user.LanguageId.HasValue &&
+                user.QualificationId.HasValue &&
+                user.CategoryId.HasValue &&
+                user.StreamId.HasValue &&
+                !string.IsNullOrWhiteSpace(user.ProfilePhoto) &&
+                user.ExamId.HasValue &&
+                user.InterestedInIntlExam;
+            
+            return userDto;
         }
 
 
@@ -78,23 +100,14 @@ namespace UserService.Application.Services
                 isNewUser = true;
 
                 user = new User
-
                 {
-
                     PhoneNumber = fullPhoneNumber,
-
                     CountryCode = countryCode ?? "+91",
-
-                    Name = "User",
-
+                    Name = "", // Empty name by default
                     Email = null,
-
                     IsActive = true,
-
                     CreatedAt = DateTime.UtcNow,
-
                     LoginType = "Mobile"
-
                 };
 
 
@@ -144,7 +157,7 @@ namespace UserService.Application.Services
 
         {
 
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
 
             if (user != null)
 
@@ -162,7 +175,7 @@ namespace UserService.Application.Services
         
         public async Task UpdateUserDeviceInfoAsync(int userId, string? deviceId = null, string? deviceType = null, string? deviceName = null)
         {
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
             if (user != null)
             {
                 if (!string.IsNullOrWhiteSpace(deviceId))
@@ -183,7 +196,7 @@ namespace UserService.Application.Services
 
         {
 
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
 
             if (user == null)
 
@@ -251,7 +264,7 @@ namespace UserService.Application.Services
 
         {
 
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
 
             if (user == null)
 
@@ -279,6 +292,10 @@ namespace UserService.Application.Services
             if (!string.IsNullOrWhiteSpace(patchRequest.Email))
 
                 user.Email = patchRequest.Email;
+
+            
+            if (!string.IsNullOrWhiteSpace(patchRequest.PhoneNumber))
+                user.PhoneNumber = patchRequest.PhoneNumber;
 
 
 
@@ -324,6 +341,12 @@ namespace UserService.Application.Services
 
 
 
+            if (patchRequest.StreamId.HasValue)
+
+                user.StreamId = patchRequest.StreamId.Value;
+
+
+
             if (patchRequest.InterestedInIntlExam.HasValue)
 
                 user.InterestedInIntlExam = patchRequest.InterestedInIntlExam.Value;
@@ -348,7 +371,7 @@ namespace UserService.Application.Services
 
         {
 
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
 
             if (user == null)
 
@@ -397,25 +420,26 @@ namespace UserService.Application.Services
 
 
             if (!string.IsNullOrWhiteSpace(formData.FullName))
-
                 user.Name = formData.FullName;
 
 
 
             if (!string.IsNullOrWhiteSpace(formData.Email))
-
                 user.Email = formData.Email;
 
 
 
-            if (!string.IsNullOrWhiteSpace(formData.Gender))
+            if (!string.IsNullOrWhiteSpace(formData.PhoneNumber))
+                user.PhoneNumber = formData.PhoneNumber;
 
+
+
+            if (!string.IsNullOrWhiteSpace(formData.Gender))
                 user.Gender = formData.Gender;
 
 
 
             if (formData.Dob.HasValue)
-
                 user.DateOfBirth = formData.Dob.Value;
 
 
@@ -447,6 +471,12 @@ namespace UserService.Application.Services
             if (formData.CategoryId.HasValue)
 
                 user.CategoryId = formData.CategoryId.Value;
+
+
+
+            if (formData.StreamId.HasValue)
+
+                user.StreamId = formData.StreamId.Value;
 
 
 

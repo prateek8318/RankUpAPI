@@ -132,33 +132,3 @@ BEGIN
     CREATE INDEX IX_SubjectLanguages_LanguageId ON SubjectLanguages(LanguageId);
     CREATE INDEX IX_SubjectLanguages_SubjectId_LanguageId ON SubjectLanguages(SubjectId, LanguageId);
 END
-
--- =====================================================
--- USAGE EXAMPLES:
--- =====================================================
-/*
--- Get all languages for a subject
-EXEC [dbo].[SubjectLanguage_GetBySubjectId] @SubjectId = 1;
-
--- Get specific subject language
-EXEC [dbo].[SubjectLanguage_GetById] @Id = 1;
-
--- Create new subject language
-EXEC [dbo].[SubjectLanguage_Create] 
-    @SubjectId = 1, 
-    @LanguageId = 2, 
-    @Name = 'Mathematics',
-    @CreatedAt = GETUTCDATE(),
-    @UpdatedAt = GETUTCDATE();
-
--- Update subject language
-EXEC [dbo].[SubjectLanguage_Update] 
-    @Id = 1, 
-    @SubjectId = 1, 
-    @LanguageId = 2, 
-    @Name = 'Advanced Mathematics',
-    @UpdatedAt = GETUTCDATE();
-
--- Delete subject language
-EXEC [dbo].[SubjectLanguage_Delete] @Id = 1;
-*/

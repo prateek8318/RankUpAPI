@@ -6,5 +6,7 @@ namespace MasterService.Application.Interfaces
     {
         Task<string?> UploadExamImageAsync(IFormFile? imageFile, int examId);
         Task<bool> DeleteExamImageAsync(string? imagePath);
+        Task<string?> UploadCountryImageAsync(IFormFile? imageFile, string iso2);
+        Task<bool> DeleteCountryImageAsync(string? imagePath);
     }
 }

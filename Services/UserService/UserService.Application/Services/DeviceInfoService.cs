@@ -27,20 +27,13 @@ namespace UserService.Application.Services
 
         public async Task StoreDeviceInfoAsync(int userId, DeviceInfoRequest request)
         {
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
             if (user == null)
             {
                 throw new KeyNotFoundException($"User with ID {userId} not found");
             }
 
-            // Update device information only if provided
-            var hasUpdates = false;
-
-            if (!string.IsNullOrWhiteSpace(request.FcmToken) && user.FcmToken != request.FcmToken)
-            {
-                user.FcmToken = request.FcmToken;
-                hasUpdates = true;
-            }
+            bool hasUpdates = false;
 
             if (!string.IsNullOrWhiteSpace(request.DeviceId) && user.DeviceId != request.DeviceId)
             {
@@ -71,7 +64,7 @@ namespace UserService.Application.Services
 
         public async Task<DeviceInfoResponse> GetDeviceInfoAsync(int userId)
         {
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
             if (user == null)
             {
                 throw new KeyNotFoundException($"User with ID {userId} not found");
@@ -90,7 +83,7 @@ namespace UserService.Application.Services
 
         public async Task UpdateFcmTokenAsync(int userId, string fcmToken)
         {
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
             if (user == null)
             {
                 throw new KeyNotFoundException($"User with ID {userId} not found");
@@ -111,7 +104,7 @@ namespace UserService.Application.Services
             _logger.LogInformation("Starting device info update for user {UserId}. DeviceId: {DeviceId}, DeviceType: {DeviceType}, DeviceName: {DeviceName}, FcmToken: {FcmToken}", 
                 userId, deviceId, deviceType, deviceName, fcmToken);
 
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
             if (user == null)
             {
                 _logger.LogError("User {UserId} not found for device info update", userId);

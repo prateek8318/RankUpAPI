@@ -152,13 +152,13 @@ namespace MasterService.Application.Services
                 throw new ArgumentException("Type is required and cannot be empty.");
             }
 
-            // Check for duplicate key
-            var existingCategories = await _categoryRepository.GetActiveByTypeAsync(createDto.Type);
-            var duplicateKey = existingCategories.FirstOrDefault(c => c.Key.Equals(createDto.Key, StringComparison.OrdinalIgnoreCase));
+            // Check for duplicate key across ALL categories (global unique constraint)
+            var allExistingCategories = await _categoryRepository.GetAllAsync();
+            var duplicateKey = allExistingCategories.FirstOrDefault(c => c.Key.Equals(createDto.Key, StringComparison.OrdinalIgnoreCase));
             
             if (duplicateKey != null)
             {
-                throw new InvalidOperationException($"A category with key '{createDto.Key}' already exists in type '{createDto.Type}'.");
+                throw new InvalidOperationException($"A category with key '{createDto.Key}' already exists (ID: {duplicateKey.Id}, Type: {duplicateKey.Type}). Category keys must be globally unique across all types.");
             }
 
             var entity = new Domain.Entities.Category
@@ -205,14 +205,14 @@ namespace MasterService.Application.Services
                     throw new ArgumentException("Type is required and cannot be empty.");
                 }
 
-                // Check for duplicate key (excluding current entity)
-                var existingCategories = await _categoryRepository.GetActiveByTypeAsync(updateDto.Type);
-                var duplicateKey = existingCategories.FirstOrDefault(c => 
+                // Check for duplicate key across ALL categories (excluding current entity)
+                var allExistingCategories = await _categoryRepository.GetAllAsync();
+                var duplicateKey = allExistingCategories.FirstOrDefault(c => 
                     c.Key.Equals(updateDto.Key, StringComparison.OrdinalIgnoreCase) && c.Id != id);
                 
                 if (duplicateKey != null)
                 {
-                    throw new InvalidOperationException($"A category with key '{updateDto.Key}' already exists in type '{updateDto.Type}'.");
+                    throw new InvalidOperationException($"A category with key '{updateDto.Key}' already exists (ID: {duplicateKey.Id}, Type: {duplicateKey.Type}). Category keys must be globally unique across all types.");
                 }
 
                 existing.NameEn = updateDto.NameEn;

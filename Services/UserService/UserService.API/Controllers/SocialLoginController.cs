@@ -41,9 +41,9 @@ namespace UserService.API.Controllers
                         ["userId"] = user.Id,
                         ["userName"] = user.Name,
                         ["isNewUser"] = result.IsNewUser,
-                        ["isProfileComplete"] = user.ProfileCompleted,
                         ["phoneNumber"] = user.PhoneNumber,
-                        ["isPhoneVerified"] = user.IsPhoneVerified
+                        ["isPhoneVerified"] = user.IsPhoneVerified,
+                        ["user"] = user  // Include full user object with last login time
                     };
 
                     return Ok(ApiResponse.CreateSuccess(
@@ -86,9 +86,9 @@ namespace UserService.API.Controllers
                         ["userId"] = user.Id,
                         ["userName"] = user.Name,
                         ["isNewUser"] = result.IsNewUser,
-                        ["isProfileComplete"] = user.ProfileCompleted,
                         ["phoneNumber"] = user.PhoneNumber,
-                        ["isPhoneVerified"] = user.IsPhoneVerified
+                        ["isPhoneVerified"] = user.IsPhoneVerified,
+                        ["user"] = user  // Include full user object with last login time
                     };
 
                     return Ok(ApiResponse.CreateSuccess(

@@ -254,6 +254,15 @@ namespace MasterService.API.Controllers
                     Error = ex.Message
                 });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponse<CategoryDto>
+                {
+                    Success = false,
+                    Message = "Validation failed",
+                    Error = ex.Message
+                });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating category");

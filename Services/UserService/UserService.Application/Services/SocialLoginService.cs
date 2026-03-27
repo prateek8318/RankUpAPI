@@ -63,7 +63,7 @@ namespace UserService.Application.Services
 
                 if (existingSocialLogin != null)
                 {
-                    var user = await _userRepository.GetByIdAsync(existingSocialLogin.UserId);
+                    var user = await _userRepository.GetUserEntityByIdAsync(existingSocialLogin.UserId);
                     if (user == null)
                     {
                         return new SocialLoginResponseDto
@@ -72,6 +72,62 @@ namespace UserService.Application.Services
                             Message = "User not found"
                         };
                     }
+
+                    // Check if email matches - if not, treat as new user scenario
+                    if (!string.Equals(user.Email, request.Email, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Email changed, treat as new user - go to email lookup flow
+                        _logger.LogInformation($"Email mismatch for GoogleId {request.GoogleId}. Existing: {user.Email}, Requested: {request.Email}. Treating as new user.");
+                        
+                        // Update the existing social login with new email and proceed with new user flow
+                        existingSocialLogin.Email = request.Email;
+                        existingSocialLogin.Name = request.Name;
+                        existingSocialLogin.AccessToken = request.AccessToken;
+                        existingSocialLogin.RefreshToken = request.RefreshToken;
+                        existingSocialLogin.ExpiresAt = request.ExpiresAt;
+                        existingSocialLogin.UpdatedAt = DateTime.UtcNow;
+                        await _socialLoginRepository.UpdateAsync(existingSocialLogin);
+                        await _socialLoginRepository.SaveChangesAsync();
+                        
+                        // Update user info
+                        user.Email = request.Email;
+                        user.Name = request.Name;
+                        
+                        // Update phone number if provided
+                        if (!string.IsNullOrWhiteSpace(request.MobileNumber))
+                            user.PhoneNumber = request.MobileNumber;
+                        
+                        user.LastLoginAt = DateTime.UtcNow;
+                        user.UpdatedAt = DateTime.UtcNow;
+                        
+                        // Update device information if provided
+                        if (!string.IsNullOrWhiteSpace(request.DeviceId))
+                            user.DeviceId = request.DeviceId;
+                        if (!string.IsNullOrWhiteSpace(request.DeviceType))
+                            user.DeviceType = request.DeviceType;
+                        if (!string.IsNullOrWhiteSpace(request.DeviceName))
+                            user.DeviceName = request.DeviceName;
+                        
+                        await _userRepository.UpdateAsync(user);
+                        await _userRepository.SaveChangesAsync();
+
+                        var token = _jwtTokenService.GenerateToken(user);
+                        var refreshToken = _jwtTokenService.GenerateRefreshToken();
+
+                        return new SocialLoginResponseDto
+                        {
+                            Success = true,
+                            Message = "Login successful with updated email",
+                            Token = token,
+                            RefreshToken = refreshToken,
+                            ExpiresAt = DateTime.UtcNow.AddDays(30),
+                            User = MapToUserDto(user),
+                            IsNewUser = false
+                        };
+                    }
+                    else
+                    {
+                        // Email matches, proceed with existing user login
 
                     // Update social login info
                     existingSocialLogin.AccessToken = request.AccessToken;
@@ -84,6 +140,10 @@ namespace UserService.Application.Services
                     // Update last login info for existing user
                     user.LastLoginAt = DateTime.UtcNow;
                     user.UpdatedAt = DateTime.UtcNow;
+                    
+                    // Update phone number if provided
+                    if (!string.IsNullOrWhiteSpace(request.MobileNumber))
+                        user.PhoneNumber = request.MobileNumber;
                     
                     // Update device information if provided
                     if (!string.IsNullOrWhiteSpace(request.DeviceId))
@@ -109,6 +169,7 @@ namespace UserService.Application.Services
                         User = MapToUserDto(user),
                         IsNewUser = false
                     };
+                    }
                 }
                 else
                 {
@@ -143,6 +204,10 @@ namespace UserService.Application.Services
                         existingUser.LastLoginAt = DateTime.UtcNow;
                         existingUser.UpdatedAt = DateTime.UtcNow;
                         
+                        // Update phone number if provided
+                        if (!string.IsNullOrWhiteSpace(request.MobileNumber))
+                            existingUser.PhoneNumber = request.MobileNumber;
+                        
                         // Update device information if provided
                         if (!string.IsNullOrWhiteSpace(request.DeviceId))
                             existingUser.DeviceId = request.DeviceId;
@@ -175,10 +240,9 @@ namespace UserService.Application.Services
                             Email = request.Email,
                             Name = request.Name,
                             ProfilePhoto = request.AvatarUrl,
-                            PhoneNumber = null, // Allow null for social users, will be added later
+                            PhoneNumber = !string.IsNullOrWhiteSpace(request.MobileNumber) ? request.MobileNumber : null, // Use provided mobile number or null
                             IsPhoneVerified = false,
                             IsActive = true,
-                            ProfileCompleted = false, // New social users have incomplete profiles
                             CreatedAt = DateTime.UtcNow,
                             DeviceId = request.DeviceId,
                             DeviceType = request.DeviceType,
@@ -230,7 +294,7 @@ namespace UserService.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during social login");
+                _logger.LogError(ex, "Error during social login. Email: {Email}, GoogleId: {GoogleId}, Error: {Error}", request?.Email, request?.GoogleId, ex.Message);
                 return new SocialLoginResponseDto
                 {
                     Success = false,
@@ -261,7 +325,7 @@ namespace UserService.Application.Services
                 await _socialLoginRepository.AddAsync(socialLogin);
                 await _socialLoginRepository.SaveChangesAsync();
 
-                var user = await _userRepository.GetByIdAsync(userId);
+                var user = await _userRepository.GetUserEntityByIdAsync(userId);
                 if (user == null)
                 {
                     return new SocialLoginResponseDto
@@ -337,10 +401,8 @@ namespace UserService.Application.Services
                 LastLoginAt = user.LastLoginAt,
                 IsPhoneVerified = user.IsPhoneVerified,
                 InterestedInIntlExam = user.InterestedInIntlExam,
-                ProfileCompleted = user.ProfileCompleted,
-                LoginType = user.LoginType,
-                CreatedAtIST = user.CreatedAt.AddHours(5.5),
-                LastLoginAtIST = user.LastLoginAt?.AddHours(5.5)
+                CreatedAtIST = user.CreatedAtIST,
+                LastLoginAtIST = user.LastLoginAtIST
             };
         }
     }

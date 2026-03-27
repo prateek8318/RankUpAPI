@@ -31,13 +31,12 @@ namespace MasterService.Domain.Entities
         public int? MaxAge { get; set; }
 
         /// <summary>
-        /// Required image representing the exam (logo/banner).
+        /// Optional image representing the exam (logo/banner).
         /// Only URL is stored here; upload handled by other services.
         /// </summary>
-        [Required]
         [MaxLength(500)]
         [Url]
-        public string ImageUrl { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
 
         /// <summary>
         /// Indicates if this is an international exam.

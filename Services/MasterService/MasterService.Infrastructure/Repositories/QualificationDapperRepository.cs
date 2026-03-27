@@ -17,10 +17,26 @@ namespace MasterService.Infrastructure.Repositories
         public async Task<Qualification?> GetByIdAsync(int id)
         {
             return await WithConnectionAsync(async connection =>
-                await connection.QueryFirstOrDefaultAsync<Qualification>(
+            {
+                var qualification = await connection.QueryFirstOrDefaultAsync<Qualification>(
                     "[dbo].[Qualification_GetById]",
                     new { Id = id },
-                    commandType: CommandType.StoredProcedure));
+                    commandType: CommandType.StoredProcedure);
+
+                if (qualification != null)
+                {
+                    // Load QualificationLanguages for this qualification
+                    var languages = await connection.QueryAsync<QualificationLanguage>(
+                        "SELECT ql.*, l.Code as LanguageCode, l.Name as LanguageName FROM QualificationLanguages ql " +
+                        "LEFT JOIN Languages l ON ql.LanguageId = l.Id " +
+                        "WHERE ql.QualificationId = @QualificationId AND ql.IsActive = 1",
+                        new { QualificationId = qualification.Id });
+                    
+                    qualification.QualificationLanguages = languages.ToList();
+                }
+
+                return qualification;
+            });
         }
 
         public async Task<Qualification?> GetByIdLocalizedAsync(int id, string? languageCode)
@@ -77,10 +93,27 @@ namespace MasterService.Infrastructure.Repositories
         public async Task<IEnumerable<Qualification>> GetActiveByCountryCodeAsync(string countryCode)
         {
             return await WithConnectionAsync(async connection =>
-                await connection.QueryAsync<Qualification>(
+            {
+                var qualifications = await connection.QueryAsync<Qualification>(
                     "[dbo].[Qualification_GetActiveByCountryCode]",
                     new { CountryCode = countryCode },
-                    commandType: CommandType.StoredProcedure));
+                    commandType: CommandType.StoredProcedure);
+
+                // Load QualificationLanguages for each qualification
+                var qualificationList = qualifications.ToList();
+                foreach (var qualification in qualificationList)
+                {
+                    var languages = await connection.QueryAsync<QualificationLanguage>(
+                        "SELECT ql.*, l.Code as LanguageCode, l.Name as LanguageName FROM QualificationLanguages ql " +
+                        "LEFT JOIN Languages l ON ql.LanguageId = l.Id " +
+                        "WHERE ql.QualificationId = @QualificationId AND ql.IsActive = 1",
+                        new { QualificationId = qualification.Id });
+                    
+                    qualification.QualificationLanguages = languages.ToList();
+                }
+
+                return qualificationList;
+            });
         }
 
         public async Task<IEnumerable<Qualification>> GetActiveByCountryCodeLocalizedAsync(string countryCode, string? languageCode)

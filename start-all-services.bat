@@ -58,13 +58,13 @@ echo Service URLs:
 echo ExamService: http://0.0.0.0:5000/swagger
 echo UserService: http://0.0.0.0:5002/swagger
 echo AdminService: http://0.0.0.0:56924/swagger
-echo QuestionService: http://0.0.0.0:56922/swagger
-echo QuizService: http://0.0.0.0:56921/swagger
-echo PaymentService: http://0.0.0.0:56920/swagger
+@REM echo QuestionService: http://0.0.0.0:56922/swagger
+@REM echo QuizService: http://0.0.0.0:56921/swagger
+@REM echo PaymentService: http://0.0.0.0:56920/swagger
 echo SubscriptionService: http://0.0.0.0:56926/swagger
-echo HomeDashboardService: http://0.0.0.0:56928/swagger
+@REM echo HomeDashboardService: http://0.0.0.0:56928/swagger
 echo MasterService: http://0.0.0.0:5009/swagger
-echo TestService: http://0.0.0.0:7001/swagger
+@REM echo TestService: http://0.0.0.0:7001/swagger
 echo.
 echo Mobile App Access URLs:
 echo TestService API: http://0.0.0.0:7001/api

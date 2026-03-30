@@ -1,5 +1,6 @@
 using AutoMapper;
 using Common.Language;
+using Common.DTOs;
 using MasterService.Application.DTOs;
 using MasterService.Application.Helpers;
 using MasterService.Application.Interfaces;
@@ -10,89 +11,99 @@ using ILanguageDataService = Common.Language.ILanguageDataService;
 
 namespace MasterService.Application.Services
 {
-    public class StreamService : IStreamService
+    public class StreamService : BaseService, IStreamService
     {
         private readonly IStreamRepository _streamRepository;
         private readonly IMapper _mapper;
         private readonly ILanguageDataService _languageDataService;
-        private readonly ILogger<StreamService> _logger;
 
-        public StreamService(IStreamRepository streamRepository, IMapper mapper, ILanguageDataService languageDataService, ILogger<StreamService> logger)
+        public StreamService(IStreamRepository streamRepository, IMapper mapper, ILanguageDataService languageDataService, ILogger<StreamService> logger) : base(logger)
         {
             _streamRepository = streamRepository;
             _mapper = mapper;
             _languageDataService = languageDataService;
-            _logger = logger;
         }
 
         public async Task<StreamDto> CreateStreamAsync(CreateStreamDto createDto)
         {
-            var stream = _mapper.Map<StreamEntity>(createDto);
-            stream.CreatedAt = DateTime.UtcNow;
-            stream.IsActive = true;
-
-            if (createDto.Names != null && createDto.Names.Any())
-            {
-                foreach (var langDto in createDto.Names)
+            return await ExecuteInTransactionAsync<StreamDto>(
+                _streamRepository,
+                async () =>
                 {
-                    stream.StreamLanguages.Add(new StreamLanguage
+                    var stream = _mapper.Map<StreamEntity>(createDto);
+                    stream.CreatedAt = DateTime.UtcNow;
+                    stream.IsActive = true;
+
+                    if (createDto.Names != null && createDto.Names.Any())
                     {
-                        LanguageId = langDto.LanguageId,
-                        Name = langDto.Name,
-                        Description = langDto.Description,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-            }
+                        foreach (var langDto in createDto.Names)
+                        {
+                            stream.StreamLanguages.Add(new StreamLanguage
+                            {
+                                LanguageId = langDto.LanguageId,
+                                Name = langDto.Name,
+                                Description = langDto.Description,
+                                CreatedAt = DateTime.UtcNow,
+                                IsActive = true
+                            });
+                        }
+                    }
 
-            var namesJson = LanguagePayloadSerializer.SerializeNames(
-                createDto.Names,
-                lang => new { lang.LanguageId, lang.Name, lang.Description });
+                    var namesJson = LanguagePayloadSerializer.SerializeNames(
+                        createDto.Names,
+                        lang => new { lang.LanguageId, lang.Name, lang.Description });
 
-            await _streamRepository.AddAsync(stream, namesJson);
-            await _streamRepository.SaveChangesAsync();
-            return (await GetStreamByIdAsync(stream.Id))!;
+                    await _streamRepository.AddAsync(stream, namesJson);
+                    await _streamRepository.SaveChangesAsync();
+                    return (await GetStreamByIdAsync(stream.Id))!;
+                },
+                "CreateStream");
         }
 
         public async Task<StreamDto?> UpdateStreamAsync(int id, UpdateStreamDto updateDto)
         {
-            var stream = await _streamRepository.GetByIdAsync(id);
-            if (stream == null)
-                return null;
-
-            stream.Name = updateDto.Name;
-            stream.Description = updateDto.Description;
-            stream.QualificationId = updateDto.QualificationId;
-            stream.UpdatedAt = DateTime.UtcNow;
-
-            if (updateDto.Names != null && updateDto.Names.Any())
-            {
-                var existingLanguages = stream.StreamLanguages.ToList();
-                foreach (var existingLang in existingLanguages)
+            return await ExecuteInTransactionAsync<StreamDto?>(
+                _streamRepository,
+                async () =>
                 {
-                    stream.StreamLanguages.Remove(existingLang);
-                }
-                foreach (var langDto in updateDto.Names)
-                {
-                    stream.StreamLanguages.Add(new StreamLanguage
+                    var stream = await _streamRepository.GetByIdAsync(id);
+                    if (stream == null)
+                        return null;
+
+                    stream.Name = updateDto.Name;
+                    stream.Description = updateDto.Description;
+                    stream.QualificationId = updateDto.QualificationId;
+                    stream.UpdatedAt = DateTime.UtcNow;
+
+                    if (updateDto.Names != null && updateDto.Names.Any())
                     {
-                        LanguageId = langDto.LanguageId,
-                        Name = langDto.Name,
-                        Description = langDto.Description,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-            }
+                        var existingLanguages = stream.StreamLanguages.ToList();
+                        foreach (var existingLang in existingLanguages)
+                        {
+                            stream.StreamLanguages.Remove(existingLang);
+                        }
+                        foreach (var langDto in updateDto.Names)
+                        {
+                            stream.StreamLanguages.Add(new StreamLanguage
+                            {
+                                LanguageId = langDto.LanguageId,
+                                Name = langDto.Name,
+                                Description = langDto.Description,
+                                CreatedAt = DateTime.UtcNow,
+                                IsActive = true
+                            });
+                        }
+                    }
 
-            var namesJson = LanguagePayloadSerializer.SerializeNames(
-                updateDto.Names,
-                lang => new { lang.LanguageId, lang.Name, lang.Description });
+                    var namesJson = LanguagePayloadSerializer.SerializeNames(
+                        updateDto.Names,
+                        lang => new { lang.LanguageId, lang.Name, lang.Description });
 
-            await _streamRepository.UpdateAsync(stream, namesJson);
-            await _streamRepository.SaveChangesAsync();
-            return await GetStreamByIdAsync(stream.Id);
+                    await _streamRepository.UpdateAsync(stream, namesJson);
+                    await _streamRepository.SaveChangesAsync();
+                    return await GetStreamByIdAsync(stream.Id);
+                },
+                "UpdateStream");
         }
 
         public async Task<bool> DeleteStreamAsync(int id)
@@ -220,6 +231,61 @@ namespace MasterService.Application.Services
         public async Task<bool> ToggleStreamStatusAsync(int id, bool isActive)
         {
             return await _streamRepository.SetActiveAsync(id, isActive);
+        }
+
+        // Pagination support methods
+        public async Task<PaginatedResponse<StreamDto>> GetAllStreamsPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedStreams = await _streamRepository.GetAllAsync(pagination);
+                var streamDtos = paginatedStreams.Data.Select(s =>
+                {
+                    var dto = _mapper.Map<StreamDto>(s);
+                    dto.QualificationName = s.Qualification?.Name;
+                    return dto;
+                });
+                
+                return new PaginatedResponse<StreamDto>
+                {
+                    Data = streamDtos,
+                    TotalCount = paginatedStreams.TotalCount,
+                    PageNumber = paginatedStreams.PageNumber,
+                    PageSize = paginatedStreams.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated streams");
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<StreamDto>> GetActiveStreamsPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedStreams = await _streamRepository.GetActiveAsync(pagination);
+                var streamDtos = paginatedStreams.Data.Select(s =>
+                {
+                    var dto = _mapper.Map<StreamDto>(s);
+                    dto.QualificationName = s.Qualification?.Name;
+                    return dto;
+                });
+                
+                return new PaginatedResponse<StreamDto>
+                {
+                    Data = streamDtos,
+                    TotalCount = paginatedStreams.TotalCount,
+                    PageNumber = paginatedStreams.PageNumber,
+                    PageSize = paginatedStreams.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated active streams");
+                throw;
+            }
         }
 
         private static bool IsValidStreamName(string name)

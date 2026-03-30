@@ -1,6 +1,7 @@
 using AutoMapper;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -10,7 +11,7 @@ using TestService.Domain.Interfaces;
 
 namespace TestService.Application.Services
 {
-    public class TestService
+    public class TestService : BaseService
     {
         private readonly ITestRepository _testRepository;
         private readonly ITestSeriesRepository _testSeriesRepository;
@@ -23,7 +24,8 @@ namespace TestService.Application.Services
             ITestSeriesRepository testSeriesRepository,
             IExamRepository examRepository,
             IPracticeModeRepository practiceModeRepository,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<TestService> logger) : base(logger)
         {
             _testRepository = testRepository;
             _testSeriesRepository = testSeriesRepository;

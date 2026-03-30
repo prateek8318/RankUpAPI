@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MasterService.Application.DTOs;
 using MasterService.Domain.Entities;
+using Common.DTOs;
 
 namespace MasterService.Application.Interfaces
 {
@@ -15,13 +16,17 @@ namespace MasterService.Application.Interfaces
         Task<bool> DeleteSubjectAsync(int id);
         Task<bool> ToggleSubjectStatusAsync(int id, bool isActive);
         Task<bool> SubjectExistsAsync(int id);
+        Task<PaginatedResponse<SubjectDto>> GetAllSubjectsPaginatedAsync(PaginationRequest pagination);
+        Task<PaginatedResponse<SubjectListDto>> GetActiveSubjectsPaginatedAsync(PaginationRequest pagination);
     }
 
     public interface ISubjectRepository
     {
         Task<IEnumerable<Subject>> GetAllAsync(int? languageId = null);
+        Task<PaginatedResponse<Subject>> GetAllAsync(PaginationRequest pagination);
         Task<Subject?> GetByIdAsync(int id, int? languageId = null);
         Task<IEnumerable<Subject>> GetActiveSubjectsAsync(int? languageId = null);
+        Task<PaginatedResponse<Subject>> GetActiveSubjectsAsync(PaginationRequest pagination);
         Task<Subject> AddAsync(Subject subject, string? namesJson = null);
         Task<Subject> UpdateAsync(Subject subject, string? namesJson = null);
         Task DeleteAsync(Subject subject);

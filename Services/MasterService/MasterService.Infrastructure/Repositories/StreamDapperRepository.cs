@@ -4,6 +4,7 @@ using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using StreamEntity = MasterService.Domain.Entities.Stream;
+using Common.DTOs;
 
 namespace MasterService.Infrastructure.Repositories
 {
@@ -71,6 +72,30 @@ namespace MasterService.Infrastructure.Repositories
                 await PopulateStreamDetailsAsync(connection, streams);
                 return streams;
             });
+        }
+
+        public async Task<PaginatedResponse<StreamEntity>> GetAllAsync(PaginationRequest pagination)
+        {
+            var streams = (await GetAllAsync()).ToList();
+            return new PaginatedResponse<StreamEntity>
+            {
+                Data = streams.Skip(pagination.Skip).Take(pagination.PageSize).ToList(),
+                TotalCount = streams.Count,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+        }
+
+        public async Task<PaginatedResponse<StreamEntity>> GetActiveAsync(PaginationRequest pagination)
+        {
+            var streams = (await GetActiveAsync()).ToList();
+            return new PaginatedResponse<StreamEntity>
+            {
+                Data = streams.Skip(pagination.Skip).Take(pagination.PageSize).ToList(),
+                TotalCount = streams.Count,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
         }
 
         public async Task<IEnumerable<StreamEntity>> GetActiveLocalizedAsync(string? languageCode)

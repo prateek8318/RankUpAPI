@@ -7,20 +7,19 @@ using MasterService.Application.DTOs;
 using MasterService.Application.Helpers;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
+using Common.DTOs;
 
 namespace MasterService.Application.Services
 {
-    public class SubjectService : ISubjectService
+    public class SubjectService : BaseService, ISubjectService
     {
         private readonly ISubjectRepository _subjectRepository;
-        private readonly ILogger<SubjectService> _logger;
 
         public SubjectService(
             ISubjectRepository subjectRepository,
-            ILogger<SubjectService> logger)
+            ILogger<SubjectService> logger) : base(logger)
         {
             _subjectRepository = subjectRepository;
-            _logger = logger;
         }
 
         public async Task<IEnumerable<SubjectDto>> GetAllSubjectsAsync(int? languageId = null)
@@ -67,103 +66,97 @@ namespace MasterService.Application.Services
 
         public async Task<SubjectDto> CreateSubjectAsync(CreateSubjectDto createSubjectDto)
         {
-            try
-            {
-                var subject = new Subject
+            return await ExecuteInTransactionAsync<SubjectDto>(
+                _subjectRepository,
+                async () =>
                 {
-                    Name = createSubjectDto.Name,
-                    Description = createSubjectDto.Description,
-                    IsActive = createSubjectDto.IsActive,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                var namesJson = LanguagePayloadSerializer.SerializeNames(
-                    createSubjectDto.SubjectLanguages,
-                    lang => new
+                    var subject = new Subject
                     {
-                        lang.LanguageId,
-                        lang.Name,
-                        lang.Description,
-                        IsActive = lang.IsActive
-                    });
+                        Name = createSubjectDto.Name,
+                        Description = createSubjectDto.Description,
+                        IsActive = createSubjectDto.IsActive,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
 
-                var createdSubject = await _subjectRepository.AddAsync(subject, namesJson);
-                await _subjectRepository.SaveChangesAsync();
-                return (await GetSubjectByIdAsync(createdSubject.Id))!;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating subject");
-                throw;
-            }
+                    var namesJson = LanguagePayloadSerializer.SerializeNames(
+                        createSubjectDto.SubjectLanguages,
+                        lang => new
+                        {
+                            lang.LanguageId,
+                            lang.Name,
+                            lang.Description,
+                            IsActive = lang.IsActive
+                        });
+
+                    var createdSubject = await _subjectRepository.AddAsync(subject, namesJson);
+                    await _subjectRepository.SaveChangesAsync();
+                    return (await GetSubjectByIdAsync(createdSubject.Id))!;
+                },
+                "CreateSubject");
         }
 
         public async Task<SubjectDto?> UpdateSubjectAsync(int id, UpdateSubjectDto updateSubjectDto)
         {
-            try
-            {
-                var existingSubject = await _subjectRepository.GetByIdAsync(id);
-                if (existingSubject == null)
+            return await ExecuteInTransactionAsync<SubjectDto?>(
+                _subjectRepository,
+                async () =>
                 {
-                    throw new ArgumentException($"Subject with id {id} not found");
-                }
+                    var existingSubject = await _subjectRepository.GetByIdAsync(id);
+                    if (existingSubject == null)
+                    {
+                        throw new ArgumentException($"Subject with id {id} not found");
+                    }
 
-                // Update properties
-                if (!string.IsNullOrEmpty(updateSubjectDto.Name))
-                    existingSubject.Name = updateSubjectDto.Name;
-                
-                if (updateSubjectDto.Description != null)
-                    existingSubject.Description = updateSubjectDto.Description;
-                
-                if (updateSubjectDto.IsActive.HasValue)
-                    existingSubject.IsActive = updateSubjectDto.IsActive.Value;
+                    // Update properties
+                    if (!string.IsNullOrEmpty(updateSubjectDto.Name))
+                        existingSubject.Name = updateSubjectDto.Name;
+                    
+                    if (updateSubjectDto.Description != null)
+                        existingSubject.Description = updateSubjectDto.Description;
+                    
+                    if (updateSubjectDto.IsActive.HasValue)
+                        existingSubject.IsActive = updateSubjectDto.IsActive.Value;
 
-                existingSubject.UpdatedAt = DateTime.UtcNow;
+                    existingSubject.UpdatedAt = DateTime.UtcNow;
 
-                var namesJson = updateSubjectDto.SubjectLanguages == null
-                    ? null
-                    : LanguagePayloadSerializer.SerializeNames(
-                        updateSubjectDto.SubjectLanguages,
-                        lang => new
-                        {
-                            lang.LanguageId,
-                            Name = lang.Name ?? string.Empty,
-                            lang.Description,
-                            IsActive = lang.IsActive ?? true
-                        });
+                    var namesJson = updateSubjectDto.SubjectLanguages == null
+                        ? null
+                        : LanguagePayloadSerializer.SerializeNames(
+                            updateSubjectDto.SubjectLanguages,
+                            lang => new
+                            {
+                                lang.LanguageId,
+                                Name = lang.Name ?? string.Empty,
+                                lang.Description,
+                                IsActive = lang.IsActive ?? true
+                            });
 
-                await _subjectRepository.UpdateAsync(existingSubject, namesJson);
-                await _subjectRepository.SaveChangesAsync();
-                return await GetSubjectByIdAsync(id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating subject with id: {Id}", id);
-                throw;
-            }
+                    await _subjectRepository.UpdateAsync(existingSubject, namesJson);
+                    await _subjectRepository.SaveChangesAsync();
+                    return await GetSubjectByIdAsync(id);
+                },
+                "UpdateSubject");
         }
 
         public async Task<bool> DeleteSubjectAsync(int id)
         {
-            try
-            {
-                var subject = await _subjectRepository.GetByIdAsync(id);
-                if (subject == null)
+            return await ExecuteInTransactionAsync<bool>(
+                _subjectRepository,
+                async () =>
                 {
-                    return false;
-                }
+                    var subject = await _subjectRepository.GetByIdAsync(id);
+                    if (subject == null)
+                    {
+                        return false;
+                    }
 
-                await _subjectRepository.DeleteAsync(subject);
-                await _subjectRepository.SaveChangesAsync();
+                    await _subjectRepository.DeleteAsync(subject);
+                    await _subjectRepository.SaveChangesAsync();
 
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting subject with id: {Id}", id);
-                throw;
-            }
+                    return true;
+                },
+                "DeleteSubject");
         }
 
         public async Task<bool> ToggleSubjectStatusAsync(int id, bool isActive)
@@ -243,6 +236,51 @@ namespace MasterService.Application.Services
                     Code = subjectLanguage.Language.Code
                 } : null
             };
+        }
+
+        // Pagination support methods
+        public async Task<PaginatedResponse<SubjectDto>> GetAllSubjectsPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedSubjects = await _subjectRepository.GetAllAsync(pagination);
+                var subjectDtos = paginatedSubjects.Data.Select(MapToSubjectDto);
+                
+                return new PaginatedResponse<SubjectDto>
+                {
+                    Data = subjectDtos,
+                    TotalCount = paginatedSubjects.TotalCount,
+                    PageNumber = paginatedSubjects.PageNumber,
+                    PageSize = paginatedSubjects.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated subjects");
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<SubjectListDto>> GetActiveSubjectsPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedSubjects = await _subjectRepository.GetActiveSubjectsAsync(pagination);
+                var subjectDtos = paginatedSubjects.Data.Select(MapToSubjectListDto);
+                
+                return new PaginatedResponse<SubjectListDto>
+                {
+                    Data = subjectDtos,
+                    TotalCount = paginatedSubjects.TotalCount,
+                    PageNumber = paginatedSubjects.PageNumber,
+                    PageSize = paginatedSubjects.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated active subjects");
+                throw;
+            }
         }
     }
 }

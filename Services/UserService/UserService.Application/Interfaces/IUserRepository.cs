@@ -10,6 +10,7 @@ namespace UserService.Application.Interfaces
         Task<User?> GetByPhoneNumberAsync(string phoneNumber);
         Task<User?> GetByEmailAsync(string email);
         Task<IEnumerable<User>> GetAllAsync(int page = 1, int pageSize = 50);
+        Task<IEnumerable<User>> GetActiveAsync(int page = 1, int pageSize = 50);
         Task<int> GetTotalUsersCountAsync();
         Task<int> GetDailyActiveUsersCountAsync();
         Task<User> AddAsync(User user);

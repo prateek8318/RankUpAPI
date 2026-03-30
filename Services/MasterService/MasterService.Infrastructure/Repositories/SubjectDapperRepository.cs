@@ -4,6 +4,7 @@ using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using Common.DTOs;
 
 namespace MasterService.Infrastructure.Repositories
 {
@@ -37,9 +38,14 @@ namespace MasterService.Infrastructure.Repositories
                 var procedure = languageId.HasValue
                     ? "[dbo].[Subject_GetByIdByLanguage]"
                     : "[dbo].[Subject_GetById]";
+                
+                var parameters = languageId.HasValue
+                    ? (object)new { Id = id, LanguageId = languageId.Value }
+                    : (object)new { Id = id };
+                
                 var subject = await connection.QueryFirstOrDefaultAsync<Subject>(
                     procedure,
-                    new { Id = id, LanguageId = languageId },
+                    parameters,
                     commandType: CommandType.StoredProcedure);
                 
                 if (subject != null)
@@ -49,6 +55,18 @@ namespace MasterService.Infrastructure.Repositories
                 
                 return subject;
             });
+        }
+
+        public async Task<PaginatedResponse<Subject>> GetAllAsync(PaginationRequest pagination)
+        {
+            var subjects = (await GetAllAsync()).ToList();
+            return new PaginatedResponse<Subject>
+            {
+                Data = subjects.Skip(pagination.Skip).Take(pagination.PageSize).ToList(),
+                TotalCount = subjects.Count,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
         }
 
         public async Task<IEnumerable<Subject>> GetActiveSubjectsAsync(int? languageId = null)
@@ -66,6 +84,18 @@ namespace MasterService.Infrastructure.Repositories
 
                 return subjectList;
             });
+        }
+
+        public async Task<PaginatedResponse<Subject>> GetActiveSubjectsAsync(PaginationRequest pagination)
+        {
+            var subjects = (await GetActiveSubjectsAsync()).ToList();
+            return new PaginatedResponse<Subject>
+            {
+                Data = subjects.Skip(pagination.Skip).Take(pagination.PageSize).ToList(),
+                TotalCount = subjects.Count,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
         }
 
         public async Task<Subject> AddAsync(Subject subject, string? namesJson = null)

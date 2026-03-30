@@ -46,6 +46,24 @@ namespace MasterService.Application.Services
             }
         }
 
+        public async Task<CmsContentDto?> GetByIdAsync(int id, string language)
+        {
+            try
+            {
+                var normalizedLang = LanguageValidator.NormalizeLanguage(language);
+                var entity = await _repository.GetByIdAsync(id);
+                if (entity == null || !entity.IsActive)
+                    return null;
+
+                return MapToDto(entity, normalizedLang, includeTranslations: false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting CMS content for ID {Id}", id);
+                throw;
+            }
+        }
+
         public IReadOnlyList<string> GetAllowedKeys() => CmsContentKeys.All;
 
         public async Task<IEnumerable<CmsContentDto>> GetAllAsync(string language)
@@ -59,6 +77,20 @@ namespace MasterService.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all CMS contents");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<CmsContentDto>> GetAllWithTranslationsAsync()
+        {
+            try
+            {
+                var items = await _repository.GetAllAsync();
+                return items.Select(i => MapToDto(i, LanguageConstants.English, includeTranslations: true)).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all CMS contents for admin");
                 throw;
             }
         }
@@ -106,10 +138,22 @@ namespace MasterService.Application.Services
                 }
             }
 
+            // Validate that at least one translation exists
+            if (translations.Count == 0)
+            {
+                throw new InvalidOperationException("At least one translation is required. Provide either Translations array or direct language properties (TitleEn, ContentEn, etc.).");
+            }
+
             var enTranslation = translations.FirstOrDefault(t =>
                 string.Equals(t.LanguageCode, LanguageConstants.English, StringComparison.OrdinalIgnoreCase));
             if (enTranslation == null)
                 throw new InvalidOperationException("At least one 'en' (English) translation is required.");
+
+            // Validate that English translation has content
+            if (string.IsNullOrWhiteSpace(enTranslation.Title) && string.IsNullOrWhiteSpace(enTranslation.Content))
+            {
+                throw new InvalidOperationException("English translation must have either Title or Content.");
+            }
 
             return await _repository.ExecuteInTransactionAsync(async () =>
             {
@@ -129,7 +173,17 @@ namespace MasterService.Application.Services
                 {
                     var code = t.LanguageCode?.Trim().ToLowerInvariant() ?? "";
                     if (string.IsNullOrEmpty(code) || !LanguageConstants.SupportedLanguages.Contains(code))
+                    {
+                        _logger.LogWarning("Skipping translation for unsupported language code: {LanguageCode}", code);
                         continue;
+                    }
+
+                    // Skip empty translations
+                    if (string.IsNullOrWhiteSpace(t.Title) && string.IsNullOrWhiteSpace(t.Content))
+                    {
+                        _logger.LogWarning("Skipping empty translation for language: {LanguageCode}", code);
+                        continue;
+                    }
 
                     entity.Translations.Add(new CmsContentTranslation
                     {
@@ -137,6 +191,11 @@ namespace MasterService.Application.Services
                         Title = t.Title ?? "",
                         Content = t.Content ?? ""
                     });
+                }
+
+                if (entity.Translations.Count == 0)
+                {
+                    throw new InvalidOperationException("At least one valid translation with content is required.");
                 }
 
                 await _repository.AddAsync(entity);
@@ -201,22 +260,37 @@ namespace MasterService.Application.Services
                 }
             }
 
-            // Replace translations
-            existing.Translations.Clear();
+            // Update existing translations and add new ones - don't remove existing ones
+            var existingTranslations = existing.Translations.ToList();
+            
             foreach (var t in translations)
             {
                 var code = t.LanguageCode?.Trim().ToLowerInvariant() ?? "";
                 if (string.IsNullOrEmpty(code) || !LanguageConstants.SupportedLanguages.Contains(code))
                     continue;
 
-                existing.Translations.Add(new CmsContentTranslation
+                var existingTranslation = existingTranslations.FirstOrDefault(et => 
+                    string.Equals(et.LanguageCode, code, StringComparison.OrdinalIgnoreCase));
+                
+                if (existingTranslation != null)
                 {
-                    LanguageCode = code,
-                    Title = t.Title ?? "",
-                    Content = t.Content ?? ""
-                });
+                    // Update existing translation
+                    existingTranslation.Title = t.Title ?? "";
+                    existingTranslation.Content = t.Content ?? "";
+                }
+                else
+                {
+                    // Add new translation
+                    existing.Translations.Add(new CmsContentTranslation
+                    {
+                        LanguageCode = code,
+                        Title = t.Title ?? "",
+                        Content = t.Content ?? ""
+                    });
+                }
             }
 
+            // Ensure English translation exists
             var enExists = existing.Translations.Any(t =>
                 string.Equals(t.LanguageCode, LanguageConstants.English, StringComparison.OrdinalIgnoreCase));
             if (!enExists)
@@ -234,9 +308,8 @@ namespace MasterService.Application.Services
             if (existing == null)
                 return false;
 
-            existing.IsActive = false;
-            existing.UpdatedAt = DateTime.UtcNow;
-            await _repository.UpdateAsync(existing);
+            await _repository.DeleteAsync(existing);
+            await _repository.SaveChangesAsync();
             return true;
         }
 

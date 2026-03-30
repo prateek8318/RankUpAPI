@@ -57,6 +57,11 @@ namespace MasterService.Infrastructure.Repositories
             }
         }
 
+        protected async Task<T> WithConnectionTransactionAsync<T>(Func<IDbConnection, IDbTransaction, Task<T>> operation, [CallerMemberName] string operationName = "")
+        {
+            return await WithTransactionAsync(operation, operationName);
+        }
+
         protected async Task WithConnectionAsync(Func<IDbConnection, Task> operation, [CallerMemberName] string operationName = "")
         {
             using var connection = GetConnection();

@@ -10,12 +10,11 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace AdminService.Application.Services
 {
-    public class AdminService : IAdminService
+    public class AdminService : BaseService, IAdminService
     {
         private readonly IAdminRepository _adminRepository;
         private readonly IUserServiceClient _userServiceClient;
         private readonly IConfiguration _configuration;
-        private readonly ILogger<AdminService> _logger;
         private readonly string _adminEmail;
         private readonly string _adminPassword;
         private readonly string _adminMobileNumber;
@@ -25,12 +24,11 @@ namespace AdminService.Application.Services
             IAdminRepository adminRepository,
             IUserServiceClient userServiceClient,
             IConfiguration configuration,
-            ILogger<AdminService> logger)
+            ILogger<AdminService> logger) : base(logger)
         {
             _adminRepository = adminRepository;
             _userServiceClient = userServiceClient;
             _configuration = configuration;
-            _logger = logger;
             _adminEmail = _configuration["AdminCredentials:Email"] ?? "admin@rankup.com";
             _adminPassword = _configuration["AdminCredentials:Password"] ?? "Admin@123";
             _adminMobileNumber = _configuration["AdminCredentials:MobileNumber"] ?? "+919876543210";

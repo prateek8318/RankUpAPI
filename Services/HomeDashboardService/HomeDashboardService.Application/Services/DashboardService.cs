@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HomeDashboardService.Application.Services
 {
-    public class DashboardService : IDashboardService
+    public class DashboardService : BaseService, IDashboardService
     {
         private readonly IQuizAttemptRepository _quizAttemptRepository;
         private readonly IDailyVideoRepository _dailyVideoRepository;
@@ -25,7 +25,6 @@ namespace HomeDashboardService.Application.Services
         private readonly IContinuePracticeItemRepository _continuePracticeItemRepository;
         private readonly IExamRepository _examRepository;
         private readonly IMapper _mapper;
-        private readonly ILogger<DashboardService> _logger;
 
         public DashboardService(
             IQuizAttemptRepository quizAttemptRepository,
@@ -37,14 +36,14 @@ namespace HomeDashboardService.Application.Services
             ILeaderboardEntryRepository leaderboardEntryRepository,
             IPracticeModeRepository practiceModeRepository,
             IDailyTargetRepository dailyTargetRepository,
-            IRapidFireTestRepository rapidFireTestRepository,
+            IRapidFireTestRepository rapidFireTest,
             IFreeTestRepository freeTestRepository,
             IMotivationMessageRepository motivationMessageRepository,
             ISubscriptionBannerRepository subscriptionBannerRepository,
             IContinuePracticeItemRepository continuePracticeItemRepository,
             IExamRepository examRepository,
             IMapper mapper,
-            ILogger<DashboardService> logger)
+            ILogger<DashboardService> logger) : base(logger)
         {
             _quizAttemptRepository = quizAttemptRepository;
             _dailyVideoRepository = dailyVideoRepository;
@@ -55,14 +54,13 @@ namespace HomeDashboardService.Application.Services
             _leaderboardEntryRepository = leaderboardEntryRepository;
             _practiceModeRepository = practiceModeRepository;
             _dailyTargetRepository = dailyTargetRepository;
-            _rapidFireTestRepository = rapidFireTestRepository;
+            _rapidFireTestRepository = rapidFireTest;
             _freeTestRepository = freeTestRepository;
             _motivationMessageRepository = motivationMessageRepository;
             _subscriptionBannerRepository = subscriptionBannerRepository;
             _continuePracticeItemRepository = continuePracticeItemRepository;
             _examRepository = examRepository;
             _mapper = mapper;
-            _logger = logger;
         }
 
         public async Task<UserDashboardDto> GetUserDashboardAsync(int userId)

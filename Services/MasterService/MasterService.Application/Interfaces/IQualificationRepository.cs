@@ -1,4 +1,5 @@
 using MasterService.Domain.Entities;
+using Common.DTOs;
 
 namespace MasterService.Application.Interfaces
 {
@@ -7,7 +8,9 @@ namespace MasterService.Application.Interfaces
         Task<Qualification?> GetByIdAsync(int id);
         Task<Qualification?> GetByIdLocalizedAsync(int id, string? languageCode);
         Task<IEnumerable<Qualification>> GetAllAsync();
+        Task<PaginatedResponse<Qualification>> GetAllAsync(PaginationRequest pagination);
         Task<IEnumerable<Qualification>> GetActiveAsync();
+        Task<PaginatedResponse<Qualification>> GetActiveAsync(PaginationRequest pagination);
         Task<IEnumerable<Qualification>> GetActiveLocalizedAsync(string? languageCode);
         Task<IEnumerable<Qualification>> GetActiveByCountryCodeAsync(string countryCode);
         Task<IEnumerable<Qualification>> GetActiveByCountryCodeLocalizedAsync(string countryCode, string? languageCode);

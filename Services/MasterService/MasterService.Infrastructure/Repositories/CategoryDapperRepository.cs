@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using System.Data;
+using Common.DTOs;
 
 namespace MasterService.Infrastructure.Repositories
 {
@@ -38,12 +39,56 @@ namespace MasterService.Infrastructure.Repositories
             });
         }
 
+        public async Task<PaginatedResponse<Category>> GetAllAsync(PaginationRequest pagination)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Category_GetAllPaginated]",
+                    new { Skip = pagination.Skip, Take = pagination.PageSize },
+                    commandType: CommandType.StoredProcedure);
+
+                var categories = (await multi.ReadAsync<Category>()).ToList();
+                var totalCount = await multi.ReadFirstOrDefaultAsync<int>();
+                
+                return new PaginatedResponse<Category>
+                {
+                    Data = categories,
+                    TotalCount = totalCount,
+                    PageNumber = pagination.PageNumber,
+                    PageSize = pagination.PageSize
+                };
+            });
+        }
+
         public async Task<IEnumerable<Category>> GetActiveAsync()
         {
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[Category_GetActive]";
                 return await connection.QueryAsync<Category>(sql);
+            });
+        }
+
+        public async Task<PaginatedResponse<Category>> GetActiveAsync(PaginationRequest pagination)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Category_GetActivePaginated]",
+                    new { Skip = pagination.Skip, Take = pagination.PageSize },
+                    commandType: CommandType.StoredProcedure);
+
+                var categories = (await multi.ReadAsync<Category>()).ToList();
+                var totalCount = await multi.ReadFirstOrDefaultAsync<int>();
+                
+                return new PaginatedResponse<Category>
+                {
+                    Data = categories,
+                    TotalCount = totalCount,
+                    PageNumber = pagination.PageNumber,
+                    PageSize = pagination.PageSize
+                };
             });
         }
 

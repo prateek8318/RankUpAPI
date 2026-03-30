@@ -9,142 +9,152 @@ using ILanguageDataService = Common.Language.ILanguageDataService;
 
 namespace MasterService.Application.Services
 {
-    public class ExamService : IExamService
+    public class ExamService : BaseService, IExamService
     {
         private readonly IExamRepository _examRepository;
         private readonly IMapper _mapper;
         private readonly ILanguageDataService _languageDataService;
-        private readonly ILogger<ExamService> _logger;
 
-        public ExamService(IExamRepository examRepository, IMapper mapper, ILanguageDataService languageDataService, ILogger<ExamService> logger)
+        public ExamService(IExamRepository examRepository, IMapper mapper, ILanguageDataService languageDataService, ILogger<ExamService> logger) : base(logger)
         {
             _examRepository = examRepository;
             _mapper = mapper;
             _languageDataService = languageDataService;
-            _logger = logger;
         }
 
         public async Task<ExamDto> CreateExamAsync(CreateExamDto createDto)
         {
-            var exam = _mapper.Map<Exam>(createDto);
-            exam.CreatedAt = DateTime.UtcNow;
-            exam.IsActive = true;
-
-            if (createDto.Names != null && createDto.Names.Any())
-            {
-                foreach (var langDto in createDto.Names)
+            return await ExecuteInTransactionAsync(
+                _examRepository,
+                async () =>
                 {
-                    exam.ExamLanguages.Add(new ExamLanguage
+                    var exam = _mapper.Map<Exam>(createDto);
+                    exam.CreatedAt = DateTime.UtcNow;
+                    exam.IsActive = true;
+
+                    if (createDto.Names != null && createDto.Names.Any())
                     {
-                        LanguageId = langDto.LanguageId,
-                        Name = langDto.Name,
-                        Description = langDto.Description,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-            }
+                        foreach (var langDto in createDto.Names)
+                        {
+                            exam.ExamLanguages.Add(new ExamLanguage
+                            {
+                                LanguageId = langDto.LanguageId,
+                                Name = langDto.Name,
+                                Description = langDto.Description,
+                                CreatedAt = DateTime.UtcNow,
+                                IsActive = true
+                            });
+                        }
+                    }
 
-            if (createDto.QualificationIds != null && createDto.QualificationIds.Any())
-            {
-                var streamIds = createDto.StreamIds ?? new List<int?>();
-                for (int i = 0; i < createDto.QualificationIds.Count; i++)
-                {
-                    var qualificationId = createDto.QualificationIds[i];
-                    var streamId = i < streamIds.Count ? streamIds[i] : null;
-
-                    exam.ExamQualifications.Add(new ExamQualification
+                    if (createDto.QualificationIds != null && createDto.QualificationIds.Any())
                     {
-                        QualificationId = qualificationId,
-                        StreamId = streamId,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-            }
+                        var streamIds = createDto.StreamIds ?? new List<int?>();
+                        for (int i = 0; i < createDto.QualificationIds.Count; i++)
+                        {
+                            var qualificationId = createDto.QualificationIds[i];
+                            var streamId = i < streamIds.Count ? streamIds[i] : null;
 
-            var namesJson = LanguagePayloadSerializer.SerializeItems(
-                exam.ExamLanguages,
-                language => new { language.LanguageId, language.Name, language.Description });
-            var relationsJson = LanguagePayloadSerializer.SerializeItems(
-                exam.ExamQualifications,
-                relation => new { relation.QualificationId, relation.StreamId });
+                            exam.ExamQualifications.Add(new ExamQualification
+                            {
+                                QualificationId = qualificationId,
+                                StreamId = streamId,
+                                CreatedAt = DateTime.UtcNow,
+                                IsActive = true
+                            });
+                        }
+                    }
 
-            await _examRepository.AddAsync(exam, namesJson, relationsJson);
-            await _examRepository.SaveChangesAsync();
+                    var namesJson = LanguagePayloadSerializer.SerializeItems(
+                        exam.ExamLanguages,
+                        language => new { language.LanguageId, language.Name, language.Description });
+                    var relationsJson = LanguagePayloadSerializer.SerializeItems(
+                        exam.ExamQualifications,
+                        relation => new { relation.QualificationId, relation.StreamId });
 
-            return (await GetExamByIdAsync(exam.Id))!;
+                    await _examRepository.AddAsync(exam, namesJson, relationsJson);
+                    await _examRepository.SaveChangesAsync();
+
+                    return (await GetExamByIdAsync(exam.Id))!;
+                },
+                "CreateExam");
         }
 
         public async Task<ExamDto?> UpdateExamAsync(int id, UpdateExamDto updateDto)
         {
-            var exam = await _examRepository.GetByIdAsync(id);
-            if (exam == null)
-                return null;
-
-            exam.Name = updateDto.Name;
-            exam.Description = updateDto.Description;
-            exam.CountryCode = updateDto.CountryCode;
-            exam.MinAge = updateDto.MinAge;
-            exam.MaxAge = updateDto.MaxAge;
-            exam.ImageUrl = updateDto.ImageUrl;
-            exam.UpdatedAt = DateTime.UtcNow;
-
-            if (updateDto.Names != null && updateDto.Names.Any())
-            {
-                var existingLanguages = exam.ExamLanguages.ToList();
-                foreach (var existingLang in existingLanguages)
+            return await ExecuteInTransactionAsync(
+                _examRepository,
+                async () =>
                 {
-                    exam.ExamLanguages.Remove(existingLang);
-                }
+                    var exam = await _examRepository.GetByIdAsync(id);
+                    if (exam == null)
+                        return null;
 
-                foreach (var langDto in updateDto.Names)
-                {
-                    exam.ExamLanguages.Add(new ExamLanguage
+                    exam.Name = updateDto.Name;
+                    exam.Description = updateDto.Description;
+                    exam.CountryCode = updateDto.CountryCode;
+                    exam.MinAge = updateDto.MinAge;
+                    exam.MaxAge = updateDto.MaxAge;
+                    exam.ImageUrl = updateDto.ImageUrl;
+                    exam.UpdatedAt = DateTime.UtcNow;
+
+                    if (updateDto.Names != null && updateDto.Names.Any())
                     {
-                        LanguageId = langDto.LanguageId,
-                        Name = langDto.Name,
-                        Description = langDto.Description,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-            }
+                        var existingLanguages = exam.ExamLanguages.ToList();
+                        foreach (var existingLang in existingLanguages)
+                        {
+                            exam.ExamLanguages.Remove(existingLang);
+                        }
 
-            if (updateDto.QualificationIds != null)
-            {
-                var existingRelations = exam.ExamQualifications.ToList();
-                foreach (var rel in existingRelations)
-                {
-                    exam.ExamQualifications.Remove(rel);
-                }
+                        foreach (var langDto in updateDto.Names)
+                        {
+                            exam.ExamLanguages.Add(new ExamLanguage
+                            {
+                                LanguageId = langDto.LanguageId,
+                                Name = langDto.Name,
+                                Description = langDto.Description,
+                                CreatedAt = DateTime.UtcNow,
+                                IsActive = true
+                            });
+                        }
+                    }
 
-                var streamIds = updateDto.StreamIds ?? new List<int?>();
-                for (int i = 0; i < updateDto.QualificationIds.Count; i++)
-                {
-                    var qualificationId = updateDto.QualificationIds[i];
-                    var streamId = i < streamIds.Count ? streamIds[i] : null;
-
-                    exam.ExamQualifications.Add(new ExamQualification
+                    if (updateDto.QualificationIds != null)
                     {
-                        QualificationId = qualificationId,
-                        StreamId = streamId,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-            }
+                        var existingRelations = exam.ExamQualifications.ToList();
+                        foreach (var rel in existingRelations)
+                        {
+                            exam.ExamQualifications.Remove(rel);
+                        }
 
-            var namesJson = LanguagePayloadSerializer.SerializeItems(
-                exam.ExamLanguages,
-                language => new { language.LanguageId, language.Name, language.Description });
-            var relationsJson = LanguagePayloadSerializer.SerializeItems(
-                exam.ExamQualifications,
-                relation => new { relation.QualificationId, relation.StreamId });
+                        var streamIds = updateDto.StreamIds ?? new List<int?>();
+                        for (int i = 0; i < updateDto.QualificationIds.Count; i++)
+                        {
+                            var qualificationId = updateDto.QualificationIds[i];
+                            var streamId = i < streamIds.Count ? streamIds[i] : null;
 
-            await _examRepository.UpdateAsync(exam, namesJson, relationsJson);
-            await _examRepository.SaveChangesAsync();
-            return await GetExamByIdAsync(exam.Id);
+                            exam.ExamQualifications.Add(new ExamQualification
+                            {
+                                QualificationId = qualificationId,
+                                StreamId = streamId,
+                                CreatedAt = DateTime.UtcNow,
+                                IsActive = true
+                            });
+                        }
+                    }
+
+                    var namesJson = LanguagePayloadSerializer.SerializeItems(
+                        exam.ExamLanguages,
+                        language => new { language.LanguageId, language.Name, language.Description });
+                    var relationsJson = LanguagePayloadSerializer.SerializeItems(
+                        exam.ExamQualifications,
+                        relation => new { relation.QualificationId, relation.StreamId });
+
+                    await _examRepository.UpdateAsync(exam, namesJson, relationsJson);
+                    await _examRepository.SaveChangesAsync();
+                    return await GetExamByIdAsync(exam.Id);
+                },
+                "UpdateExam");
         }
 
         public async Task<bool> DeleteExamAsync(int id)
@@ -399,7 +409,7 @@ namespace MasterService.Application.Services
                 exam.ImageUrl = imageUrl;
                 exam.UpdatedAt = DateTime.UtcNow;
                 
-                await _examRepository.UpdateAsync(exam);
+                await _examRepository.UpdateAsync(exam, null, null);
                 await _examRepository.SaveChangesAsync();
                 
                 _logger.LogInformation("Updated image URL for exam {ExamId}: {ImageUrl}", examId, imageUrl);

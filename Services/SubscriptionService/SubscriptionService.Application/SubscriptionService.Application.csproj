@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SubscriptionService.Domain\SubscriptionService.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Common\Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

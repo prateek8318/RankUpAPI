@@ -3,6 +3,7 @@ using System.Data;
 using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using Common.DTOs;
 
 namespace MasterService.Infrastructure.Repositories
 {
@@ -11,7 +12,6 @@ namespace MasterService.Infrastructure.Repositories
         public ExamDapperRepository(string connectionString, ILogger<ExamDapperRepository> logger) : base(connectionString, logger)
         {
         }
-
 
         public async Task<Exam?> GetByIdAsync(int id)
         {
@@ -73,6 +73,31 @@ namespace MasterService.Infrastructure.Repositories
             });
         }
 
+        public async Task<PaginatedResponse<Exam>> GetAllAsync(PaginationRequest pagination)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetAllWithLanguagesPaginated]",
+                    new { Skip = pagination.Skip, Take = pagination.PageSize },
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                var totalCount = await multi.ReadFirstOrDefaultAsync<int>();
+                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages);
+                
+                return new PaginatedResponse<Exam>
+                {
+                    Data = exams,
+                    TotalCount = totalCount,
+                    PageNumber = pagination.PageNumber,
+                    PageSize = pagination.PageSize
+                };
+            });
+        }
+
         public async Task<IEnumerable<Exam>> GetActiveAsync()
         {
             return await WithConnectionAsync(async connection =>
@@ -87,6 +112,32 @@ namespace MasterService.Infrastructure.Repositories
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
                 return exams;
+            });
+        }
+
+        public async Task<PaginatedResponse<Exam>> GetActiveAsync(PaginationRequest pagination)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "[dbo].[Exam_GetActiveWithLanguagesPaginated]",
+                    new { Skip = pagination.Skip, Take = pagination.PageSize },
+                    commandType: CommandType.StoredProcedure);
+
+                var exams = (await multi.ReadAsync<Exam>()).ToList();
+                var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
+                var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
+                var totalCount = await multi.ReadFirstOrDefaultAsync<int>();
+                
+                RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
+                
+                return new PaginatedResponse<Exam>
+                {
+                    Data = exams,
+                    TotalCount = totalCount,
+                    PageNumber = pagination.PageNumber,
+                    PageSize = pagination.PageSize
+                };
             });
         }
 
@@ -223,6 +274,48 @@ namespace MasterService.Infrastructure.Repositories
             return exam;
         }
 
+        public async Task<Exam> AddAsync(Exam exam, string? namesJson = null, string? relationsJson = null, IDbTransaction? transaction = null)
+        {
+            var parameters = new DynamicParameters();
+            parameters.Add("@Name", exam.Name);
+            parameters.Add("@Description", exam.Description);
+            parameters.Add("@CountryCode", exam.CountryCode);
+            parameters.Add("@MinAge", exam.MinAge);
+            parameters.Add("@MaxAge", exam.MaxAge);
+            parameters.Add("@ImageUrl", exam.ImageUrl);
+            parameters.Add("@IsInternational", exam.IsInternational);
+            parameters.Add("@IsActive", exam.IsActive);
+            parameters.Add("@NamesJson", namesJson);
+            parameters.Add("@RelationsJson", relationsJson);
+            parameters.Add("@CreatedAt", DateTime.UtcNow);
+            parameters.Add("@UpdatedAt", DateTime.UtcNow);
+            parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+            if (transaction != null)
+            {
+                await transaction.Connection.ExecuteAsync(
+                    "[dbo].[Exam_Create]",
+                    parameters,
+                    transaction,
+                    commandType: CommandType.StoredProcedure);
+            }
+            else
+            {
+                await WithConnectionAsync(async connection =>
+                    await connection.ExecuteAsync(
+                        "[dbo].[Exam_Create]",
+                        parameters,
+                        commandType: CommandType.StoredProcedure));
+            }
+            
+            if (parameters.Get<int>("@Id") > 0)
+            {
+                exam.Id = parameters.Get<int>("@Id");
+            }
+
+            return exam;
+        }
+
         public async Task UpdateAsync(Exam exam, string? namesJson = null, string? relationsJson = null)
         {
             var parameters = new DynamicParameters();
@@ -246,6 +339,40 @@ namespace MasterService.Infrastructure.Repositories
                     commandType: CommandType.StoredProcedure));
         }
 
+        public async Task UpdateAsync(Exam exam, string? namesJson = null, string? relationsJson = null, IDbTransaction? transaction = null)
+        {
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", exam.Id);
+            parameters.Add("@Name", exam.Name);
+            parameters.Add("@Description", exam.Description);
+            parameters.Add("@CountryCode", exam.CountryCode);
+            parameters.Add("@MinAge", exam.MinAge);
+            parameters.Add("@MaxAge", exam.MaxAge);
+            parameters.Add("@ImageUrl", exam.ImageUrl);
+            parameters.Add("@IsInternational", exam.IsInternational);
+            parameters.Add("@IsActive", exam.IsActive);
+            parameters.Add("@NamesJson", namesJson);
+            parameters.Add("@RelationsJson", relationsJson);
+            parameters.Add("@UpdatedAt", DateTime.UtcNow);
+
+            if (transaction != null)
+            {
+                await transaction.Connection.ExecuteAsync(
+                    "[dbo].[Exam_Update]",
+                    parameters,
+                    transaction,
+                    commandType: CommandType.StoredProcedure);
+            }
+            else
+            {
+                await WithConnectionAsync(async connection =>
+                    await connection.ExecuteAsync(
+                        "[dbo].[Exam_Update]",
+                        parameters,
+                        commandType: CommandType.StoredProcedure));
+            }
+        }
+
         public async Task DeleteAsync(Exam exam)
         {
             await WithConnectionAsync(connection =>
@@ -253,6 +380,26 @@ namespace MasterService.Infrastructure.Repositories
                     "[dbo].[Exam_Delete]",
                     new { Id = exam.Id },
                     commandType: CommandType.StoredProcedure));
+        }
+
+        public async Task DeleteAsync(Exam exam, IDbTransaction? transaction = null)
+        {
+            if (transaction != null)
+            {
+                await transaction.Connection.ExecuteAsync(
+                    "[dbo].[Exam_Delete]",
+                    new { Id = exam.Id },
+                    transaction,
+                    commandType: CommandType.StoredProcedure);
+            }
+            else
+            {
+                await WithConnectionAsync(connection =>
+                    connection.ExecuteAsync(
+                        "[dbo].[Exam_Delete]",
+                        new { Id = exam.Id },
+                        commandType: CommandType.StoredProcedure));
+            }
         }
 
         public async Task<bool> SoftDeleteByIdAsync(int id)

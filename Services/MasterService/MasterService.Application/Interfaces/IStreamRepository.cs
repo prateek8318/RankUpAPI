@@ -1,4 +1,5 @@
 using StreamEntity = MasterService.Domain.Entities.Stream;
+using Common.DTOs;
 
 namespace MasterService.Application.Interfaces
 {
@@ -7,7 +8,9 @@ namespace MasterService.Application.Interfaces
         Task<StreamEntity?> GetByIdAsync(int id);
         Task<StreamEntity?> GetByIdLocalizedAsync(int id, string? languageCode);
         Task<IEnumerable<StreamEntity>> GetAllAsync();
+        Task<PaginatedResponse<StreamEntity>> GetAllAsync(PaginationRequest pagination);
         Task<IEnumerable<StreamEntity>> GetActiveAsync();
+        Task<PaginatedResponse<StreamEntity>> GetActiveAsync(PaginationRequest pagination);
         Task<IEnumerable<StreamEntity>> GetActiveLocalizedAsync(string? languageCode);
         Task<IEnumerable<StreamEntity>> GetActiveByQualificationIdAsync(int qualificationId);
         Task<IEnumerable<StreamEntity>> GetActiveByQualificationIdLocalizedAsync(int qualificationId, string? languageCode);

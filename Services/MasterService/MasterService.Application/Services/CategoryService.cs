@@ -1,25 +1,28 @@
 using Microsoft.Extensions.Logging;
+using AutoMapper;
 using Common.Language;
+using Common.DTOs;
 using MasterService.Application.DTOs;
 using MasterService.Application.Interfaces;
 using ILanguageDataService = Common.Language.ILanguageDataService;
 
 namespace MasterService.Application.Services
 {
-    public class CategoryService : ICategoryService
+    public class CategoryService : BaseService, ICategoryService
     {
         private readonly ICategoryRepository _categoryRepository;
         private readonly ILanguageDataService _languageDataService;
-        private readonly ILogger<CategoryService> _logger;
+        private readonly IMapper _mapper;
 
         public CategoryService(
             ICategoryRepository categoryRepository,
             ILanguageDataService languageDataService,
-            ILogger<CategoryService> logger)
+            IMapper mapper,
+            ILogger<CategoryService> logger) : base(logger)
         {
             _categoryRepository = categoryRepository;
             _languageDataService = languageDataService;
-            _logger = logger;
+            _mapper = mapper;
         }
 
         public async Task<object> GetAllCategoriesOptimizedAsync(string language)
@@ -595,6 +598,51 @@ namespace MasterService.Application.Services
                     CreatedAt = DateTime.UtcNow
                 }
             };
+        }
+
+        // Pagination support methods
+        public async Task<PaginatedResponse<CategoryDto>> GetAllCategoriesPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedCategories = await _categoryRepository.GetAllAsync(pagination);
+                var categoryDtos = _mapper.Map<IEnumerable<CategoryDto>>(paginatedCategories.Data);
+                
+                return new PaginatedResponse<CategoryDto>
+                {
+                    Data = categoryDtos,
+                    TotalCount = paginatedCategories.TotalCount,
+                    PageNumber = paginatedCategories.PageNumber,
+                    PageSize = paginatedCategories.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated categories");
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<CategoryDto>> GetActiveCategoriesPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedCategories = await _categoryRepository.GetActiveAsync(pagination);
+                var categoryDtos = _mapper.Map<IEnumerable<CategoryDto>>(paginatedCategories.Data);
+                
+                return new PaginatedResponse<CategoryDto>
+                {
+                    Data = categoryDtos,
+                    TotalCount = paginatedCategories.TotalCount,
+                    PageNumber = paginatedCategories.PageNumber,
+                    PageSize = paginatedCategories.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated active categories");
+                throw;
+            }
         }
     }
 }

@@ -1,16 +1,18 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using PaymentService.Application.DTOs;
 using PaymentService.Application.Interfaces;
 using PaymentService.Domain.Entities;
+using Common.DTOs;
 
 namespace PaymentService.Application.Services
 {
-    public class PaymentService
+    public class PaymentService : BaseService
     {
         private readonly IPaymentRepository _repository;
         private readonly IMapper _mapper;
 
-        public PaymentService(IPaymentRepository repository, IMapper mapper)
+        public PaymentService(IPaymentRepository repository, IMapper mapper, ILogger<PaymentService> logger) : base(logger)
         {
             _repository = repository;
             _mapper = mapper;
@@ -18,17 +20,22 @@ namespace PaymentService.Application.Services
 
         public async Task<PaymentDto> CreateAsync(CreatePaymentDto dto)
         {
-            var payment = _mapper.Map<Payment>(dto);
-            payment.TransactionId = Guid.NewGuid().ToString("N");
-            payment.FinalAmount = dto.Amount - (dto.DiscountAmount ?? 0);
-            payment.Status = PaymentStatus.Pending;
-            payment.CreatedAt = DateTime.UtcNow;
-            payment.IsActive = true;
+            return await ExecuteInTransactionAsync(
+                async () =>
+                {
+                    var payment = _mapper.Map<Payment>(dto);
+                    payment.TransactionId = Guid.NewGuid().ToString("N");
+                    payment.FinalAmount = dto.Amount - (dto.DiscountAmount ?? 0);
+                    payment.Status = PaymentStatus.Pending;
+                    payment.CreatedAt = DateTime.UtcNow;
+                    payment.IsActive = true;
 
-            await _repository.AddAsync(payment);
-            await _repository.SaveChangesAsync();
+                    await _repository.AddAsync(payment);
+                    await _repository.SaveChangesAsync();
 
-            return _mapper.Map<PaymentDto>(payment);
+                    return _mapper.Map<PaymentDto>(payment);
+                },
+                "CreatePayment");
         }
 
         public async Task<PaymentDto?> GetByIdAsync(int id)
@@ -77,6 +84,51 @@ namespace PaymentService.Application.Services
             await _repository.SaveChangesAsync();
 
             return _mapper.Map<PaymentDto>(payment);
+        }
+
+        // Pagination support methods
+        public async Task<PaginatedResponse<PaymentDto>> GetAllPaymentsPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedPayments = await _repository.GetAllAsync(pagination);
+                var paymentDtos = _mapper.Map<IEnumerable<PaymentDto>>(paginatedPayments.Data);
+                
+                return new PaginatedResponse<PaymentDto>
+                {
+                    Data = paymentDtos,
+                    TotalCount = paginatedPayments.TotalCount,
+                    PageNumber = paginatedPayments.PageNumber,
+                    PageSize = paginatedPayments.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated payments");
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<PaymentDto>> GetPaymentsByUserIdPaginatedAsync(int userId, PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedPayments = await _repository.GetByUserIdAsync(userId, pagination);
+                var paymentDtos = _mapper.Map<IEnumerable<PaymentDto>>(paginatedPayments.Data);
+                
+                return new PaginatedResponse<PaymentDto>
+                {
+                    Data = paymentDtos,
+                    TotalCount = paginatedPayments.TotalCount,
+                    PageNumber = paginatedPayments.PageNumber,
+                    PageSize = paginatedPayments.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated payments for user {UserId}", userId);
+                throw;
+            }
         }
     }
 }

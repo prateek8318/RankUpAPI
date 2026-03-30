@@ -1,44 +1,26 @@
 using AutoMapper;
-
 using Microsoft.AspNetCore.Http;
-
+using Microsoft.Extensions.Logging;
 using UserService.Application.DTOs;
-
 using UserService.Application.Interfaces;
-
 using UserService.Domain.Entities;
-
+using Common.DTOs;
 
 
 namespace UserService.Application.Services
-
 {
-
-    public class UserService : IUserService
-
+    public class UserService : BaseService, IUserService
     {
-
         private readonly IUserRepository _userRepository;
-
         private readonly IMapper _mapper;
-
         private readonly IImageService _imageService;
 
-
-
-        public UserService(IUserRepository userRepository, IMapper mapper, IImageService imageService)
-
+        public UserService(IUserRepository userRepository, IMapper mapper, IImageService imageService, ILogger<UserService> logger) : base(logger)
         {
-
             _userRepository = userRepository;
-
             _mapper = mapper;
-
             _imageService = imageService;
-
         }
-
-
 
         public async Task<UserDto?> GetUserByIdAsync(int userId)
         {
@@ -530,7 +512,69 @@ namespace UserService.Application.Services
 
         }
 
+        // Pagination support methods
+        public async Task<PaginatedResponse<UserDto>> GetAllUsersPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var users = await _userRepository.GetAllAsync(pagination.PageNumber, pagination.PageSize);
+                var totalCount = await _userRepository.GetTotalUsersCountAsync();
+                var userDtos = users.Select(u =>
+                {
+                    var userDto = _mapper.Map<UserDto>(u);
+                    // Set IST times
+                    userDto.CreatedAtIST = u.CreatedAt.AddHours(5.5);
+                    if (u.LastLoginAt.HasValue)
+                        userDto.LastLoginAtIST = u.LastLoginAt.Value.AddHours(5.5);
+                    return userDto;
+                });
+                
+                return new PaginatedResponse<UserDto>
+                {
+                    Data = userDtos,
+                    TotalCount = totalCount,
+                    PageNumber = pagination.PageNumber,
+                    PageSize = pagination.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated users");
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<UserDto>> GetActiveUsersPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var users = await _userRepository.GetActiveAsync(pagination.PageNumber, pagination.PageSize);
+                var totalCount = await _userRepository.GetTotalUsersCountAsync();
+                var userDtos = users.Select(u =>
+                {
+                    var userDto = _mapper.Map<UserDto>(u);
+                    // Set IST times
+                    userDto.CreatedAtIST = u.CreatedAt.AddHours(5.5);
+                    if (u.LastLoginAt.HasValue)
+                        userDto.LastLoginAtIST = u.LastLoginAt.Value.AddHours(5.5);
+                    return userDto;
+                });
+                
+                return new PaginatedResponse<UserDto>
+                {
+                    Data = userDtos,
+                    TotalCount = totalCount,
+                    PageNumber = pagination.PageNumber,
+                    PageSize = pagination.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated active users");
+                throw;
+            }
+        }
+
     }
 
 }
-

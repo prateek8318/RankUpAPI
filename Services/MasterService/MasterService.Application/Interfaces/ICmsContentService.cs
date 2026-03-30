@@ -7,10 +7,12 @@ namespace MasterService.Application.Interfaces
     {
         // User side: language ke basis par localized data (Hindi/English with fallback)
         Task<CmsContentDto?> GetByKeyAsync(string key, string language);
+        Task<CmsContentDto?> GetByIdAsync(int id, string language);
         Task<IEnumerable<CmsContentDto>> GetAllAsync(string language);
         IReadOnlyList<string> GetAllowedKeys();
 
         // Admin side: create/update/delete
+        Task<IEnumerable<CmsContentDto>> GetAllWithTranslationsAsync();
         Task<CmsContentDto> CreateAsync(CreateCmsContentDto createDto);
         Task<CmsContentDto?> UpdateAsync(int id, UpdateCmsContentDto updateDto);
         Task<bool> DeleteAsync(int id);

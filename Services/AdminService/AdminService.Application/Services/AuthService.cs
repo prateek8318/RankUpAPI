@@ -8,20 +8,18 @@ using System.Text;
 
 namespace AdminService.Application.Services
 {
-    public class AuthService
+    public class AuthService : BaseService
     {
         private readonly IConfiguration _configuration;
         private readonly IUserServiceClient _userServiceClient;
-        private readonly ILogger<AuthService> _logger;
 
         public AuthService(
             IConfiguration configuration,
             IUserServiceClient userServiceClient,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger) : base(logger)
         {
             _configuration = configuration;
             _userServiceClient = userServiceClient;
-            _logger = logger;
         }
 
         // User token validate करने के लिए

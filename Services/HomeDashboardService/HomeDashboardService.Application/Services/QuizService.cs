@@ -6,43 +6,38 @@ using Microsoft.Extensions.Logging;
 
 namespace HomeDashboardService.Application.Services
 {
-    public class QuizService : IQuizService
+    public class QuizService : BaseService, IQuizService
     {
         private readonly IQuizRepository _quizRepository;
         private readonly IChapterRepository _chapterRepository;
         private readonly IMapper _mapper;
-        private readonly ILogger<QuizService> _logger;
 
         public QuizService(
             IQuizRepository quizRepository,
             IChapterRepository chapterRepository,
             IMapper mapper,
-            ILogger<QuizService> logger)
+            ILogger<QuizService> logger) : base(logger)
         {
             _quizRepository = quizRepository;
             _chapterRepository = chapterRepository;
             _mapper = mapper;
-            _logger = logger;
         }
 
         public async Task<QuizDto> CreateQuizAsync(CreateQuizDto createQuizDto)
         {
-            try
-            {
-                var chapter = await _chapterRepository.GetByIdAsync(createQuizDto.ChapterId);
-                if (chapter == null)
-                    throw new KeyNotFoundException($"Chapter with ID {createQuizDto.ChapterId} not found");
+            return await ExecuteInTransactionAsync(
+                async () =>
+                {
+                    var chapter = await _chapterRepository.GetByIdAsync(createQuizDto.ChapterId);
+                    if (chapter == null)
+                        throw new KeyNotFoundException($"Chapter with ID {createQuizDto.ChapterId} not found");
 
-                var quiz = _mapper.Map<Domain.Entities.Quiz>(createQuizDto);
-                var created = await _quizRepository.AddAsync(quiz);
-                await _quizRepository.SaveChangesAsync();
-                return _mapper.Map<QuizDto>(created);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating quiz");
-                throw;
-            }
+                    var quiz = _mapper.Map<Domain.Entities.Quiz>(createQuizDto);
+                    var created = await _quizRepository.AddAsync(quiz);
+                    await _quizRepository.SaveChangesAsync();
+                    return _mapper.Map<QuizDto>(created);
+                },
+                "CreateQuiz");
         }
 
         public async Task<QuizDto?> UpdateQuizAsync(int id, UpdateQuizDto updateQuizDto)

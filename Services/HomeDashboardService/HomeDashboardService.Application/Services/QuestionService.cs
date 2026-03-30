@@ -11,14 +11,13 @@ using System.Text;
 
 namespace HomeDashboardService.Application.Services
 {
-    public class QuestionService : IQuestionService
+    public class QuestionService : BaseService, IQuestionService
     {
         private readonly IQuestionRepository _questionRepository;
         private readonly IQuestionOptionRepository _questionOptionRepository;
         private readonly IQuizRepository _quizRepository;
         private readonly IBulkUploadLogRepository _bulkUploadLogRepository;
         private readonly IMapper _mapper;
-        private readonly ILogger<QuestionService> _logger;
 
         public QuestionService(
             IQuestionRepository questionRepository,
@@ -26,14 +25,13 @@ namespace HomeDashboardService.Application.Services
             IQuizRepository quizRepository,
             IBulkUploadLogRepository bulkUploadLogRepository,
             IMapper mapper,
-            ILogger<QuestionService> logger)
+            ILogger<QuestionService> logger) : base(logger)
         {
             _questionRepository = questionRepository;
             _questionOptionRepository = questionOptionRepository;
             _quizRepository = quizRepository;
             _bulkUploadLogRepository = bulkUploadLogRepository;
             _mapper = mapper;
-            _logger = logger;
         }
 
         public async Task<QuestionDto> CreateQuestionAsync(CreateQuestionDto createQuestionDto)

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SubscriptionService.Application.Interfaces;
 using SubscriptionService.Domain.Entities;
 using SubscriptionService.Infrastructure.Data;
+using Common.DTOs;
 
 namespace SubscriptionService.Infrastructure.Repositories
 {
@@ -29,6 +30,42 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await _context.Subscriptions
                 .Where(s => s.UserId == userId && s.IsActive)
                 .ToListAsync();
+        }
+
+        public async Task<PaginatedResponse<Subscription>> GetAllAsync(PaginationRequest pagination)
+        {
+            var query = _context.Subscriptions.Where(s => s.IsActive);
+            var totalCount = await query.CountAsync();
+            var data = await query
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToListAsync();
+
+            return new PaginatedResponse<Subscription>
+            {
+                Data = data,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+        }
+
+        public async Task<PaginatedResponse<Subscription>> GetByUserIdAsync(int userId, PaginationRequest pagination)
+        {
+            var query = _context.Subscriptions.Where(s => s.UserId == userId && s.IsActive);
+            var totalCount = await query.CountAsync();
+            var data = await query
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToListAsync();
+
+            return new PaginatedResponse<Subscription>
+            {
+                Data = data,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
         }
 
         public async Task<Subscription> AddAsync(Subscription subscription)

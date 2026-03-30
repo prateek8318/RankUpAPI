@@ -1,16 +1,18 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using SubscriptionService.Application.DTOs;
 using SubscriptionService.Application.Interfaces;
 using SubscriptionService.Domain.Entities;
+using Common.DTOs;
 
 namespace SubscriptionService.Application.Services
 {
-    public class SubscriptionService
+    public class SubscriptionService : BaseService
     {
         private readonly ISubscriptionRepository _repository;
         private readonly IMapper _mapper;
 
-        public SubscriptionService(ISubscriptionRepository repository, IMapper mapper)
+        public SubscriptionService(ISubscriptionRepository repository, IMapper mapper, ILogger<SubscriptionService> logger) : base(logger)
         {
             _repository = repository;
             _mapper = mapper;
@@ -18,16 +20,21 @@ namespace SubscriptionService.Application.Services
 
         public async Task<SubscriptionDto> CreateAsync(CreateSubscriptionDto dto)
         {
-            var subscription = _mapper.Map<Subscription>(dto);
-            subscription.FinalAmount = dto.Amount - (dto.DiscountAmount ?? 0);
-            subscription.Status = SubscriptionStatus.Pending;
-            subscription.CreatedAt = DateTime.UtcNow;
-            subscription.IsActive = true;
+            return await ExecuteInTransactionAsync(
+                async () =>
+                {
+                    var subscription = _mapper.Map<Subscription>(dto);
+                    subscription.FinalAmount = dto.Amount - (dto.DiscountAmount ?? 0);
+                    subscription.Status = SubscriptionStatus.Pending;
+                    subscription.CreatedAt = DateTime.UtcNow;
+                    subscription.IsActive = true;
 
-            await _repository.AddAsync(subscription);
-            await _repository.SaveChangesAsync();
+                    await _repository.AddAsync(subscription);
+                    await _repository.SaveChangesAsync();
 
-            return _mapper.Map<SubscriptionDto>(subscription);
+                    return _mapper.Map<SubscriptionDto>(subscription);
+                },
+                "CreateSubscription");
         }
 
         public async Task<SubscriptionDto?> GetByIdAsync(int id)
@@ -61,6 +68,51 @@ namespace SubscriptionService.Application.Services
             await _repository.SaveChangesAsync();
 
             return _mapper.Map<SubscriptionDto>(subscription);
+        }
+
+        // Pagination support methods
+        public async Task<PaginatedResponse<SubscriptionDto>> GetAllSubscriptionsPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedSubscriptions = await _repository.GetAllAsync(pagination);
+                var subscriptionDtos = _mapper.Map<IEnumerable<SubscriptionDto>>(paginatedSubscriptions.Data);
+                
+                return new PaginatedResponse<SubscriptionDto>
+                {
+                    Data = subscriptionDtos,
+                    TotalCount = paginatedSubscriptions.TotalCount,
+                    PageNumber = paginatedSubscriptions.PageNumber,
+                    PageSize = paginatedSubscriptions.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated subscriptions");
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<SubscriptionDto>> GetSubscriptionsByUserIdPaginatedAsync(int userId, PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedSubscriptions = await _repository.GetByUserIdAsync(userId, pagination);
+                var subscriptionDtos = _mapper.Map<IEnumerable<SubscriptionDto>>(paginatedSubscriptions.Data);
+                
+                return new PaginatedResponse<SubscriptionDto>
+                {
+                    Data = subscriptionDtos,
+                    TotalCount = paginatedSubscriptions.TotalCount,
+                    PageNumber = paginatedSubscriptions.PageNumber,
+                    PageSize = paginatedSubscriptions.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated subscriptions for user {UserId}", userId);
+                throw;
+            }
         }
     }
 }

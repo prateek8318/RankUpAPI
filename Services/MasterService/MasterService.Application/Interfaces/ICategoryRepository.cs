@@ -1,4 +1,5 @@
 using MasterService.Domain.Entities;
+using Common.DTOs;
 
 namespace MasterService.Application.Interfaces
 {
@@ -6,7 +7,9 @@ namespace MasterService.Application.Interfaces
     {
         Task<Category?> GetByIdAsync(int id);
         Task<IEnumerable<Category>> GetAllAsync();
+        Task<PaginatedResponse<Category>> GetAllAsync(PaginationRequest pagination);
         Task<IEnumerable<Category>> GetActiveAsync();
+        Task<PaginatedResponse<Category>> GetActiveAsync(PaginationRequest pagination);
         Task<IEnumerable<Category>> GetActiveByTypeAsync(string type);
         Task<Category> AddAsync(Category category);
         Task UpdateAsync(Category category);

@@ -1,16 +1,17 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Interfaces;
 using QuestionService.Domain.Entities;
 
 namespace QuestionService.Application.Services
 {
-    public class QuestionService
+    public class QuestionService : BaseService
     {
         private readonly IQuestionRepository _repository;
         private readonly IMapper _mapper;
 
-        public QuestionService(IQuestionRepository repository, IMapper mapper)
+        public QuestionService(IQuestionRepository repository, IMapper mapper, ILogger<QuestionService> logger) : base(logger)
         {
             _repository = repository;
             _mapper = mapper;
@@ -18,14 +19,19 @@ namespace QuestionService.Application.Services
 
         public async Task<QuestionDto> CreateAsync(CreateQuestionDto dto)
         {
-            var question = _mapper.Map<Question>(dto);
-            question.CreatedAt = DateTime.UtcNow;
-            question.IsActive = true;
+            return await ExecuteInTransactionAsync(
+                async () =>
+                {
+                    var question = _mapper.Map<Question>(dto);
+                    question.CreatedAt = DateTime.UtcNow;
+                    question.IsActive = true;
 
-            await _repository.AddAsync(question);
-            await _repository.SaveChangesAsync();
+                    await _repository.AddAsync(question);
+                    await _repository.SaveChangesAsync();
 
-            return _mapper.Map<QuestionDto>(question);
+                    return _mapper.Map<QuestionDto>(question);
+                },
+                "CreateQuestion");
         }
 
         public async Task<QuestionDto?> GetByIdAsync(int id)

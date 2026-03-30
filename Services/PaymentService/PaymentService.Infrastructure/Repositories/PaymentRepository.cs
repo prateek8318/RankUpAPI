@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PaymentService.Application.Interfaces;
 using PaymentService.Domain.Entities;
 using PaymentService.Infrastructure.Data;
+using Common.DTOs;
 
 namespace PaymentService.Infrastructure.Repositories
 {
@@ -51,6 +52,44 @@ namespace PaymentService.Infrastructure.Repositories
                 .FromSqlRaw("EXEC [dbo].[Payment_GetByUserId] @UserId", parameters)
                 .AsNoTracking()
                 .ToListAsync();
+        }
+
+        public async Task<PaginatedResponse<Payment>> GetAllAsync(PaginationRequest pagination)
+        {
+            var query = _context.Payments.AsNoTracking();
+            var totalCount = await query.CountAsync();
+            var data = await query
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToListAsync();
+
+            return new PaginatedResponse<Payment>
+            {
+                Data = data,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+        }
+
+        public async Task<PaginatedResponse<Payment>> GetByUserIdAsync(int userId, PaginationRequest pagination)
+        {
+            var query = _context.Payments
+                .AsNoTracking()
+                .Where(payment => payment.UserId == userId);
+            var totalCount = await query.CountAsync();
+            var data = await query
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToListAsync();
+
+            return new PaginatedResponse<Payment>
+            {
+                Data = data,
+                TotalCount = totalCount,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
         }
 
         public async Task<Payment> AddAsync(Payment payment)

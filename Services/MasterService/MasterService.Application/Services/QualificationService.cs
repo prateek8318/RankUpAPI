@@ -1,5 +1,6 @@
 using AutoMapper;
 using Common.Language;
+using Common.DTOs;
 using MasterService.Application.DTOs;
 using MasterService.Application.Helpers;
 using MasterService.Application.Interfaces;
@@ -9,108 +10,118 @@ using ILanguageDataService = Common.Language.ILanguageDataService;
 
 namespace MasterService.Application.Services
 {
-    public class QualificationService : IQualificationService
+    public class QualificationService : BaseService, IQualificationService
     {
         private readonly IQualificationRepository _qualificationRepository;
         private readonly IMapper _mapper;
         private readonly ILanguageDataService _languageDataService;
-        private readonly ILogger<QualificationService> _logger;
 
         public QualificationService(
             IQualificationRepository qualificationRepository, 
             IMapper mapper,
             ILanguageDataService languageDataService,
-            ILogger<QualificationService> logger)
+            ILogger<QualificationService> logger) : base(logger)
         {
             _qualificationRepository = qualificationRepository;
             _mapper = mapper;
             _languageDataService = languageDataService;
-            _logger = logger;
         }
 
         public async Task<QualificationDto> CreateQualificationAsync(CreateQualificationDto createDto)
         {
-            // Validate required fields
-            if (string.IsNullOrWhiteSpace(createDto.Name))
-            {
-                throw new ArgumentException("Qualification name is required and cannot be empty.");
-            }
-
-            var qualification = _mapper.Map<Qualification>(createDto);
-            qualification.CreatedAt = DateTime.UtcNow;
-            qualification.IsActive = true;
-            qualification.Description = createDto.Description;
-            qualification.NameHi = createDto.NameHi;
-
-            if (createDto.Names != null && createDto.Names.Any())
-            {
-                foreach (var langDto in createDto.Names)
+            return await ExecuteInTransactionAsync<QualificationDto>(
+                _qualificationRepository,
+                async () =>
                 {
-                    qualification.QualificationLanguages.Add(new QualificationLanguage
+                    // Validate required fields
+                    if (string.IsNullOrWhiteSpace(createDto.Name))
                     {
-                        LanguageId = langDto.LanguageId,
-                        Name = langDto.Name,
-                        Description = langDto.Description,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-            }
+                        throw new ArgumentException("Qualification name is required and cannot be empty.");
+                    }
 
-            var namesJson = LanguagePayloadSerializer.SerializeNames(
-                createDto.Names,
-                lang => new { lang.LanguageId, lang.Name, lang.Description });
+                    var qualification = _mapper.Map<Qualification>(createDto);
+                    qualification.CreatedAt = DateTime.UtcNow;
+                    qualification.IsActive = true;
+                    qualification.Description = createDto.Description;
+                    qualification.NameHi = createDto.NameHi;
 
-            await _qualificationRepository.AddAsync(qualification, namesJson);
-            await _qualificationRepository.SaveChangesAsync();
-            return (await GetQualificationByIdAsync(qualification.Id))!;
+                    if (createDto.Names != null && createDto.Names.Any())
+                    {
+                        foreach (var langDto in createDto.Names)
+                        {
+                            qualification.QualificationLanguages.Add(new QualificationLanguage
+                            {
+                                LanguageId = langDto.LanguageId,
+                                Name = langDto.Name,
+                                Description = langDto.Description,
+                                CreatedAt = DateTime.UtcNow,
+                                IsActive = true
+                            });
+                        }
+                    }
+
+                    var namesJson = LanguagePayloadSerializer.SerializeNames(
+                        createDto.Names,
+                        lang => new { lang.LanguageId, lang.Name, lang.Description });
+
+                    await _qualificationRepository.AddAsync(qualification, namesJson);
+                    await _qualificationRepository.SaveChangesAsync();
+                    return (await GetQualificationByIdAsync(qualification.Id))!;
+                },
+                "CreateQualification");
         }
 
         public async Task<QualificationDto?> UpdateQualificationAsync(int id, UpdateQualificationDto updateDto)
         {
-            var qualification = await _qualificationRepository.GetByIdAsync(id);
-            if (qualification == null)
-                return null;
-
-            // Validate required fields
-            if (string.IsNullOrWhiteSpace(updateDto.Name))
-            {
-                throw new ArgumentException("Qualification name is required and cannot be empty.");
-            }
-
-            qualification.Name = updateDto.Name;
-            qualification.Description = updateDto.Description;
-            qualification.CountryCode = updateDto.CountryCode;
-            qualification.NameHi = updateDto.NameHi;
-            qualification.UpdatedAt = DateTime.UtcNow;
-
-            if (updateDto.Names != null && updateDto.Names.Any())
-            {
-                var existingLanguages = qualification.QualificationLanguages.ToList();
-                foreach (var existingLang in existingLanguages)
+            return await ExecuteInTransactionAsync<QualificationDto?>(
+                _qualificationRepository,
+                async () =>
                 {
-                    qualification.QualificationLanguages.Remove(existingLang);
-                }
-                foreach (var langDto in updateDto.Names)
-                {
-                    qualification.QualificationLanguages.Add(new QualificationLanguage
+                    var qualification = await _qualificationRepository.GetByIdAsync(id);
+                    if (qualification == null)
+                        return null;
+
+                    // Validate required fields
+                    if (string.IsNullOrWhiteSpace(updateDto.Name))
                     {
-                        LanguageId = langDto.LanguageId,
-                        Name = langDto.Name,
-                        Description = langDto.Description,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-            }
+                        throw new ArgumentException("Qualification name is required and cannot be empty.");
+                    }
 
-            var namesJson = LanguagePayloadSerializer.SerializeNames(
-                updateDto.Names,
-                lang => new { lang.LanguageId, lang.Name, lang.Description });
+                    qualification.Name = updateDto.Name;
+                    qualification.Description = updateDto.Description;
+                    qualification.CountryCode = updateDto.CountryCode;
+                    qualification.NameHi = updateDto.NameHi;
+                    qualification.UpdatedAt = DateTime.UtcNow;
 
-            await _qualificationRepository.UpdateAsync(qualification, namesJson);
-            await _qualificationRepository.SaveChangesAsync();
-            return await GetQualificationByIdAsync(qualification.Id);
+                    if (updateDto.Names != null && updateDto.Names.Any())
+                    {
+                        var existingLanguages = qualification.QualificationLanguages.ToList();
+                        foreach (var existingLang in existingLanguages)
+                        {
+                            qualification.QualificationLanguages.Remove(existingLang);
+                        }
+                        foreach (var langDto in updateDto.Names)
+                        {
+                            qualification.QualificationLanguages.Add(new QualificationLanguage
+                            {
+                                LanguageId = langDto.LanguageId,
+                                Name = langDto.Name,
+                                Description = langDto.Description,
+                                CreatedAt = DateTime.UtcNow,
+                                IsActive = true
+                            });
+                        }
+                    }
+
+                    var namesJson = LanguagePayloadSerializer.SerializeNames(
+                        updateDto.Names,
+                        lang => new { lang.LanguageId, lang.Name, lang.Description });
+
+                    await _qualificationRepository.UpdateAsync(qualification, namesJson);
+                    await _qualificationRepository.SaveChangesAsync();
+                    return await GetQualificationByIdAsync(qualification.Id);
+                },
+                "UpdateQualification");
         }
 
         public async Task<bool> DeleteQualificationAsync(int id)
@@ -359,6 +370,51 @@ namespace MasterService.Application.Services
         public async Task<bool> ToggleQualificationStatusAsync(int id, bool isActive)
         {
             return await _qualificationRepository.SetActiveAsync(id, isActive);
+        }
+
+        // Pagination support methods
+        public async Task<PaginatedResponse<QualificationDto>> GetAllQualificationsPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedQualifications = await _qualificationRepository.GetAllAsync(pagination);
+                var qualificationDtos = paginatedQualifications.Data.Select(q => _mapper.Map<QualificationDto>(q));
+                
+                return new PaginatedResponse<QualificationDto>
+                {
+                    Data = qualificationDtos,
+                    TotalCount = paginatedQualifications.TotalCount,
+                    PageNumber = paginatedQualifications.PageNumber,
+                    PageSize = paginatedQualifications.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated qualifications");
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<QualificationDto>> GetActiveQualificationsPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                var paginatedQualifications = await _qualificationRepository.GetActiveAsync(pagination);
+                var qualificationDtos = paginatedQualifications.Data.Select(q => _mapper.Map<QualificationDto>(q));
+                
+                return new PaginatedResponse<QualificationDto>
+                {
+                    Data = qualificationDtos,
+                    TotalCount = paginatedQualifications.TotalCount,
+                    PageNumber = paginatedQualifications.PageNumber,
+                    PageSize = paginatedQualifications.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated active qualifications");
+                throw;
+            }
         }
 
         private QualificationDto MapToOptimizedQualificationDtoFromEntity(Domain.Entities.Qualification qualification, string language)

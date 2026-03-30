@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using PaymentService.Application.Interfaces;
 using PaymentService.Domain.Entities;
 using System.Data;
+using Common.DTOs;
 
 namespace PaymentService.Infrastructure.Repositories
 {
@@ -46,6 +47,30 @@ namespace PaymentService.Infrastructure.Repositories
                 var sql = "EXEC [dbo].[Payment_GetByUserId] @UserId";
                 return await connection.QueryAsync<Payment>(sql, new { UserId = userId });
             });
+        }
+
+        public async Task<PaginatedResponse<Payment>> GetAllAsync(PaginationRequest pagination)
+        {
+            var payments = (await GetAllAsync()).ToList();
+            return new PaginatedResponse<Payment>
+            {
+                Data = payments.Skip(pagination.Skip).Take(pagination.PageSize).ToList(),
+                TotalCount = payments.Count,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+        }
+
+        public async Task<PaginatedResponse<Payment>> GetByUserIdAsync(int userId, PaginationRequest pagination)
+        {
+            var payments = (await GetByUserIdAsync(userId)).ToList();
+            return new PaginatedResponse<Payment>
+            {
+                Data = payments.Skip(pagination.Skip).Take(pagination.PageSize).ToList(),
+                TotalCount = payments.Count,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
         }
 
         public async Task<Payment> AddAsync(Payment payment)
@@ -114,7 +139,7 @@ namespace PaymentService.Infrastructure.Repositories
 
         public async Task<int> SaveChangesAsync()
         {
-            throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
+            return await Task.FromResult(0);
         }
     }
 }

@@ -107,6 +107,13 @@ WHERE u.Id = @Id
                 await connection.QueryAsync<User>(sql, new { Page = page, PageSize = pageSize }));
         }
 
+        public async Task<IEnumerable<User>> GetActiveAsync(int page = 1, int pageSize = 50)
+        {
+            var sql = "EXEC [dbo].[User_GetActive] @Page, @PageSize";
+            return await WithConnectionAsync(async connection => 
+                await connection.QueryAsync<User>(sql, new { Page = page, PageSize = pageSize }));
+        }
+
         public async Task<int> GetTotalUsersCountAsync()
         {
             var sql = "EXEC [dbo].[User_GetTotalCount]";

@@ -3,6 +3,7 @@ using MasterService.Application.Interfaces;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using Common.DTOs;
 
 namespace MasterService.Infrastructure.Repositories
 {
@@ -64,6 +65,30 @@ namespace MasterService.Infrastructure.Repositories
                 await PopulateQualificationLanguagesAsync(connection, qualifications);
                 return qualifications;
             });
+        }
+
+        public async Task<PaginatedResponse<Qualification>> GetAllAsync(PaginationRequest pagination)
+        {
+            var qualifications = (await GetAllAsync()).ToList();
+            return new PaginatedResponse<Qualification>
+            {
+                Data = qualifications.Skip(pagination.Skip).Take(pagination.PageSize).ToList(),
+                TotalCount = qualifications.Count,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
+        }
+
+        public async Task<PaginatedResponse<Qualification>> GetActiveAsync(PaginationRequest pagination)
+        {
+            var qualifications = (await GetActiveAsync()).ToList();
+            return new PaginatedResponse<Qualification>
+            {
+                Data = qualifications.Skip(pagination.Skip).Take(pagination.PageSize).ToList(),
+                TotalCount = qualifications.Count,
+                PageNumber = pagination.PageNumber,
+                PageSize = pagination.PageSize
+            };
         }
 
         public async Task<IEnumerable<Qualification>> GetActiveLocalizedAsync(string? languageCode)

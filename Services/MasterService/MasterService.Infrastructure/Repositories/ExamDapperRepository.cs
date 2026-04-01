@@ -1,13 +1,14 @@
 using Dapper;
 using System.Data;
 using MasterService.Application.Interfaces;
+using MasterService.Application.Services;
 using MasterService.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Common.DTOs;
 
 namespace MasterService.Infrastructure.Repositories
 {
-    public class ExamDapperRepository : BaseDapperRepository, IExamRepository
+    public class ExamDapperRepository : BaseDapperRepository, IExamRepository, ITransactionRepository
     {
         public ExamDapperRepository(string connectionString, ILogger<ExamDapperRepository> logger) : base(connectionString, logger)
         {
@@ -261,10 +262,12 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
             await WithConnectionAsync(async connection =>
-                await connection.ExecuteAsync(
+            {
+                return await connection.ExecuteAsync(
                     "[dbo].[Exam_Create]",
                     parameters,
-                    commandType: CommandType.StoredProcedure));
+                    commandType: CommandType.StoredProcedure);
+            });
             
             if (parameters.Get<int>("@Id") > 0)
             {
@@ -302,10 +305,12 @@ namespace MasterService.Infrastructure.Repositories
             else
             {
                 await WithConnectionAsync(async connection =>
-                    await connection.ExecuteAsync(
+                {
+                    return await connection.ExecuteAsync(
                         "[dbo].[Exam_Create]",
                         parameters,
-                        commandType: CommandType.StoredProcedure));
+                        commandType: CommandType.StoredProcedure);
+                });
             }
             
             if (parameters.Get<int>("@Id") > 0)
@@ -332,11 +337,14 @@ namespace MasterService.Infrastructure.Repositories
             parameters.Add("@RelationsJson", relationsJson);
             parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
+            // WithTransactionAsync की जगह WithConnectionAsync use karo
             await WithConnectionAsync(async connection =>
-                await connection.ExecuteAsync(
+            {
+                return await connection.ExecuteAsync(
                     "[dbo].[Exam_Update]",
                     parameters,
-                    commandType: CommandType.StoredProcedure));
+                    commandType: CommandType.StoredProcedure);
+            });
         }
 
         public async Task UpdateAsync(Exam exam, string? namesJson = null, string? relationsJson = null, IDbTransaction? transaction = null)
@@ -357,6 +365,7 @@ namespace MasterService.Infrastructure.Repositories
 
             if (transaction != null)
             {
+                // ✅ Direct execution with provided transaction - no nested transaction
                 await transaction.Connection.ExecuteAsync(
                     "[dbo].[Exam_Update]",
                     parameters,
@@ -365,11 +374,14 @@ namespace MasterService.Infrastructure.Repositories
             }
             else
             {
+                // ✅ Use WithConnectionAsync instead of WithTransactionAsync
                 await WithConnectionAsync(async connection =>
-                    await connection.ExecuteAsync(
+                {
+                    return await connection.ExecuteAsync(
                         "[dbo].[Exam_Update]",
                         parameters,
-                        commandType: CommandType.StoredProcedure));
+                        commandType: CommandType.StoredProcedure);
+                });
             }
         }
 
@@ -428,6 +440,17 @@ namespace MasterService.Infrastructure.Repositories
         {
             _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(ExamDapperRepository));
             return await Task.FromResult(0);
+        }
+
+        // ITransactionRepository implementation
+        public async Task<T> ExecuteInTransactionAsync<T>(Func<IDbConnection, IDbTransaction, Task<T>> operation, string operationName)
+        {
+            return await WithTransactionAsync(operation, operationName);
+        }
+
+        public async Task ExecuteInTransactionAsync(Func<IDbConnection, IDbTransaction, Task> operation, string operationName)
+        {
+            await WithTransactionAsync(operation, operationName);
         }
     }
 }

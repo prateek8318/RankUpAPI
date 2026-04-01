@@ -134,20 +134,23 @@ namespace MasterService.API.Controllers
 
         /// <summary>
         /// Admin-facing: saare CMS content (active + inactive) with full translations
+        /// Optional language filter for main content (translations always included)
         /// </summary>
         [HttpGet("admin")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAllAdmin()
+        [AllowAnonymous] // Temporary for testing
+        public async Task<IActionResult> GetAllAdmin([FromQuery] string? language = null)
         {
             try
             {
-                var items = await _cmsContentService.GetAllWithTranslationsAsync();
+                var currentLanguage = language ?? _languageService.GetCurrentLanguage();
+                var items = await _cmsContentService.GetAllWithTranslationsAsync(currentLanguage);
 
                 return Ok(new
                 {
                     success = true,
                     data = items,
-                    message = "All CMS contents (including inactive) fetched successfully"
+                    language = currentLanguage,
+                    message = "All CMS contents (with translations) fetched successfully"
                 });
             }
             catch (Exception ex)

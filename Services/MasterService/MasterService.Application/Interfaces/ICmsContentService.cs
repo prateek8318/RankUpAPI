@@ -12,7 +12,7 @@ namespace MasterService.Application.Interfaces
         IReadOnlyList<string> GetAllowedKeys();
 
         // Admin side: create/update/delete
-        Task<IEnumerable<CmsContentDto>> GetAllWithTranslationsAsync();
+        Task<IEnumerable<CmsContentDto>> GetAllWithTranslationsAsync(string? language = null);
         Task<CmsContentDto> CreateAsync(CreateCmsContentDto createDto);
         Task<CmsContentDto?> UpdateAsync(int id, UpdateCmsContentDto updateDto);
         Task<bool> DeleteAsync(int id);

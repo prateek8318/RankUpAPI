@@ -1008,6 +1008,10 @@ GO
 -- Exam_Update
 IF OBJECT_ID('dbo.Exam_Update', 'P') IS NOT NULL DROP PROCEDURE dbo.Exam_Update;
 GO
+SET ANSI_NULLS ON;
+GO
+SET QUOTED_IDENTIFIER ON;
+GO
 CREATE PROCEDURE dbo.Exam_Update
     @Id          INT,
     @Name        NVARCHAR(150),

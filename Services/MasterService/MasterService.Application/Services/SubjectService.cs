@@ -66,9 +66,9 @@ namespace MasterService.Application.Services
 
         public async Task<SubjectDto> CreateSubjectAsync(CreateSubjectDto createSubjectDto)
         {
-            return await ExecuteInTransactionAsync<SubjectDto>(
+            return await ExecuteInTransactionAsync(
                 _subjectRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     var subject = new Subject
                     {
@@ -98,9 +98,9 @@ namespace MasterService.Application.Services
 
         public async Task<SubjectDto?> UpdateSubjectAsync(int id, UpdateSubjectDto updateSubjectDto)
         {
-            return await ExecuteInTransactionAsync<SubjectDto?>(
+            return await ExecuteInTransactionAsync(
                 _subjectRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     var existingSubject = await _subjectRepository.GetByIdAsync(id);
                     if (existingSubject == null)
@@ -141,9 +141,9 @@ namespace MasterService.Application.Services
 
         public async Task<bool> DeleteSubjectAsync(int id)
         {
-            return await ExecuteInTransactionAsync<bool>(
+            return await ExecuteInTransactionAsync(
                 _subjectRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     var subject = await _subjectRepository.GetByIdAsync(id);
                     if (subject == null)

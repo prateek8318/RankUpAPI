@@ -29,9 +29,9 @@ namespace MasterService.Application.Services
 
         public async Task<QualificationDto> CreateQualificationAsync(CreateQualificationDto createDto)
         {
-            return await ExecuteInTransactionAsync<QualificationDto>(
+            return await ExecuteInTransactionAsync(
                 _qualificationRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     // Validate required fields
                     if (string.IsNullOrWhiteSpace(createDto.Name))
@@ -73,9 +73,9 @@ namespace MasterService.Application.Services
 
         public async Task<QualificationDto?> UpdateQualificationAsync(int id, UpdateQualificationDto updateDto)
         {
-            return await ExecuteInTransactionAsync<QualificationDto?>(
+            return await ExecuteInTransactionAsync(
                 _qualificationRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     var qualification = await _qualificationRepository.GetByIdAsync(id);
                     if (qualification == null)

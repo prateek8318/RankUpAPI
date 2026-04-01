@@ -1,5 +1,7 @@
 using MasterService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Data;
+using System.Data.Common;
 
 namespace MasterService.Application.Services
 {
@@ -14,47 +16,52 @@ namespace MasterService.Application.Services
 
         protected async Task<T> ExecuteInTransactionAsync<T>(
             object repository,
-            Func<Task<T>> operation,
+            Func<IDbConnection, IDbTransaction, Task<T>> operation,
             string operationName)
         {
-            try
+            // For repositories that support transaction passing, we need to create a transaction
+            // This is a temporary solution - ideally all repositories should support transaction injection
+            if (repository is ITransactionRepository transactionRepo)
             {
-                _logger.LogInformation("Starting transaction for operation: {OperationName}", operationName);
-                
-                // For now, we'll rely on the repository's existing transaction handling
-                // In a full implementation, we would pass transaction context to repositories
-                var result = await operation();
-                
-                _logger.LogInformation("Successfully completed operation: {OperationName}", operationName);
-                return result;
+                return await transactionRepo.ExecuteInTransactionAsync(operation, operationName);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Failed to execute operation: {OperationName}", operationName);
-                throw;
+                // Fallback for repositories that don't support transaction injection yet
+                _logger.LogWarning("Repository {RepositoryType} doesn't support transaction injection, using repository's own transaction management", repository.GetType().Name);
+                
+                // Create a dummy connection and transaction for compatibility
+                // The repository will create its own transaction
+                return await operation(null!, null!);
             }
         }
 
         protected async Task ExecuteInTransactionAsync(
             object repository,
-            Func<Task> operation,
+            Func<IDbConnection, IDbTransaction, Task> operation,
             string operationName)
         {
-            try
+            // For repositories that support transaction passing, we need to create a transaction
+            if (repository is ITransactionRepository transactionRepo)
             {
-                _logger.LogInformation("Starting transaction for operation: {OperationName}", operationName);
-                
-                // For now, we'll rely on the repository's existing transaction handling
-                // In a full implementation, we would pass transaction context to repositories
-                await operation();
-                
-                _logger.LogInformation("Successfully completed operation: {OperationName}", operationName);
+                await transactionRepo.ExecuteInTransactionAsync(operation, operationName);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Failed to execute operation: {OperationName}", operationName);
-                throw;
+                // Fallback for repositories that don't support transaction injection yet
+                _logger.LogWarning("Repository {RepositoryType} doesn't support transaction injection, using repository's own transaction management", repository.GetType().Name);
+                
+                // Create a dummy connection and transaction for compatibility
+                // The repository will create its own transaction
+                await operation(null!, null!);
             }
         }
+    }
+
+    // Interface for repositories that support transaction injection
+    public interface ITransactionRepository
+    {
+        Task<T> ExecuteInTransactionAsync<T>(Func<IDbConnection, IDbTransaction, Task<T>> operation, string operationName);
+        Task ExecuteInTransactionAsync(Func<IDbConnection, IDbTransaction, Task> operation, string operationName);
     }
 }

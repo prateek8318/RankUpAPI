@@ -26,7 +26,7 @@ namespace MasterService.Application.Services
         {
             return await ExecuteInTransactionAsync(
                 _examRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     var exam = _mapper.Map<Exam>(createDto);
                     exam.CreatedAt = DateTime.UtcNow;
@@ -84,7 +84,7 @@ namespace MasterService.Application.Services
         {
             return await ExecuteInTransactionAsync(
                 _examRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     var exam = await _examRepository.GetByIdAsync(id);
                     if (exam == null)
@@ -150,7 +150,8 @@ namespace MasterService.Application.Services
                         exam.ExamQualifications,
                         relation => new { relation.QualificationId, relation.StreamId });
 
-                    await _examRepository.UpdateAsync(exam, namesJson, relationsJson);
+                    // Use the UpdateAsync method that accepts transaction
+                    await _examRepository.UpdateAsync(exam, namesJson, relationsJson, transaction);
                     await _examRepository.SaveChangesAsync();
                     return await GetExamByIdAsync(exam.Id);
                 },
@@ -220,12 +221,14 @@ namespace MasterService.Application.Services
                 
                 var exams = await _examRepository.GetActiveLocalizedAsync(normalizedLanguage);
                 var examList = exams
-                    .Select(e => MapToOptimizedExamDto(e, normalizedLanguage))
+                    .Select(e => MapToExamDto(e, normalizedLanguage))
                     .ToList();
 
                 if (!examList.Any())
                 {
-                    return await GetDefaultExamsOptimized(normalizedLanguage);
+                    // Fallback to non-localized data if no localized data found
+                    var fallbackExams = await _examRepository.GetActiveAsync();
+                    return fallbackExams.Select(e => MapToExamDto(e)).ToList();
                 }
 
                 return examList;
@@ -241,7 +244,7 @@ namespace MasterService.Application.Services
         {
             var exams = await _examRepository.GetActiveAsync();
             var dtos = exams.OrderBy(e => e.Name)
-                .Select(e => _mapper.Map<ExamDto>(e))
+                .Select(e => MapToExamDto(e))
                 .ToList();
 
             // Populate QualificationIds and StreamIds for all exams
@@ -275,7 +278,7 @@ namespace MasterService.Application.Services
         {
             var exams = await _examRepository.GetByFilterAsync(countryCode, qualificationId, streamId, minAge, maxAge);
             var dtos = exams.OrderBy(e => e.Name)
-                .Select(e => _mapper.Map<ExamDto>(e))
+                .Select(e => MapToExamDto(e))
                 .ToList();
 
             // Populate QualificationIds and StreamIds for all exams
@@ -311,7 +314,15 @@ namespace MasterService.Application.Services
             {
                 var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
                 var exams = await _examRepository.GetByFilterLocalizedAsync(normalizedLanguage, countryCode, qualificationId, streamId, minAge, maxAge);
-                var list = exams.Select(e => MapToOptimizedExamDto(e, normalizedLanguage)).ToList();
+                var list = exams.Select(e => MapToExamDto(e, normalizedLanguage)).ToList();
+                
+                if (!list.Any())
+                {
+                    // Fallback to non-localized filter if no localized data found
+                    var fallbackExams = await _examRepository.GetByFilterAsync(countryCode, qualificationId, streamId, minAge, maxAge);
+                    return fallbackExams.Select(e => MapToExamDto(e)).ToList();
+                }
+                
                 return list;
             }
             catch (Exception ex)
@@ -334,14 +345,22 @@ namespace MasterService.Application.Services
                 {
                     var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
                     var exams = await _examRepository.GetAllIncludingInactiveLocalizedAsync(normalizedLanguage);
-                    var list = exams.Select(e => MapToOptimizedExamDto(e, normalizedLanguage)).ToList();
+                    var list = exams.Select(e => MapToExamDto(e, normalizedLanguage)).ToList();
+                    
+                    if (!list.Any())
+                    {
+                        // Fallback to non-localized data if no localized data found
+                        var fallbackExams = await _examRepository.GetAllIncludingInactiveAsync();
+                        return fallbackExams.Select(e => MapToExamDto(e)).ToList();
+                    }
+                    
                     return list;
                 }
                 else if (languageId.HasValue)
                 {
                     var exams = await _examRepository.GetAllIncludingInactiveAsync();
                     var dtos = exams.OrderBy(e => e.Name)
-                        .Select(e => _mapper.Map<ExamDto>(e))
+                        .Select(e => MapToExamDto(e))
                         .ToList();
 
                     // Populate QualificationIds and StreamIds for all exams
@@ -374,7 +393,7 @@ namespace MasterService.Application.Services
                 {
                     var exams = await _examRepository.GetAllIncludingInactiveAsync();
                     var dtos = exams.OrderBy(e => e.Name)
-                        .Select(e => _mapper.Map<ExamDto>(e))
+                        .Select(e => MapToExamDto(e))
                         .ToList();
 
                     // Populate QualificationIds and StreamIds for all exams
@@ -422,29 +441,41 @@ namespace MasterService.Application.Services
             }
         }
 
-        private ExamDto MapToOptimizedExamDto(Exam exam, string language)
+        private ExamDto MapToExamDto(Exam exam, string? language = null)
         {
-            var useHindi = language == LanguageConstants.Hindi;
+            // Convert full URLs to relative paths
+            var imageUrl = exam.ImageUrl;
+            if (!string.IsNullOrEmpty(imageUrl) && (imageUrl.StartsWith("http://") || imageUrl.StartsWith("https://")))
+            {
+                // Extract just the path from full URL
+                var uri = new Uri(imageUrl);
+                imageUrl = uri.PathAndQuery;
+            }
 
-            // For now, use the main Name field since Exam doesn't have NameEn/NameHi
-            // This can be enhanced later to support NameEn/NameHi like Category
-            var localizedName = exam.Name;
+            // Map exam languages to DTOs
+            var names = exam.ExamLanguages?.Select(el => new ExamLanguageDto
+            {
+                LanguageId = el.LanguageId,
+                Name = el.Name,
+                Description = el.Description
+            }).ToList() ?? new List<ExamLanguageDto>();
 
             return new ExamDto
             {
                 Id = exam.Id,
-                Name = localizedName,
+                Name = exam.Name,
                 Description = exam.Description,
                 CountryCode = exam.CountryCode,
                 MinAge = exam.MinAge,
                 MaxAge = exam.MaxAge,
-                ImageUrl = exam.ImageUrl,
+                ImageUrl = imageUrl,
                 IsInternational = exam.IsInternational,
                 IsActive = exam.IsActive,
                 CreatedAt = exam.CreatedAt,
                 UpdatedAt = exam.UpdatedAt,
                 QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>(),
-                StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>()
+                StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>(),
+                Names = names
             };
         }
 
@@ -485,6 +516,13 @@ namespace MasterService.Application.Services
                     var imageUrl = element.TryGetProperty("imageUrl", out var imgProp) ? imgProp.GetString() : null;
                     var isInternational = element.TryGetProperty("isInternational", out var intProp) ? intProp.GetBoolean() : false;
 
+                    // Convert full URLs to relative paths
+                    if (!string.IsNullOrEmpty(imageUrl) && (imageUrl.StartsWith("http://") || imageUrl.StartsWith("https://")))
+                    {
+                        var uri = new Uri(imageUrl);
+                        imageUrl = uri.PathAndQuery;
+                    }
+
                     return new ExamDto
                     {
                         Id = id,
@@ -495,7 +533,8 @@ namespace MasterService.Application.Services
                         MaxAge = maxAge,
                         ImageUrl = imageUrl,
                         IsInternational = isInternational,
-                        IsActive = true
+                        IsActive = true,
+                        Names = new List<ExamLanguageDto>() // Initialize empty names array
                     };
                 }
 
@@ -503,6 +542,15 @@ namespace MasterService.Application.Services
                 if (item is System.Dynamic.ExpandoObject expando)
                 {
                     var dict = (IDictionary<string, object>)expando;
+                    var imageUrl = dict.ContainsKey("imageUrl") ? dict["imageUrl"]?.ToString() : null;
+                    
+                    // Convert full URLs to relative paths
+                    if (!string.IsNullOrEmpty(imageUrl) && (imageUrl.StartsWith("http://") || imageUrl.StartsWith("https://")))
+                    {
+                        var uri = new Uri(imageUrl);
+                        imageUrl = uri.PathAndQuery;
+                    }
+                    
                     return new ExamDto
                     {
                         Id = dict.ContainsKey("id") ? Convert.ToInt32(dict["id"]) : 0,
@@ -511,19 +559,20 @@ namespace MasterService.Application.Services
                         CountryCode = dict.ContainsKey("countryCode") ? dict["countryCode"]?.ToString() : null,
                         MinAge = dict.ContainsKey("minAge") ? Convert.ToInt32(dict["minAge"]) : (int?)null,
                         MaxAge = dict.ContainsKey("maxAge") ? Convert.ToInt32(dict["maxAge"]) : (int?)null,
-                        ImageUrl = dict.ContainsKey("imageUrl") ? dict["imageUrl"]?.ToString() : null,
+                        ImageUrl = imageUrl,
                         IsInternational = dict.ContainsKey("isInternational") ? Convert.ToBoolean(dict["isInternational"]) : false,
-                        IsActive = true
+                        IsActive = true,
+                        Names = new List<ExamLanguageDto>() // Initialize empty names array
                     };
                 }
 
                 _logger.LogWarning("Unsupported exam item type: {ItemType}", item?.GetType());
-                return new ExamDto { IsActive = true };
+                return new ExamDto { IsActive = true, Names = new List<ExamLanguageDto>() };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error mapping exam item: {Item}", item);
-                return new ExamDto { IsActive = true };
+                return new ExamDto { IsActive = true, Names = new List<ExamLanguageDto>() };
             }
         }
     }

@@ -26,9 +26,9 @@ namespace MasterService.Application.Services
 
         public async Task<StreamDto> CreateStreamAsync(CreateStreamDto createDto)
         {
-            return await ExecuteInTransactionAsync<StreamDto>(
+            return await ExecuteInTransactionAsync(
                 _streamRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     var stream = _mapper.Map<StreamEntity>(createDto);
                     stream.CreatedAt = DateTime.UtcNow;
@@ -62,9 +62,9 @@ namespace MasterService.Application.Services
 
         public async Task<StreamDto?> UpdateStreamAsync(int id, UpdateStreamDto updateDto)
         {
-            return await ExecuteInTransactionAsync<StreamDto?>(
+            return await ExecuteInTransactionAsync(
                 _streamRepository,
-                async () =>
+                async (connection, transaction) =>
                 {
                     var stream = await _streamRepository.GetByIdAsync(id);
                     if (stream == null)

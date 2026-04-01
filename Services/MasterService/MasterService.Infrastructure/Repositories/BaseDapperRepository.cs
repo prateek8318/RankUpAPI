@@ -21,8 +21,15 @@ namespace MasterService.Infrastructure.Repositories
         protected IDbConnection GetConnection()
         {
             var connection = new SqlConnection(_connectionString);
-            // Set QUOTED_IDENTIFIER ON for this connection
             connection.StatisticsEnabled = false;
+            
+            connection.Open();
+            
+            // ✅ Connection level pe SET — transaction se pehle
+            using var command = connection.CreateCommand();
+            command.CommandText = "SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON;";
+            command.ExecuteNonQuery();
+            
             return connection;
         }
 
@@ -33,6 +40,10 @@ namespace MasterService.Infrastructure.Repositories
                 if (connection is DbConnection dbConnection)
                 {
                     await dbConnection.OpenAsync();
+                    // ✅ Connection open hone ke baad, transaction se pehle SET karo
+                    using var command = dbConnection.CreateCommand();
+                    command.CommandText = "SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON;";
+                    command.ExecuteNonQuery();
                 }
                 else
                 {
@@ -84,9 +95,15 @@ namespace MasterService.Infrastructure.Repositories
             try
             {
                 await EnsureOpenAsync(connection);
+                
+                // ✅ Transaction se PEHLE — yahi ek jagah SET karna zaroori hai
+                await connection.ExecuteAsync("SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON;");
+                
                 using var transaction = connection.BeginTransaction();
                 try
                 {
+                    // ❌ Yahan se transaction wala SET command bilkul hatao
+                    
                     _logger?.LogDebug("Executing transaction {Repository}.{Operation}", GetType().Name, operationName);
                     var result = await operation(connection, transaction);
                     transaction.Commit();
@@ -113,9 +130,15 @@ namespace MasterService.Infrastructure.Repositories
             try
             {
                 await EnsureOpenAsync(connection);
+                
+                // ✅ Transaction se PEHLE — yahi ek jagah SET karna zaroori hai
+                await connection.ExecuteAsync("SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON;");
+                
                 using var transaction = connection.BeginTransaction();
                 try
                 {
+                    // ❌ Yahan se transaction wala SET command bilkul hatao
+                    
                     _logger?.LogDebug("Executing transaction {Repository}.{Operation}", GetType().Name, operationName);
                     await operation(connection, transaction);
                     transaction.Commit();

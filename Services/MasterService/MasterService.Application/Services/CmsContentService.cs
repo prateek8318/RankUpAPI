@@ -81,12 +81,13 @@ namespace MasterService.Application.Services
             }
         }
 
-        public async Task<IEnumerable<CmsContentDto>> GetAllWithTranslationsAsync()
+        public async Task<IEnumerable<CmsContentDto>> GetAllWithTranslationsAsync(string? language = null)
         {
             try
             {
+                var normalizedLang = LanguageValidator.NormalizeLanguage(language ?? LanguageConstants.English);
                 var items = await _repository.GetAllAsync();
-                return items.Select(i => MapToDto(i, LanguageConstants.English, includeTranslations: true)).ToList();
+                return items.Select(i => MapToDto(i, normalizedLang, includeTranslations: true)).ToList();
             }
             catch (Exception ex)
             {

@@ -184,11 +184,9 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Enable Swagger in all environments for testing
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // Disable HTTPS redirection in development to avoid 307 redirects
 // app.UseHttpsRedirection();

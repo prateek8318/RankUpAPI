@@ -172,11 +172,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Enable Swagger in all environments for testing
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // Remove HTTPS redirection for development to avoid CORS issues
 if (!app.Environment.IsDevelopment())

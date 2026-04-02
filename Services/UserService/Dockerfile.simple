@@ -1,0 +1,20 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /app
+
+# Copy project file and restore
+COPY ["Services/UserService/UserService.API/UserService.API.csproj", "."]
+RUN dotnet restore "UserService.API.csproj"
+
+# Copy all source files
+COPY . .
+
+# Build and publish
+WORKDIR "/app/Services/UserService/UserService.API"
+RUN dotnet publish "UserService.API.csproj" -c Release -o /app/out
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+COPY --from=build /app/out .
+ENTRYPOINT ["dotnet", "UserService.API.dll"]

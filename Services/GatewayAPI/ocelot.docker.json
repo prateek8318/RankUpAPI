@@ -36,6 +36,14 @@
       "DownstreamPathTemplate": "/api/admin/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/auth/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
       "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }

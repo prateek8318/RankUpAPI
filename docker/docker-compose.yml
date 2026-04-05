@@ -9,21 +9,17 @@ services:
     container_name: rankup-sqlserver
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "RankUp@ProdPass2026"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-RankUp@ProdPass2026}"
       MSSQL_PID: "Developer"
     ports:
-      - "7648:1433"
+      - "7864:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     networks:
       - rankup-network
 
-networks:
-  rankup-network:
-    driver: bridge
 
-volumes:
-  sqlserver-data:
+
   # ---------------------------------------------------------------------------
   # API Gateway (Ocelot) - single entry point
   # ---------------------------------------------------------------------------
@@ -197,6 +193,7 @@ volumes:
       - rankup-network
     restart: unless-stopped
 
+# ✅ OUTSIDE services
 networks:
   rankup-network:
     driver: bridge

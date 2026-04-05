@@ -15,4 +15,11 @@
     <ProjectReference Include="..\..\Common\Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="ocelot*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

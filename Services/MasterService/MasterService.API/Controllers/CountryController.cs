@@ -258,6 +258,18 @@ namespace MasterService.API.Controllers
             }
         }
 
+        [HttpPut]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> UpdateCountryWithoutRouteId([FromForm] UpdateCountryWithImageDto updateDto)
+        {
+            if (updateDto.Id <= 0)
+            {
+                return BadRequest(new { success = false, message = "Country ID is required in request body/form data." });
+            }
+
+            return await UpdateCountry(updateDto.Id, updateDto);
+        }
+
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<object>> DeleteCountry(int id)

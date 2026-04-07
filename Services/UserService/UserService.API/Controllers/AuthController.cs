@@ -161,7 +161,7 @@ namespace UserService.API.Controllers
                                            !string.IsNullOrWhiteSpace(userDto.ProfilePhoto) &&
                                            userDto.ExamId.HasValue &&
                                            userDto.InterestedInIntlExam,
-                    ["phoneNumber"] = fullPhoneNumber,
+                    ["phoneNumber"] = request.MobileNumber,
                     ["isPhoneVerified"] = true,  // OTP verification means phone is verified
                     ["user"] = userDto  // Include user data with last login time
                 };

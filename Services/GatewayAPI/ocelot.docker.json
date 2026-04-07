@@ -57,6 +57,13 @@
       "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
+      "DownstreamPathTemplate": "/uploads/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/uploads/{everything}",
+      "UpstreamHttpMethod": ["GET"]
+    },
+    {
       "DownstreamPathTemplate": "/api/qualifications",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],

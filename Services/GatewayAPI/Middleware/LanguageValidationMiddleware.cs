@@ -6,6 +6,12 @@ namespace GatewayAPI.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<LanguageValidationMiddleware> _logger;
+        private static readonly string[] ExcludedPathPrefixes =
+        {
+            "/uploads",
+            "/api/users/auth",
+            "/api/admin/auth"
+        };
 
         public LanguageValidationMiddleware(RequestDelegate next, ILogger<LanguageValidationMiddleware> logger)
         {
@@ -15,6 +21,12 @@ namespace GatewayAPI.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
+            if (ShouldSkipValidation(context.Request))
+            {
+                await _next(context);
+                return;
+            }
+
             var languageHeader = context.Request.Headers[LanguageConstants.AcceptLanguageHeader].FirstOrDefault();
             
             if (!string.IsNullOrWhiteSpace(languageHeader))
@@ -35,6 +47,19 @@ namespace GatewayAPI.Middleware
             }
             
             await _next(context);
+        }
+
+        private static bool ShouldSkipValidation(HttpRequest request)
+        {
+            if (HttpMethods.IsOptions(request.Method))
+                return true;
+
+            var path = request.Path.Value;
+            if (string.IsNullOrWhiteSpace(path))
+                return true;
+
+            return ExcludedPathPrefixes.Any(prefix =>
+                path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
         }
     }
 

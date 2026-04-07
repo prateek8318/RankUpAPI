@@ -27,7 +27,7 @@ namespace UserService.Application.Services
             var user = await _userRepository.GetUserEntityByIdAsync(userId);
             if (user == null) return null;
             
-            var userDto = _mapper.Map<UserDto>(user);
+            var userDto = MapToResponseDto(user);
             
             // Set IST times
             userDto.CreatedAtIST = user.CreatedAt.AddHours(5.5);
@@ -125,7 +125,7 @@ namespace UserService.Application.Services
 
 
 
-            var userDto = _mapper.Map<UserDto>(user);
+            var userDto = MapToResponseDto(user);
 
             userDto.IsNewUser = isNewUser;
 
@@ -236,7 +236,7 @@ namespace UserService.Application.Services
 
 
 
-            return _mapper.Map<UserDto>(user);
+            return MapToResponseDto(user);
 
         }
 
@@ -343,7 +343,7 @@ namespace UserService.Application.Services
 
 
 
-            return _mapper.Map<UserDto>(user);
+            return MapToResponseDto(user);
 
         }
 
@@ -476,7 +476,7 @@ namespace UserService.Application.Services
 
 
 
-            return _mapper.Map<UserDto>(user);
+            return MapToResponseDto(user);
 
         }
 
@@ -488,7 +488,7 @@ namespace UserService.Application.Services
 
             var users = await _userRepository.GetAllAsync(page, pageSize);
 
-            return users.Select(u => _mapper.Map<UserDto>(u));
+            return users.Select(MapToResponseDto);
 
         }
 
@@ -521,7 +521,7 @@ namespace UserService.Application.Services
                 var totalCount = await _userRepository.GetTotalUsersCountAsync();
                 var userDtos = users.Select(u =>
                 {
-                    var userDto = _mapper.Map<UserDto>(u);
+                    var userDto = MapToResponseDto(u);
                     // Set IST times
                     userDto.CreatedAtIST = u.CreatedAt.AddHours(5.5);
                     if (u.LastLoginAt.HasValue)
@@ -552,7 +552,7 @@ namespace UserService.Application.Services
                 var totalCount = await _userRepository.GetTotalUsersCountAsync();
                 var userDtos = users.Select(u =>
                 {
-                    var userDto = _mapper.Map<UserDto>(u);
+                    var userDto = MapToResponseDto(u);
                     // Set IST times
                     userDto.CreatedAtIST = u.CreatedAt.AddHours(5.5);
                     if (u.LastLoginAt.HasValue)
@@ -573,6 +573,30 @@ namespace UserService.Application.Services
                 _logger.LogError(ex, "Error getting paginated active users");
                 throw;
             }
+        }
+
+        private UserDto MapToResponseDto(User user)
+        {
+            var userDto = _mapper.Map<UserDto>(user);
+            userDto.PhoneNumber = GetLocalPhoneNumber(userDto.PhoneNumber, userDto.CountryCode);
+            return userDto;
+        }
+
+        private static string GetLocalPhoneNumber(string? phoneNumber, string? countryCode)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                return string.Empty;
+
+            var normalizedPhoneNumber = phoneNumber.Trim();
+            var normalizedCountryCode = countryCode?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(normalizedCountryCode) &&
+                normalizedPhoneNumber.StartsWith(normalizedCountryCode, StringComparison.Ordinal))
+            {
+                return normalizedPhoneNumber[normalizedCountryCode.Length..];
+            }
+
+            return normalizedPhoneNumber;
         }
 
     }

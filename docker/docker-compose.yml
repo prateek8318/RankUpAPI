@@ -12,7 +12,7 @@ services:
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-RankUp@ProdPass2026}"
       MSSQL_PID: "Developer"
     ports:
-      - "7864:1433"
+      - "${MSSQL_PORT:-7864}:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     networks:
@@ -54,7 +54,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__UserServiceConnection: "Server=sqlserver;Database=RankUp_UserDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__UserServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${USERSERVICE_DB_NAME:-RankUp_UserDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:
@@ -69,7 +69,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__ExamServiceConnection: "Server=sqlserver;Database=RankUp_ExamDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__ExamServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${EXAMSERVICE_DB_NAME:-RankUp_ExamDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:
@@ -84,7 +84,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__AdminServiceConnection: "Server=sqlserver;Database=RankUp_AdminDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__AdminServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${ADMINSERVICE_DB_NAME:-RankUp_AdminDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:
@@ -99,7 +99,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__MasterServiceConnection: "Server=sqlserver;Database=RankUp_MasterDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__MasterServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${MASTERSERVICE_DB_NAME:-RankUp_MasterDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:
@@ -114,7 +114,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__QuestionServiceConnection: "Server=sqlserver;Database=RankUp_QuestionDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__QuestionServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${QUESTIONSERVICE_DB_NAME:-RankUp_QuestionDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:
@@ -129,7 +129,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__QuizServiceConnection: "Server=sqlserver;Database=RankUp_QuizDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__QuizServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${QUIZSERVICE_DB_NAME:-RankUp_QuizDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:
@@ -144,7 +144,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__SubscriptionServiceConnection: "Server=sqlserver;Database=RankUp_SubscriptionDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__SubscriptionServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${SUBSCRIPTIONSERVICE_DB_NAME:-RankUp_SubscriptionDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:
@@ -159,7 +159,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
-      ConnectionStrings__PaymentServiceConnection: "Server=sqlserver;Database=RankUp_PaymentDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
+      ConnectionStrings__PaymentServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${PAYMENTSERVICE_DB_NAME:-RankUp_PaymentDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - sqlserver
     networks:
@@ -174,6 +174,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__HomeDashboardServiceConnection: "Server=${DB_SERVER:-sqlserver};Database=${HOMEDASHBOARDSERVICE_DB_NAME:-RankUp_HomeDashboardDB};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;"
     depends_on:
       - userservice
       - examservice
@@ -189,6 +190,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__DefaultConnection: "Server=${DB_SERVER:-sqlserver};Database=${TESTSERVICE_DB_NAME:-RankUpAPI_TestService};User Id=${DB_USER:-sa};Password=${DB_PASSWORD:-RankUp@SecurePass1};TrustServerCertificate=True;MultipleActiveResultSets=true"
     networks:
       - rankup-network
     restart: unless-stopped

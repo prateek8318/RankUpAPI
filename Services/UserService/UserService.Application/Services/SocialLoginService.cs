@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -34,7 +35,11 @@ namespace UserService.Application.Services
         {
             try
             {
-                _logger.LogInformation($"SocialLogin request received: Email={request.Email}, Name={request.Name}, GoogleId={request.GoogleId}");
+                var sanitizedGoogleId = NormalizeGoogleId(request.GoogleId);
+                var normalizedPhoneNumber = NormalizePhoneNumber(request.MobileNumber);
+                var normalizedFullPhoneNumber = BuildFullPhoneNumber(normalizedPhoneNumber);
+
+                _logger.LogInformation($"SocialLogin request received: Email={request.Email}, Name={request.Name}, GoogleId={sanitizedGoogleId}");
 
                 // ✅ Early validation - DB tak null email pahunchne se rokho
                 if (string.IsNullOrWhiteSpace(request.Email))
@@ -48,17 +53,17 @@ namespace UserService.Application.Services
                 }
 
                 // GoogleId is optional - allow null/empty values
-                if (!string.IsNullOrWhiteSpace(request.GoogleId) && request.GoogleId != "google")
+                if (!string.IsNullOrWhiteSpace(sanitizedGoogleId))
                 {
-                    _logger.LogInformation($"Valid GoogleId provided: {request.GoogleId}");
+                    _logger.LogInformation($"Valid GoogleId provided: {sanitizedGoogleId}");
                 }
 
                 // Use GoogleId as primary identifier if available, fallback to email lookup (skip placeholder values)
                 UserSocialLogin? existingSocialLogin = null;
-                if (!string.IsNullOrEmpty(request.GoogleId) && request.GoogleId != "google")
+                if (!string.IsNullOrEmpty(sanitizedGoogleId))
                 {
                     existingSocialLogin = await _socialLoginRepository.GetByProviderAndGoogleIdAsync(
-                        "Google", request.GoogleId ?? string.Empty);
+                        "Google", sanitizedGoogleId);
                 }
 
                 if (existingSocialLogin != null)
@@ -77,7 +82,7 @@ namespace UserService.Application.Services
                     if (!string.Equals(user.Email, request.Email, StringComparison.OrdinalIgnoreCase))
                     {
                         // Email changed, treat as new user - go to email lookup flow
-                        _logger.LogInformation($"Email mismatch for GoogleId {request.GoogleId}. Existing: {user.Email}, Requested: {request.Email}. Treating as new user.");
+                        _logger.LogInformation($"Email mismatch for GoogleId {sanitizedGoogleId}. Existing: {user.Email}, Requested: {request.Email}. Treating as new user.");
                         
                         // Update the existing social login with new email and proceed with new user flow
                         existingSocialLogin.Email = request.Email;
@@ -94,8 +99,11 @@ namespace UserService.Application.Services
                         user.Name = request.Name;
                         
                         // Update phone number if provided
-                        if (!string.IsNullOrWhiteSpace(request.MobileNumber))
-                            user.PhoneNumber = request.MobileNumber;
+                        if (!string.IsNullOrWhiteSpace(normalizedFullPhoneNumber))
+                        {
+                            user.PhoneNumber = normalizedFullPhoneNumber;
+                            user.CountryCode = DefaultCountryCode;
+                        }
                         
                         user.LastLoginAt = DateTime.UtcNow;
                         user.UpdatedAt = DateTime.UtcNow;
@@ -142,8 +150,11 @@ namespace UserService.Application.Services
                     user.UpdatedAt = DateTime.UtcNow;
                     
                     // Update phone number if provided
-                    if (!string.IsNullOrWhiteSpace(request.MobileNumber))
-                        user.PhoneNumber = request.MobileNumber;
+                    if (!string.IsNullOrWhiteSpace(normalizedFullPhoneNumber))
+                    {
+                        user.PhoneNumber = normalizedFullPhoneNumber;
+                        user.CountryCode = DefaultCountryCode;
+                    }
                     
                     // Update device information if provided
                     if (!string.IsNullOrWhiteSpace(request.DeviceId))
@@ -173,14 +184,14 @@ namespace UserService.Application.Services
                 }
                 else
                 {
-                    var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+                    var existingUser = await FindExistingUserForSocialLoginAsync(request.Email, normalizedPhoneNumber, normalizedFullPhoneNumber);
 
                     if (existingUser != null)
                     {
                         var socialLoginRequest = new SocialLoginRequestDto
                         {
                             Provider = "Google",
-                            GoogleId = request.GoogleId,
+                            GoogleId = sanitizedGoogleId,
                             Email = request.Email,
                             Name = request.Name,
                             AvatarUrl = request.AvatarUrl,
@@ -205,8 +216,11 @@ namespace UserService.Application.Services
                         existingUser.UpdatedAt = DateTime.UtcNow;
                         
                         // Update phone number if provided
-                        if (!string.IsNullOrWhiteSpace(request.MobileNumber))
-                            existingUser.PhoneNumber = request.MobileNumber;
+                        if (!string.IsNullOrWhiteSpace(normalizedFullPhoneNumber))
+                        {
+                            existingUser.PhoneNumber = normalizedFullPhoneNumber;
+                            existingUser.CountryCode = DefaultCountryCode;
+                        }
                         
                         // Update device information if provided
                         if (!string.IsNullOrWhiteSpace(request.DeviceId))
@@ -240,7 +254,8 @@ namespace UserService.Application.Services
                             Email = request.Email,
                             Name = request.Name,
                             ProfilePhoto = request.AvatarUrl,
-                            PhoneNumber = !string.IsNullOrWhiteSpace(request.MobileNumber) ? request.MobileNumber : null, // Use provided mobile number or null
+                            PhoneNumber = normalizedFullPhoneNumber,
+                            CountryCode = DefaultCountryCode,
                             IsPhoneVerified = false,
                             IsActive = true,
                             CreatedAt = DateTime.UtcNow,
@@ -261,7 +276,7 @@ namespace UserService.Application.Services
                         var socialLoginRequest = new SocialLoginRequestDto
                         {
                             Provider = "Google",
-                            GoogleId = request.GoogleId,
+                            GoogleId = sanitizedGoogleId,
                             Email = request.Email,
                             Name = request.Name,
                             AvatarUrl = request.AvatarUrl,
@@ -311,7 +326,7 @@ namespace UserService.Application.Services
                 {
                     UserId = userId,
                     Provider = "Google",
-                    GoogleId = request.GoogleId == "google" ? null : request.GoogleId,
+                    GoogleId = NormalizeGoogleId(request.GoogleId),
                     Email = request.Email,
                     Name = request.Name,
                     // AvatarUrl = request.AvatarUrl,
@@ -385,6 +400,74 @@ namespace UserService.Application.Services
             return true;
         }
 
+        private const string DefaultCountryCode = "+91";
+
+        private async Task<User?> FindExistingUserForSocialLoginAsync(string? email, string? normalizedPhoneNumber, string? normalizedFullPhoneNumber)
+        {
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var existingByEmail = await _userRepository.GetByEmailAsync(email);
+                if (existingByEmail != null)
+                    return existingByEmail;
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedFullPhoneNumber))
+            {
+                var existingByFullPhone = await _userRepository.GetByPhoneNumberAsync(normalizedFullPhoneNumber);
+                if (existingByFullPhone != null)
+                    return existingByFullPhone;
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedPhoneNumber))
+            {
+                var existingByLocalPhone = await _userRepository.GetByPhoneNumberAsync(normalizedPhoneNumber);
+                if (existingByLocalPhone != null)
+                    return existingByLocalPhone;
+            }
+
+            return null;
+        }
+
+        private static string? NormalizeGoogleId(string? googleId)
+        {
+            if (string.IsNullOrWhiteSpace(googleId))
+                return null;
+
+            var normalized = googleId.Trim();
+            if (normalized.Equals("google", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("null", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("undefined", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("none", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return normalized;
+        }
+
+        private static string? NormalizePhoneNumber(string? mobileNumber)
+        {
+            if (string.IsNullOrWhiteSpace(mobileNumber))
+                return null;
+
+            var digitsOnly = new string(mobileNumber.Where(char.IsDigit).ToArray());
+            if (string.IsNullOrWhiteSpace(digitsOnly))
+                return null;
+
+            if (digitsOnly.Length > 10)
+                return digitsOnly[^10..];
+
+            return digitsOnly;
+        }
+
+        private static string? BuildFullPhoneNumber(string? normalizedPhoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(normalizedPhoneNumber))
+                return null;
+
+            return $"{DefaultCountryCode}{normalizedPhoneNumber}";
+        }
+
         private UserDto MapToUserDto(User user)
         {
             return new UserDto
@@ -392,7 +475,7 @@ namespace UserService.Application.Services
                 Id = user.Id,
                 Email = user.Email,
                 Name = user.Name,
-                PhoneNumber = user.PhoneNumber ?? string.Empty,
+                PhoneNumber = GetDisplayPhoneNumber(user.PhoneNumber, user.CountryCode),
                 CountryCode = user.CountryCode,
                 ProfilePhoto = user.ProfilePhoto,
                 ProfilePhotoUrl = user.ProfilePhoto,
@@ -404,6 +487,23 @@ namespace UserService.Application.Services
                 CreatedAtIST = user.CreatedAtIST,
                 LastLoginAtIST = user.LastLoginAtIST
             };
+        }
+
+        private static string GetDisplayPhoneNumber(string? phoneNumber, string? countryCode)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                return string.Empty;
+
+            var normalizedPhoneNumber = phoneNumber.Trim();
+            var normalizedCountryCode = countryCode?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(normalizedCountryCode) &&
+                normalizedPhoneNumber.StartsWith(normalizedCountryCode, StringComparison.Ordinal))
+            {
+                return normalizedPhoneNumber[normalizedCountryCode.Length..];
+            }
+
+            return normalizedPhoneNumber;
         }
     }
 }

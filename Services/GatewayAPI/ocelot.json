@@ -197,6 +197,26 @@
       }
     },
     {
+      "DownstreamPathTemplate": "/uploads/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5009
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 5009
+        },
+        {
+          "Host": "192.168.1.23",
+          "Port": 5009
+        }
+      ],
+      "UpstreamPathTemplate": "/uploads/{everything}",
+      "UpstreamHttpMethod": [ "GET" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/qualifications",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [

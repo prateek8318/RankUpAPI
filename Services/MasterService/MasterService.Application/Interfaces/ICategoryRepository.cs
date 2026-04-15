@@ -11,6 +11,8 @@ namespace MasterService.Application.Interfaces
         Task<IEnumerable<Category>> GetActiveAsync();
         Task<PaginatedResponse<Category>> GetActiveAsync(PaginationRequest pagination);
         Task<IEnumerable<Category>> GetActiveByTypeAsync(string type);
+        Task<IEnumerable<Category>> GetByTypeAsync(string type);
+        Task<IEnumerable<Category>> GetAllIncludingInactiveAsync();
         Task<Category> AddAsync(Category category);
         Task UpdateAsync(Category category);
         Task DeleteAsync(Category category);

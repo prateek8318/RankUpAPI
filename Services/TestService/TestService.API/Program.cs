@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using TestService.Application.Interfaces;
 using TestService.Application.Services;
 using TestServiceAppService = TestService.Application.Services.TestService;
 using TestService.Application.Mappings;
@@ -64,6 +65,7 @@ builder.Services.AddSwaggerGen(c =>
 // Database
 builder.Services.AddDbContext<TestDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddSingleton(builder.Configuration.GetConnectionString("DefaultConnection"));
 
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
@@ -76,12 +78,23 @@ builder.Services.AddScoped<IPracticeModeRepository, PracticeModeDapperRepository
 builder.Services.AddScoped<IExamRepository, ExamDapperRepository>();
 builder.Services.AddScoped<IUserTestAttemptRepository, UserTestAttemptDapperRepository>();
 builder.Services.AddScoped<ITestQuestionRepository, TestQuestionDapperRepository>();
+builder.Services.AddScoped<IAttemptAnswerRepository, AttemptAnswerDapperRepository>();
 
 // Services
 builder.Services.AddScoped<TestServiceAppService>();
 builder.Services.AddScoped<TestSeriesService>();
 builder.Services.AddScoped<HomeDashboardService>();
 builder.Services.AddScoped<TestExecutionService>();
+builder.Services.AddHttpClient<ISubscriptionValidationClient, SubscriptionValidationClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:SubscriptionService:BaseUrl"] ?? "http://localhost:56925");
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+builder.Services.AddHttpClient<IQuestionEvaluationClient, QuestionEvaluationClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:QuestionService:BaseUrl"] ?? "http://localhost:56916");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // CORS
 builder.Services.AddCors(options =>

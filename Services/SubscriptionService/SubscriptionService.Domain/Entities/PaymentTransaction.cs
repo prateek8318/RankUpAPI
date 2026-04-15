@@ -2,24 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SubscriptionService.Domain.Entities
 {
-    public enum PaymentStatus
-    {
-        Pending = 1,
-        Completed = 2,
-        Failed = 3,
-        Refunded = 4,
-        PartiallyRefunded = 5
-    }
-
-    public enum PaymentMethod
-    {
-        UPI = 1,
-        Card = 2,
-        NetBanking = 3,
-        Wallet = 4,
-        RazorpaySubscription = 5
-    }
-
+    
     public class PaymentTransaction : BaseEntity
     {
         [Required]

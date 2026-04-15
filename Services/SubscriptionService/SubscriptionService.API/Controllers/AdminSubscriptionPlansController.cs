@@ -190,6 +190,45 @@ namespace SubscriptionService.API.Controllers
         }
 
         /// <summary>
+        /// Get paginated plans for admin (includes active + inactive by default).
+        /// </summary>
+        [HttpGet("paged")]
+        public async Task<ActionResult<SubscriptionPlanPagedResponseDto>> GetAllPlansPaged(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] bool includeInactive = true,
+            [FromQuery] int? examId = null,
+            [FromQuery] string? language = null)
+        {
+            try
+            {
+                var currentLanguage = language ?? _languageService.GetCurrentLanguage();
+                var request = new SubscriptionPlanPagedRequestDto
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    IncludeInactive = includeInactive,
+                    ExamId = examId,
+                    Language = currentLanguage
+                };
+
+                var result = await _subscriptionPlanService.GetPlansPagedAsync(request);
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    language = currentLanguage,
+                    message = "Subscription plans fetched successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving paginated subscription plans");
+                return StatusCode(500, new { success = false, message = "Error fetching subscription plans" });
+            }
+        }
+
+        /// <summary>
         /// Get plans by Master Service Exam Id (dynamic exam selection from Master Service).
         /// </summary>
         /// <param name="examId">Master Service Exam Id</param>
@@ -266,6 +305,30 @@ namespace SubscriptionService.API.Controllers
             {
                 _logger.LogError(ex, "Error retrieving active subscription plans");
                 return StatusCode(500, new { success = false, message = "Error fetching active subscription plans" });
+            }
+        }
+
+        /// <summary>
+        /// Get subscription plan statistics
+        /// </summary>
+        /// <returns>Subscription plan statistics</returns>
+        [HttpGet("stats")]
+        public async Task<ActionResult<SubscriptionPlanStatsDto>> GetStats()
+        {
+            try
+            {
+                var result = await _subscriptionPlanService.GetStatsAsync();
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    message = "Subscription plan statistics fetched successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving subscription plan statistics");
+                return StatusCode(500, new { success = false, message = "Error fetching subscription plan statistics" });
             }
         }
     }

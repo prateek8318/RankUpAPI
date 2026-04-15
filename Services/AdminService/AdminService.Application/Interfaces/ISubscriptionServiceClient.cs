@@ -1,3 +1,5 @@
+using AdminService.Application.DTOs;
+
 namespace AdminService.Application.Interfaces
 {
     public interface ISubscriptionServiceClient
@@ -10,5 +12,7 @@ namespace AdminService.Application.Interfaces
         Task<bool> DeleteSubscriptionPlanAsync(int id);
         Task<List<Dictionary<string, object>>?> GetAllUserSubscriptionsAsync();
         Task<List<Dictionary<string, object>>?> GetExpiringUserSubscriptionsAsync(int daysBeforeExpiry = 30);
+        Task<object?> GetUserSubscriptionHistoryAsync(int userId);
+        Task<object?> GetStatsAsync();
     }
 }

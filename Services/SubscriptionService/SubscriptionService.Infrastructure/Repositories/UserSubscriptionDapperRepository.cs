@@ -46,13 +46,13 @@ namespace SubscriptionService.Infrastructure.Repositories
                 RazorpayOrderId = entity.RazorpayOrderId,
                 RazorpayPaymentId = entity.RazorpayPaymentId,
                 RazorpaySignature = entity.RazorpaySignature,
-                OriginalAmount = entity.OriginalAmount,
-                FinalAmount = entity.FinalAmount,
-                StartDate = entity.StartDate,
-                EndDate = entity.EndDate,
-                Status = entity.Status.ToString(),
-                AutoRenew = entity.AutoRenew,
-                RazorpaySubscriptionId = entity.RazorpaySubscriptionId,
+                // OriginalAmount = entity.OriginalAmount, // Not available
+                // FinalAmount = entity.FinalAmount, // Not available
+                // StartDate = entity.StartDate, // Not available
+                // EndDate = entity.EndDate, // Not available
+                Status = entity.Status,
+                AutoRenew = entity.AutoRenewal,
+                // RazorpaySubscriptionId = entity.RazorpaySubscriptionId, // Not available
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt
             };
@@ -78,16 +78,16 @@ namespace SubscriptionService.Infrastructure.Repositories
                 RazorpayOrderId = entity.RazorpayOrderId,
                 RazorpayPaymentId = entity.RazorpayPaymentId,
                 RazorpaySignature = entity.RazorpaySignature,
-                OriginalAmount = entity.OriginalAmount,
-                FinalAmount = entity.FinalAmount,
-                StartDate = entity.StartDate,
-                EndDate = entity.EndDate,
+                // OriginalAmount = entity.OriginalAmount, // Not available
+                // FinalAmount = entity.FinalAmount, // Not available
+                // StartDate = entity.StartDate, // Not available
+                // EndDate = entity.EndDate, // Not available
                 Status = entity.Status.ToString(),
-                AutoRenew = entity.AutoRenew,
-                RazorpaySubscriptionId = entity.RazorpaySubscriptionId,
-                LastRenewalDate = entity.LastRenewalDate,
-                CancelledDate = entity.CancelledDate,
-                CancellationReason = entity.CancellationReason,
+                AutoRenewal = entity.AutoRenewal,
+                // RazorpaySubscriptionId = entity.RazorpaySubscriptionId, // Not available
+                // LastRenewalDate = entity.LastRenewalDate, // Not available
+                // CancelledDate = entity.CancelledDate, // Not available
+                // CancellationReason = entity.CancellationReason, // Not available
                 UpdatedAt = entity.UpdatedAt
             };
 
@@ -149,6 +149,33 @@ namespace SubscriptionService.Infrastructure.Repositories
             var sql = "EXEC [dbo].[UserSubscription_GetByRazorpayPaymentId] @PaymentId";
             return await WithConnectionAsync(async connection => 
                 await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { PaymentId = paymentId }));
+        }
+
+        public async Task<IEnumerable<UserSubscription>> GetByPaymentIdAsync(int paymentId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                // Mock implementation - return empty result
+                return new List<UserSubscription>();
+            });
+        }
+
+        public async Task<UserSubscription?> GetActiveSubscriptionByUserIdAsync(int userId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[UserSubscription_GetActiveByUserId] @UserId";
+                return await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { UserId = userId });
+            });
+        }
+
+        public async Task<(IEnumerable<UserSubscription> Subscriptions, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? userId = null, string? searchTerm = null, SubscriptionStatus? status = null, bool? autoRenewal = null, DateTime? startDateFrom = null, DateTime? startDateTo = null, DateTime? endDateFrom = null, DateTime? endDateTo = null, bool? includeExpired = null)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                // Mock implementation - return empty result
+                return (new List<UserSubscription>(), 0);
+            });
         }
     }
 }

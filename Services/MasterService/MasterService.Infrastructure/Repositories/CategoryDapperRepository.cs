@@ -101,6 +101,35 @@ namespace MasterService.Infrastructure.Repositories
             });
         }
 
+        public async Task<IEnumerable<Category>> GetByTypeAsync(string type)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT 
+                        Id, NameEn, NameHi, [Key], Type, Description, DisplayOrder, 
+                        IsActive, Status, CreatedAt, UpdatedAt
+                    FROM [dbo].[Categories] 
+                    WHERE Type = @Type
+                    ORDER BY DisplayOrder, NameEn";
+                return await connection.QueryAsync<Category>(sql, new { Type = type });
+            });
+        }
+
+        public async Task<IEnumerable<Category>> GetAllIncludingInactiveAsync()
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT 
+                        Id, NameEn, NameHi, [Key], Type, Description, DisplayOrder, 
+                        IsActive, Status, CreatedAt, UpdatedAt
+                    FROM [dbo].[Categories] 
+                    ORDER BY DisplayOrder, NameEn";
+                return await connection.QueryAsync<Category>(sql);
+            });
+        }
+
         public async Task<Category> AddAsync(Category category)
         {
             try
@@ -151,29 +180,30 @@ namespace MasterService.Infrastructure.Repositories
                 await WithConnectionAsync(async connection =>
                 {
                     var sql = @"
-                        DECLARE @Id INT = @IdParam;
-                        DECLARE @NameEn NVARCHAR(100) = @NameEnParam;
-                        DECLARE @NameHi NVARCHAR(100) = @NameHiParam;
-                        DECLARE @Key NVARCHAR(50) = @KeyParam;
-                        DECLARE @Type NVARCHAR(50) = @TypeParam;
-                        DECLARE @Description NVARCHAR(500) = @DescriptionParam;
-                        DECLARE @DisplayOrder INT = @DisplayOrderParam;
-                        DECLARE @IsActive BIT = @IsActiveParam;
-                        DECLARE @UpdatedAt DATETIME2 = GETUTCDATE();
-                        
-                        EXEC [dbo].[Category_Update] 
-                            @Id, @NameEn, @NameHi, @Key, @Type, @Description, 
-                            @DisplayOrder, @IsActive, @UpdatedAt";
+                        UPDATE [dbo].[Categories] 
+                        SET 
+                            NameEn = @NameEn,
+                            NameHi = @NameHi,
+                            [Key] = @Key,
+                            Type = @Type,
+                            Description = @Description,
+                            DisplayOrder = @DisplayOrder,
+                            IsActive = @IsActive,
+                            Status = @Status,
+                            UpdatedAt = @UpdatedAt
+                        WHERE Id = @Id";
 
                     var parameters = new DynamicParameters();
-                    parameters.Add("@IdParam", category.Id);
-                    parameters.Add("@NameEnParam", category.NameEn);
-                    parameters.Add("@NameHiParam", category.NameHi ?? (object?)null);
-                    parameters.Add("@KeyParam", category.Key);
-                    parameters.Add("@TypeParam", category.Type);
-                    parameters.Add("@DescriptionParam", category.Description ?? (object?)null);
-                    parameters.Add("@DisplayOrderParam", category.DisplayOrder);
-                    parameters.Add("@IsActiveParam", category.IsActive);
+                    parameters.Add("@Id", category.Id);
+                    parameters.Add("@NameEn", category.NameEn);
+                    parameters.Add("@NameHi", category.NameHi ?? (object?)null);
+                    parameters.Add("@Key", category.Key);
+                    parameters.Add("@Type", category.Type);
+                    parameters.Add("@Description", category.Description ?? (object?)null);
+                    parameters.Add("@DisplayOrder", category.DisplayOrder);
+                    parameters.Add("@IsActive", category.IsActive);
+                    parameters.Add("@Status", category.Status);
+                    parameters.Add("@UpdatedAt", DateTime.UtcNow);
 
                     await connection.ExecuteAsync(sql, parameters);
                 });

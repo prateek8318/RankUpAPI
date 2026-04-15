@@ -30,6 +30,9 @@ builder.Services.AddDbContext<QuestionDbContext>(options =>
     });
 });
 
+var connectionString = builder.Configuration.GetConnectionString("QuestionServiceConnection");
+builder.Services.AddSingleton(connectionString);
+
 builder.Services.AddScoped<IQuestionRepository, QuestionDapperRepository>();
 builder.Services.AddScoped<QuestionApplicationService>();
 

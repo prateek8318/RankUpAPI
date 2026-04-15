@@ -10,8 +10,12 @@ namespace MasterService.Application.Interfaces
         Task<QualificationDto?> GetQualificationByIdAsync(int id, int? languageId = null);
         Task<IEnumerable<QualificationDto>> GetAllQualificationsAsync(string language);
         Task<IEnumerable<QualificationDto>> GetAllQualificationsAsync(int? languageId = null);
+        Task<IEnumerable<QualificationDto>> GetAllQualificationsIncludingInactiveAsync(string language);
+        Task<IEnumerable<QualificationDto>> GetAllQualificationsIncludingInactiveAsync(int? languageId = null);
         Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeAsync(string countryCode, int? languageId = null);
         Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeAsync(string countryCode, string language);
+        Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeIncludingInactiveAsync(string countryCode, int? languageId = null);
+        Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeIncludingInactiveAsync(string countryCode, string language);
         Task<bool> ToggleQualificationStatusAsync(int id, bool isActive);
     }
 }

@@ -210,8 +210,14 @@ try
     
     if (await context.Database.CanConnectAsync())
     {
-        logger.LogInformation("Applying migrations...");
-        await context.Database.MigrateAsync();
+        logger.LogInformation("Testing DB connection...");
+        if (context.Database.GetPendingMigrations().Any()) 
+        {
+            logger.LogInformation("Applying migrations...");
+            await context.Database.MigrateAsync();
+        }
+        
+        await ExecuteStoredProcedureScriptAsync(app, logger);
         logger.LogInformation("Database initialization completed.");
     }
 }
@@ -222,3 +228,46 @@ catch (Exception ex)
 }
 
 app.Run();
+
+static async Task ExecuteStoredProcedureScriptAsync(WebApplication app, ILogger logger)
+{
+    var contentRoot = app.Environment.ContentRootPath;
+    var scriptPath = Path.GetFullPath(Path.Combine(contentRoot, "..", "Scripts", "ExamService_StoredProcedures.sql"));
+    if (!File.Exists(scriptPath))
+    {
+        logger.LogWarning("Stored procedure script not found at {ScriptPath}", scriptPath);
+        return;
+    }
+
+    var connectionString = app.Configuration.GetConnectionString("ExamServiceConnection");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        logger.LogWarning("Connection string is missing; skipping stored procedure script execution.");
+        return;
+    }
+
+    var scriptText = await File.ReadAllTextAsync(scriptPath);
+    var batches = System.Text.RegularExpressions.Regex.Split(scriptText, @"^\s*GO\s*$", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    await using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+    await connection.OpenAsync();
+
+    foreach (var batch in batches)
+    {
+        var sql = batch.Trim();
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            continue;
+        }
+
+        await using var command = new Microsoft.Data.SqlClient.SqlCommand(sql, connection)
+        {
+            CommandType = System.Data.CommandType.Text,
+            CommandTimeout = 180
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    logger.LogInformation("Stored procedures synced successfully from {ScriptPath}", scriptPath);
+}

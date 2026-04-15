@@ -32,18 +32,18 @@ namespace SubscriptionService.Application.Mappings
             // UserSubscription mappings
             CreateMap<UserSubscription, UserSubscriptionDto>()
                 .ForMember(dest => dest.DaysUntilExpiry, opt => opt.MapFrom(src => 
-                    src.EndDate > DateTime.UtcNow ? (int)(src.EndDate - DateTime.UtcNow).TotalDays : 0))
+                    src.ValidTill > DateTime.UtcNow ? (int)(src.ValidTill - DateTime.UtcNow).TotalDays : 0))
                 .ForMember(dest => dest.IsExpired, opt => opt.MapFrom(src => 
-                    src.EndDate <= DateTime.UtcNow && src.Status != SubscriptionStatus.Cancelled));
+                    src.ValidTill <= DateTime.UtcNow && src.Status != "Cancelled"));
 
             CreateMap<CreateUserSubscriptionDto, UserSubscription>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => SubscriptionStatus.Pending))
-                .ForMember(dest => dest.StartDate, opt => opt.Ignore())
-                .ForMember(dest => dest.EndDate, opt => opt.Ignore())
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => "Active"))
+                .ForMember(dest => dest.PurchasedDate, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.ValidTill, opt => opt.MapFrom(src => DateTime.UtcNow.AddDays(30)))
+                .ForMember(dest => dest.AutoRenewal, opt => opt.MapFrom(src => false));
 
             // PaymentTransaction mappings
             CreateMap<PaymentTransaction, PaymentTransactionDto>();

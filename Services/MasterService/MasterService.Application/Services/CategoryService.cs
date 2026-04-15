@@ -64,16 +64,30 @@ namespace MasterService.Application.Services
                     .Select(c => MapToOptimizedCategoryDto(c, normalizedLanguage))
                     .ToList();
 
-                if (!categoryList.Any())
-                {
-                    return GetDefaultCategoriesOptimized(normalizedLanguage);
-                }
-
                 return categoryList;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting categories for language {Language}", language);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<CategoryDto>> GetCategoriesIncludingInactiveAsync(string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+
+                var categories = await _categoryRepository.GetAllIncludingInactiveAsync();
+                return categories
+                    .Where(c => string.Equals(c.Type, "category", StringComparison.OrdinalIgnoreCase))
+                    .Select(c => MapToOptimizedCategoryDto(c, normalizedLanguage))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting categories including inactive for language {Language}", language);
                 throw;
             }
         }
@@ -155,13 +169,13 @@ namespace MasterService.Application.Services
                 throw new ArgumentException("Type is required and cannot be empty.");
             }
 
-            // Check for duplicate key across ALL categories (global unique constraint)
-            var allExistingCategories = await _categoryRepository.GetAllAsync();
-            var duplicateKey = allExistingCategories.FirstOrDefault(c => c.Key.Equals(createDto.Key, StringComparison.OrdinalIgnoreCase));
+            // Check for duplicate key within the same type only
+            var existingCategoriesByType = await _categoryRepository.GetByTypeAsync(createDto.Type);
+            var duplicateKey = existingCategoriesByType.FirstOrDefault(c => c.Key.Equals(createDto.Key, StringComparison.OrdinalIgnoreCase));
             
             if (duplicateKey != null)
             {
-                throw new InvalidOperationException($"A category with key '{createDto.Key}' already exists (ID: {duplicateKey.Id}, Type: {duplicateKey.Type}). Category keys must be globally unique across all types.");
+                throw new InvalidOperationException($"A category with key '{createDto.Key}' already exists in type '{createDto.Type}' (ID: {duplicateKey.Id}). Category keys must be unique within the same type.");
             }
 
             var entity = new Domain.Entities.Category
@@ -208,14 +222,15 @@ namespace MasterService.Application.Services
                     throw new ArgumentException("Type is required and cannot be empty.");
                 }
 
-                // Check for duplicate key across ALL categories (excluding current entity)
-                var allExistingCategories = await _categoryRepository.GetAllAsync();
-                var duplicateKey = allExistingCategories.FirstOrDefault(c => 
-                    c.Key.Equals(updateDto.Key, StringComparison.OrdinalIgnoreCase) && c.Id != id);
+                // Check for duplicate key within the same type (excluding current entity)
+                var existingCategoriesByType = await _categoryRepository.GetByTypeAsync(updateDto.Type);
+                var duplicateKey = existingCategoriesByType.FirstOrDefault(c => 
+                    c.Key.Equals(updateDto.Key, StringComparison.OrdinalIgnoreCase) && 
+                    c.Id != id);
                 
                 if (duplicateKey != null)
                 {
-                    throw new InvalidOperationException($"A category with key '{updateDto.Key}' already exists (ID: {duplicateKey.Id}, Type: {duplicateKey.Type}). Category keys must be globally unique across all types.");
+                    throw new InvalidOperationException($"A category with key '{updateDto.Key}' already exists in type '{updateDto.Type}' (ID: {duplicateKey.Id}). Category keys must be unique within the same type.");
                 }
 
                 existing.NameEn = updateDto.NameEn;
@@ -248,10 +263,7 @@ namespace MasterService.Application.Services
                     return false;
                 }
 
-                existing.Status = "inactive";
-                existing.UpdatedAt = DateTime.UtcNow;
-                
-                await _categoryRepository.UpdateAsync(existing);
+                await _categoryRepository.DeleteAsync(existing);
 
                 return true;
             }
@@ -266,7 +278,27 @@ namespace MasterService.Application.Services
         {
             try
             {
-                return await _categoryRepository.ToggleCategoryStatusAsync(id, isActive);
+                _logger.LogInformation("Toggling category {CategoryId} status to {IsActive}", id, isActive);
+                
+                // Use GetAllIncludingInactiveAsync to get consistent data with admin endpoint
+                var allCategories = await _categoryRepository.GetAllIncludingInactiveAsync();
+                var category = allCategories.FirstOrDefault(c => c.Id == id);
+                
+                if (category == null)
+                {
+                    _logger.LogWarning("Category {CategoryId} not found for status toggle", id);
+                    return false;
+                }
+
+                // Update the category status
+                category.Status = isActive ? "active" : "inactive";
+                category.IsActive = isActive;
+                category.UpdatedAt = DateTime.UtcNow;
+                
+                await _categoryRepository.UpdateAsync(category);
+                
+                _logger.LogInformation("Category {CategoryId} status updated to {IsActive}", id, isActive);
+                return true;
             }
             catch (Exception ex)
             {
@@ -275,25 +307,28 @@ namespace MasterService.Application.Services
             }
         }
 
-        public async Task<CategoryDto> GetCategoryAsync(int id, string language)
+        public async Task<CategoryDto?> GetCategoryAsync(int id, string language)
         {
             try
             {
                 var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
-                var category = await _categoryRepository.GetByIdAsync(id);
+                _logger.LogInformation("Getting category {CategoryId} for language {Language}", id, language);
+                
+                // Use GetAllIncludingInactiveAsync to get consistent data with admin endpoint
+                var allCategories = await _categoryRepository.GetAllIncludingInactiveAsync();
+                _logger.LogInformation("Total categories found: {Count}", allCategories.Count());
+                
+                var category = allCategories.FirstOrDefault(c => c.Id == id);
+                _logger.LogInformation("Looking for category ID {Id}, found: {Found}", id, category != null);
+                
                 if (category == null)
                 {
-                    // Fallback: try from default/in-memory list (for legacy IDs)
-                    var defaults = GetDefaultCategories();
-                    var defaultCategory = defaults.FirstOrDefault(c => c.Id == id);
-                    if (defaultCategory != null)
-                    {
-                        return defaultCategory;
-                    }
-
-                    throw new KeyNotFoundException($"Category with id {id} not found.");
+                    _logger.LogWarning("Category {CategoryId} not found in repository", id);
+                    return null;
                 }
 
+                _logger.LogInformation("Category {CategoryId} found: {CategoryName}, Status: {Status}, IsActive: {IsActive}", 
+                    id, category.NameEn, category.Status, category.IsActive);
                 return MapToCategoryDto(category, normalizedLanguage);
             }
             catch (Exception ex)

@@ -24,25 +24,34 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<QualificationDto>>> GetQualifications([FromQuery] string? language = null, [FromQuery] int? languageId = null, [FromQuery] string? countryCode = null)
+        public async Task<ActionResult<IEnumerable<QualificationDto>>> GetQualifications([FromQuery] string? language = null, [FromQuery] int? languageId = null, [FromQuery] string? countryCode = null, [FromQuery] bool includeInactive = false)
         {
             try
             {
+                var isAdmin = User.IsInRole("Admin");
+                var shouldIncludeInactive = includeInactive || isAdmin;
                 IEnumerable<QualificationDto> qualifications;
                 
                 if (!string.IsNullOrEmpty(language))
                 {
-                    qualifications = string.IsNullOrEmpty(countryCode)
-                        ? await _qualificationService.GetAllQualificationsAsync(language)
-                        : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, language);
+                    qualifications = shouldIncludeInactive
+                        ? (string.IsNullOrEmpty(countryCode)
+                            ? await _qualificationService.GetAllQualificationsIncludingInactiveAsync(language)
+                            : await _qualificationService.GetQualificationsByCountryCodeIncludingInactiveAsync(countryCode, language))
+                        : (string.IsNullOrEmpty(countryCode)
+                            ? await _qualificationService.GetAllQualificationsAsync(language)
+                            : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, language));
                 }
                 else
                 {
-                    // Use existing languageId-based method
                     var finalLanguageId = languageId ?? GetLanguageIdFromHeader();
-                    qualifications = string.IsNullOrEmpty(countryCode)
-                        ? await _qualificationService.GetAllQualificationsAsync(finalLanguageId)
-                        : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, finalLanguageId);
+                    qualifications = shouldIncludeInactive
+                        ? (string.IsNullOrEmpty(countryCode)
+                            ? await _qualificationService.GetAllQualificationsIncludingInactiveAsync(finalLanguageId)
+                            : await _qualificationService.GetQualificationsByCountryCodeIncludingInactiveAsync(countryCode, finalLanguageId))
+                        : (string.IsNullOrEmpty(countryCode)
+                            ? await _qualificationService.GetAllQualificationsAsync(finalLanguageId)
+                            : await _qualificationService.GetQualificationsByCountryCodeAsync(countryCode, finalLanguageId));
                 }
 
                 return Ok(qualifications);
@@ -51,6 +60,42 @@ namespace MasterService.API.Controllers
             {
                 _logger.LogError(ex, "Error retrieving qualifications");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<IEnumerable<QualificationDto>>> GetAllQualificationsForAdmin([FromQuery] string? language = null, [FromQuery] int? languageId = null, [FromQuery] string? countryCode = null)
+        {
+            try
+            {
+                IEnumerable<QualificationDto> qualifications;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    qualifications = string.IsNullOrEmpty(countryCode)
+                        ? await _qualificationService.GetAllQualificationsIncludingInactiveAsync(language)
+                        : await _qualificationService.GetQualificationsByCountryCodeIncludingInactiveAsync(countryCode, language);
+                }
+                else
+                {
+                    var finalLanguageId = languageId ?? GetLanguageIdFromHeader();
+                    qualifications = string.IsNullOrEmpty(countryCode)
+                        ? await _qualificationService.GetAllQualificationsIncludingInactiveAsync(finalLanguageId)
+                        : await _qualificationService.GetQualificationsByCountryCodeIncludingInactiveAsync(countryCode, finalLanguageId);
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    data = qualifications,
+                    message = "All qualifications (including inactive) fetched successfully for admin"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all qualifications for admin");
+                return StatusCode(500, new { success = false, message = "Error fetching qualifications" });
             }
         }
 

@@ -8,21 +8,21 @@ namespace SubscriptionService.Application.DTOs
         public int Id { get; set; }
         public int UserId { get; set; }
         public int SubscriptionPlanId { get; set; }
-        public string RazorpayOrderId { get; set; } = string.Empty;
-        public string? RazorpayPaymentId { get; set; }
-        public decimal OriginalAmount { get; set; }
-        public decimal FinalAmount { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public SubscriptionStatus Status { get; set; }
-        public bool AutoRenew { get; set; }
-        public string? RazorpaySubscriptionId { get; set; }
-        public DateTime? LastRenewalDate { get; set; }
-        public DateTime? CancelledDate { get; set; }
-        public string? CancellationReason { get; set; }
+        public int? PaymentId { get; set; }
+        public DateTime PurchasedDate { get; set; }
+        public DateTime ValidTill { get; set; }
+        public int TestsUsed { get; set; }
+        public int TestsTotal { get; set; }
+        public decimal AmountPaid { get; set; }
+        public string Currency { get; set; } = "INR";
+        public decimal DiscountApplied { get; set; }
+        public string Status { get; set; } = "Active";
+        public bool AutoRenewal { get; set; }
+        public DateTime? RenewalDate { get; set; }
         public SubscriptionPlanDto? SubscriptionPlan { get; set; }
-        public PaymentTransactionDto? PaymentTransaction { get; set; }
-        public InvoiceDto? Invoice { get; set; }
+        public PaymentDto? Payment { get; set; }
+        public int DaysLeft { get; set; }
+        public string CurrentStatus { get; set; } = "Active";
         public int DaysUntilExpiry { get; set; }
         public bool IsExpired { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -37,22 +37,27 @@ namespace SubscriptionService.Application.DTOs
         [Required]
         public int SubscriptionPlanId { get; set; }
 
-        [Required]
-        public string RazorpayOrderId { get; set; } = string.Empty;
-
-        public bool AutoRenew { get; set; } = false;
+        public bool AutoRenewal { get; set; } = false;
     }
 
-    public class ActivateSubscriptionDto
+    public class PurchaseSubscriptionDto
     {
         [Required]
-        public string RazorpayOrderId { get; set; } = string.Empty;
+        public int UserId { get; set; }
 
         [Required]
-        public string RazorpayPaymentId { get; set; } = string.Empty;
+        public int SubscriptionPlanId { get; set; }
 
         [Required]
-        public string RazorpaySignature { get; set; } = string.Empty;
+        public PaymentMethod PaymentMethod { get; set; }
+
+        [Required]
+        public PaymentProvider PaymentProvider { get; set; }
+
+        [MaxLength(100)]
+        public string? TransactionId { get; set; }
+
+        public bool AutoRenewal { get; set; } = false;
     }
 
     public class RenewSubscriptionDto
@@ -60,7 +65,7 @@ namespace SubscriptionService.Application.DTOs
         [Required]
         public int SubscriptionId { get; set; }
 
-        public bool AutoRenew { get; set; } = false;
+        public bool AutoRenewal { get; set; } = false;
     }
 
     public class CancelSubscriptionDto

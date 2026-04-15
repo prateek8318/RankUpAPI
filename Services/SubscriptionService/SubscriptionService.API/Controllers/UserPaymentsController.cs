@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SubscriptionService.Application.DTOs;
 using SubscriptionService.Application.Interfaces;
+using SubscriptionService.Domain.Entities;
 
 namespace SubscriptionService.API.Controllers
 {
@@ -9,6 +10,7 @@ namespace SubscriptionService.API.Controllers
     /// Payment Controller for Users
     /// </summary>
     [Route("api/user/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     [Authorize]
     public class PaymentsController : ControllerBase
@@ -23,16 +25,24 @@ namespace SubscriptionService.API.Controllers
         }
 
         /// <summary>
-        /// Create a Razorpay order for payment
+        /// Create a Razorpay order for subscription payment
         /// </summary>
         /// <param name="createOrderDto">Order creation details</param>
         /// <returns>Razorpay order details</returns>
         [HttpPost("create-order")]
-        public async Task<ActionResult<RazorpayOrderResponseDto>> CreateRazorpayOrder([FromBody] CreateRazorpayOrderDto createOrderDto)
+        [HttpPost("initiate")]
+        public async Task<ActionResult<PaymentInitiationResponseDto>> CreateRazorpayOrder([FromBody] InitiatePaymentDto createOrderDto)
         {
             try
             {
-                var result = await _paymentService.CreateRazorpayOrderAsync(createOrderDto);
+                createOrderDto.UserId = GetUserIdFromToken();
+                if (createOrderDto.UserId == 0)
+                    return Unauthorized("Invalid user token");
+
+                if (createOrderDto.PaymentProvider == 0)
+                    createOrderDto.PaymentProvider = PaymentProvider.Razorpay;
+
+                var result = await _paymentService.InitiatePaymentAsync(createOrderDto);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -43,7 +53,7 @@ namespace SubscriptionService.API.Controllers
         }
 
         /// <summary>
-        /// Verify payment after Razorpay callback
+        /// Verify Razorpay payment after completion
         /// </summary>
         /// <param name="verifyPaymentDto">Payment verification details</param>
         /// <returns>Payment verification result</returns>
@@ -52,12 +62,16 @@ namespace SubscriptionService.API.Controllers
         {
             try
             {
+                verifyPaymentDto.UserId = GetUserIdFromToken();
+                if (verifyPaymentDto.UserId == 0)
+                    return Unauthorized("Invalid user token");
+
                 var result = await _paymentService.VerifyPaymentAsync(verifyPaymentDto);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error verifying payment: {PaymentId}", verifyPaymentDto.RazorpayPaymentId);
+                _logger.LogError(ex, "Error verifying payment: {TransactionId}", verifyPaymentDto.TransactionId);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -87,7 +101,7 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <returns>User payment history</returns>
         [HttpGet("history")]
-        public async Task<ActionResult<IEnumerable<PaymentTransactionDto>>> GetPaymentHistory()
+        public async Task<ActionResult<IEnumerable<PaymentDto>>> GetPaymentHistory()
         {
             try
             {

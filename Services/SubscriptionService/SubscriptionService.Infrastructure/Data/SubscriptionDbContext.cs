@@ -15,6 +15,7 @@ namespace SubscriptionService.Infrastructure.Data
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
         public DbSet<SubscriptionPlanTranslation> SubscriptionPlanTranslations { get; set; }
         public DbSet<UserSubscription> UserSubscriptions { get; set; }
+        public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<DemoAccessLog> DemoAccessLogs { get; set; }
@@ -88,21 +89,58 @@ namespace SubscriptionService.Infrastructure.Data
                 entity.Property(e => e.RazorpayOrderId).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.RazorpayPaymentId).HasMaxLength(100);
                 entity.Property(e => e.RazorpaySignature).HasMaxLength(100);
-                entity.Property(e => e.OriginalAmount).HasPrecision(18, 2);
-                entity.Property(e => e.FinalAmount).HasPrecision(18, 2);
-                entity.Property(e => e.RazorpaySubscriptionId).HasMaxLength(100);
-                entity.Property(e => e.CancellationReason).HasMaxLength(500);
+                // entity.Property(e => e.OriginalAmount).HasPrecision(18, 2); // Not available
+                // entity.Property(e => e.FinalAmount).HasPrecision(18, 2); // Not available
+                // entity.Property(e => e.RazorpaySubscriptionId).HasMaxLength(100); // Not available
+                // entity.Property(e => e.CancellationReason).HasMaxLength(500); // Not available
 
                 entity.HasIndex(e => e.UserId);
                 entity.HasIndex(e => e.SubscriptionPlanId);
+                entity.HasIndex(e => e.PaymentId);
                 entity.HasIndex(e => e.RazorpayOrderId);
                 entity.HasIndex(e => e.RazorpayPaymentId);
                 entity.HasIndex(e => e.Status);
-                entity.HasIndex(e => e.EndDate);
+                // entity.HasIndex(e => e.EndDate); // Not available
 
                 // Foreign key relationships
                 entity.HasOne(e => e.SubscriptionPlan)
                     .WithMany(e => e.UserSubscriptions)
+                    .HasForeignKey(e => e.SubscriptionPlanId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Explicitly configure the one-to-one to avoid ambiguous dependent-side discovery.
+                entity.HasOne(e => e.Payment)
+                    .WithOne(e => e.UserSubscription)
+                    .HasForeignKey<Payment>(e => e.UserSubscriptionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Configure Payment
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Amount).HasPrecision(18, 2);
+                entity.Property(e => e.DiscountAmount).HasPrecision(18, 2);
+                entity.Property(e => e.FinalAmount).HasPrecision(18, 2);
+                entity.Property(e => e.RefundAmount).HasPrecision(18, 2);
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
+                entity.Property(e => e.PaymentProvider).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.RazorpayOrderId).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.RazorpayPaymentId).HasMaxLength(100);
+                entity.Property(e => e.RazorpaySignature).HasMaxLength(100);
+                entity.Property(e => e.FailureReason).HasMaxLength(500);
+                entity.Property(e => e.RefundReason).HasMaxLength(500);
+                entity.Property(e => e.RazorpayRefundId).HasMaxLength(100);
+
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.SubscriptionPlanId);
+                entity.HasIndex(e => e.UserSubscriptionId).IsUnique().HasFilter("[UserSubscriptionId] IS NOT NULL");
+                entity.HasIndex(e => e.RazorpayOrderId);
+                entity.HasIndex(e => e.RazorpayPaymentId);
+                entity.HasIndex(e => e.Status);
+
+                entity.HasOne(e => e.SubscriptionPlan)
+                    .WithMany()
                     .HasForeignKey(e => e.SubscriptionPlanId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
@@ -129,7 +167,8 @@ namespace SubscriptionService.Infrastructure.Data
 
                 // Foreign key relationship
                 entity.HasOne(e => e.UserSubscription)
-                    .WithMany(e => e.PaymentTransactions)
+                    // .WithMany(e => e.PaymentTransactions) // Not available
+                    .WithMany()
                     .HasForeignKey(e => e.UserSubscriptionId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
@@ -156,8 +195,9 @@ namespace SubscriptionService.Infrastructure.Data
 
                 // Foreign key relationship
                 entity.HasOne(e => e.UserSubscription)
-                    .WithOne(e => e.Invoice)
-                    .HasForeignKey<Invoice>(e => e.UserSubscriptionId)
+                    // .WithOne(e => e.Invoice) // Not available
+                    .WithMany()
+                    .HasForeignKey("UserSubscriptionId")
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -179,6 +219,7 @@ namespace SubscriptionService.Infrastructure.Data
             // Configure global query filters for soft delete
             modelBuilder.Entity<SubscriptionPlan>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<UserSubscription>().HasQueryFilter(e => e.IsActive);
+            modelBuilder.Entity<Payment>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<PaymentTransaction>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<Invoice>().HasQueryFilter(e => e.IsActive);
             modelBuilder.Entity<DemoAccessLog>().HasQueryFilter(e => e.IsActive);

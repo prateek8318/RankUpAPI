@@ -2,6 +2,11 @@
 echo Starting all RankUpAPI microservices...
 echo.
 
+echo Starting MasterService...
+start "MasterService" cmd /k "cd /d Services\MasterService\MasterService.API && dotnet run"
+
+timeout /t 3 /nobreak >nul
+
 echo Starting ExamService...
 start "ExamService" cmd /k "cd /d Services\ExamService\ExamService.API && dotnet run"
 
@@ -17,61 +22,88 @@ start "AdminService" cmd /k "cd /d Services\AdminService\AdminService.API && dot
 
 timeout /t 3 /nobreak >nul
 
-@REM echo Starting QuestionService...
-@REM start "QuestionService" cmd /k "cd /d Services\QuestionService\QuestionService.API && dotnet run"
-
-@REM timeout /t 3 /nobreak >nul
-
-@REM echo Starting QuizService...
-@REM start "QuizService" cmd /k "cd /d Services\QuizService\QuizService.API && dotnet run"
-
-@REM timeout /t 3 /nobreak >nul
-
-@REM echo Starting PaymentService...
-@REM start "PaymentService" cmd /k "cd /d Services\PaymentService\PaymentService.API && dotnet run"
-
-@REM timeout /t 3 /nobreak >nul
-
 echo Starting SubscriptionService...
 start "SubscriptionService" cmd /k "cd /d Services\SubscriptionService\SubscriptionService.API && dotnet run"
 
 timeout /t 3 /nobreak >nul
 
-@REM echo Starting HomeDashboardService...
-@REM start "HomeDashboardService" cmd /k "cd /d Services\HomeDashboardService\HomeDashboardService.API && dotnet run"
-
-@REM timeout /t 3 /nobreak >nul
-
-echo Starting MasterService...
-start "MasterService" cmd /k "cd /d Services\MasterService\MasterService.API && dotnet run"
+echo Starting QuestionService...
+start "QuestionService" cmd /k "cd /d Services\QuestionService\QuestionService.API && dotnet run"
 
 timeout /t 3 /nobreak >nul
 
-@REM echo Starting TestService...
-@REM start "TestService" cmd /k "cd /d Services\TestService\TestService.API && dotnet run"
+echo Starting TestService...
+start "TestService" cmd /k "cd /d Services\TestService\TestService.API && dotnet run"
 
-@REM timeout /t 3 /nobreak >nul
+timeout /t 3 /nobreak >nul
+
+echo Starting QuizService...
+start "QuizService" cmd /k "cd /d Services\QuizService\QuizService.API && dotnet run"
+
+timeout /t 3 /nobreak >nul
+
+echo Starting API Gateway...
+start "APIGateway" cmd /k "cd /d Services\GatewayAPI && dotnet run"
+
+timeout /t 3 /nobreak >nul
 
 echo All services started! Check individual windows for status.
 echo.
-echo Service URLs:
-echo ExamService: http://0.0.0.0:5000/swagger
-echo UserService: http://0.0.0.0:5002/swagger
-echo AdminService: http://0.0.0.0:56924/swagger
-@REM echo QuestionService: http://0.0.0.0:56922/swagger
-@REM echo QuizService: http://0.0.0.0:56921/swagger
-@REM echo PaymentService: http://0.0.0.0:56920/swagger
-echo SubscriptionService: http://0.0.0.0:56926/swagger
-@REM echo HomeDashboardService: http://0.0.0.0:56928/swagger
-echo MasterService: http://0.0.0.0:5009/swagger
-@REM echo TestService: http://0.0.0.0:7001/swagger
+echo ========================================
+echo SERVICE URLs (Swagger Documentation):
+echo ========================================
+echo MasterService: http://localhost:5009/swagger
+echo ExamService: http://localhost:5000/swagger
+echo UserService: http://localhost:5002/swagger
+echo AdminService: http://localhost:56923/swagger
+echo SubscriptionService: http://localhost:56925/swagger
+echo QuestionService: http://localhost:56916/swagger
+echo TestService: http://localhost:56917/swagger
+echo QuizService: http://localhost:56918/swagger
+echo API Gateway: http://localhost:5001/swagger
 echo.
-echo Mobile App Access URLs:
-echo TestService API: http://0.0.0.0:7001/api
-echo Gateway API: http://0.0.0.0:8000/api
+echo ========================================
+echo MOBILE APP ACCESS URLS:
+echo ========================================
+echo API Gateway: http://localhost:5001/api
+echo Direct Services (if needed):
+echo - TestService: http://localhost:56917/api
+echo - QuestionService: http://localhost:56916/api
+echo - SubscriptionService: http://localhost:56925/api
+echo - UserService: http://localhost:5002/api
 echo.
-echo Local Development URLs:
-echo Gateway API: http://localhost:8000/api
-echo All services accessible via localhost or 0.0.0.0 on their respective ports
+echo ========================================
+echo IMPORTANT ENDPOINTS:
+echo ========================================
+echo Subscription Flow:
+echo - Create Order: POST /api/subscription/payments/create-order
+echo - Verify Payment: POST /api/subscription/payments/verify
+echo - Active Subscriptions: GET /api/subscription/user/active
+echo.
+echo Question Management:
+echo - Get Questions: GET /api/questions/paged
+echo - Create Question: POST /api/questions
+echo - Statistics: GET /api/questions/statistics
+echo.
+echo Test Management:
+echo - Start Test: POST /api/tests/{id}/start
+echo - Submit Answer: POST /api/tests/submit-answer
+echo - Complete Test: POST /api/tests/complete
+echo - Test History: GET /api/tests/history
+echo.
+echo ========================================
+echo DATABASE CONNECTIONS:
+echo ========================================
+echo RankUp_SubscriptionDB: Subscription & Payments
+echo RankUp_QuestionDB: Questions & Topics
+echo RankUp_TestDB: Tests & Attempts
+echo RankUp_MasterDB: Exams, Subjects, Qualifications
+echo.
+echo ========================================
+echo RAZORPAY CONFIGURATION:
+echo ========================================
+echo Key ID: rzp_test_hCRLFPf6rY3elm
+echo Key Secret: m1lFhxsJTlb78bz2owxRy0E8
+echo Webhook: /api/webhooks/razorpay
 echo.
 pause

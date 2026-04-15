@@ -131,5 +131,52 @@ namespace TestService.Infrastructure.Repositories
                 return await connection.QueryAsync<Test>(sql);
             });
         }
+
+        public async Task<(IEnumerable<UserAvailableTest> Items, int TotalCount)> GetAvailableTestsForUserAsync(int userId, int examId, int? practiceModeId, int? subjectId, int? seriesId, int? year, int pageNumber, int pageSize)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Test_GetAvailableForUserPaged] @UserId, @ExamId, @PracticeModeId, @SubjectId, @SeriesId, @Year, @PageNumber, @PageSize";
+                using var multi = await connection.QueryMultipleAsync(sql, new
+                {
+                    UserId = userId,
+                    ExamId = examId,
+                    PracticeModeId = practiceModeId,
+                    SubjectId = subjectId,
+                    SeriesId = seriesId,
+                    Year = year,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize
+                });
+
+                var items = await multi.ReadAsync<UserAvailableTest>();
+                var totalCount = await multi.ReadFirstOrDefaultAsync<int>();
+                return (items, totalCount);
+            });
+        }
+
+        public async Task<bool> MapTestToPlanAsync(int testId, int subscriptionPlanId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[TestPlanMapping_CreateOrUpdate] @TestId, @SubscriptionPlanId";
+                var affected = await connection.ExecuteAsync(sql, new
+                {
+                    TestId = testId,
+                    SubscriptionPlanId = subscriptionPlanId
+                });
+                return affected > 0;
+            });
+        }
+
+        public async Task<IReadOnlyList<LeaderboardEntry>> GetLeaderboardAsync(int testId, int top = 20)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Test_GetLeaderboard] @TestId, @Top";
+                var rows = await connection.QueryAsync<LeaderboardEntry>(sql, new { TestId = testId, Top = top });
+                return rows.ToList();
+            });
+        }
     }
 }

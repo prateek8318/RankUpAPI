@@ -1,0 +1,1012 @@
+{
+	"info": {
+		"_postman_id": "rankup-api-collection",
+		"name": "RankUpAPI - Complete Microservices Collection",
+		"description": "Comprehensive Postman collection for RankUpAPI microservices with all CRUD operations, admin and user endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"itemcls": [
+				{
+					"name": "Admin Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@rankup.com\",\n  \"password\": \"Admin@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "auth", "login"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.collectionVariables.set('adminToken', response.data.token);",
+									"        pm.collectionVariables.set('adminId', response.data.adminId);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Verify OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@rankup.com\",\n  \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/auth/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "auth", "verify-otp"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "auth", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👥 Admin Service",
+			"item": [
+				{
+					"name": "User Management",
+					"item": [
+						{
+							"name": "Get All Users",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/admin/users?page=1&pageSize=50",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "admin", "users"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "pageSize",
+											"value": "50"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get User by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "admin", "users", "{{userId}}"]
+								}
+							}
+						},
+						{
+							"name": "Update User",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\",\n  \"email\": \"updated@example.com\",\n  \"phoneNumber\": \"+1234567890\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "admin", "users", "{{userId}}"]
+								}
+							}
+						},
+						{
+							"name": "Delete User",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "admin", "users", "{{userId}}"]
+								}
+							}
+						},
+						{
+							"name": "Enable/Disable User",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "true"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/admin/users/{{userId}}/enable-disable",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "admin", "users", "{{userId}}", "enable-disable"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Admin Profile",
+					"item": [
+						{
+							"name": "Get All Admins",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/admin/auth",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "admin", "auth"]
+								}
+							}
+						},
+						{
+							"name": "Get Admin Profile",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/admin/auth/profile/{{adminId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "admin", "auth", "profile", "{{adminId}}"]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "📚 Master Service",
+			"item": [
+				{
+					"name": "Categories",
+					"item": [
+						{
+							"name": "Get All Categories",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/categories?language=en&includeInactive=false",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories"],
+									"query": [
+										{
+											"key": "language",
+											"value": "en"
+										},
+										{
+											"key": "includeInactive",
+											"value": "false"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Category by ID",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/{{categoryId}}?language=en",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "{{categoryId}}"],
+									"query": [
+										{
+											"key": "language",
+											"value": "en"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Category",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"nameEn\": \"Science\",\n  \"nameHi\": \"विज्ञान\",\n  \"descriptionEn\": \"Science category\",\n  \"descriptionHi\": \"विज्ञान श्रेणी\",\n  \"categoryId\": 1,\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/categories",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories"]
+								}
+							}
+						},
+						{
+							"name": "Update Category",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"id\": {{categoryId}},\n  \"nameEn\": \"Updated Science\",\n  \"nameHi\": \"अपडेटेड विज्ञान\",\n  \"descriptionEn\": \"Updated science category\",\n  \"descriptionHi\": \"अपडेटेड विज्ञान श्रेणी\",\n  \"categoryId\": 1,\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "{{categoryId}}"]
+								}
+							}
+						},
+						{
+							"name": "Delete Category",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "{{categoryId}}"]
+								}
+							}
+						},
+						{
+							"name": "Update Category Status",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "false"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/{{categoryId}}/status",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "{{categoryId}}", "status"]
+								}
+							}
+						},
+						{
+							"name": "Get All Categories (Admin)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/admin?language=en",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "admin"],
+									"query": [
+										{
+											"key": "language",
+											"value": "en"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Qualifications",
+					"item": [
+						{
+							"name": "Get Qualifications",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/qualifications?language=en",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "qualifications"],
+									"query": [
+										{
+											"key": "language",
+											"value": "en"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Exam Categories",
+					"item": [
+						{
+							"name": "Get Exam Categories",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/exam-categories?language=en",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "exam-categories"],
+									"query": [
+										{
+											"key": "language",
+											"value": "en"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Streams",
+					"item": [
+						{
+							"name": "Get Streams",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/streams?language=en",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "streams"],
+									"query": [
+										{
+											"key": "language",
+											"value": "en"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "All Categories Data",
+					"item": [
+						{
+							"name": "Get All Categories (Optimized)",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/all-optimized?language=en",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "all-optimized"],
+									"query": [
+										{
+											"key": "language",
+											"value": "en"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get All Categories",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/categories/all?language=en",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "categories", "all"],
+									"query": [
+										{
+											"key": "language",
+											"value": "en"
+										}
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "❓ Question Service",
+			"item": [
+				{
+					"name": "Question CRUD",
+					"item": [
+						{
+							"name": "Create Question",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"questionTextEn\": \"What is the capital of France?\",\n  \"questionTextHi\": \"फ्रांस की राजधानी क्या है?\",\n  \"option1En\": \"London\",\n  \"option1Hi\": \"लंदन\",\n  \"option2En\": \"Berlin\",\n  \"option2Hi\": \"बर्लिन\",\n  \"option3En\": \"Paris\",\n  \"option3Hi\": \"पेरिस\",\n  \"option4En\": \"Madrid\",\n  \"option4Hi\": \"मैड्रिड\",\n  \"correctOption\": 3,\n  \"explanationEn\": \"Paris is the capital of France\",\n  \"explanationHi\": \"पेरिस फ्रांस की राजधानी है\",\n  \"difficulty\": \"Medium\",\n  \"marks\": 1,\n  \"examId\": 1,\n  \"subjectId\": 1,\n  \"topicId\": 1,\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/questions",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions"]
+								}
+							}
+						},
+						{
+							"name": "Get All Questions",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions"]
+								}
+							}
+						},
+						{
+							"name": "Get Question by ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/{{questionId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "{{questionId}}"]
+								}
+							}
+						},
+						{
+							"name": "Get Paginated Questions",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/paged?page=1&pageSize=10&examId=1&subjectId=1&difficulty=Medium",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "paged"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "pageSize",
+											"value": "10"
+										},
+										{
+											"key": "examId",
+											"value": "1"
+										},
+										{
+											"key": "subjectId",
+											"value": "1"
+										},
+										{
+											"key": "difficulty",
+											"value": "Medium"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Question",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"questionTextEn\": \"What is the capital of France? (Updated)\",\n  \"questionTextHi\": \"फ्रांस की राजधानी क्या है? (अपडेटेड)\",\n  \"option1En\": \"London\",\n  \"option1Hi\": \"लंदन\",\n  \"option2En\": \"Berlin\",\n  \"option2Hi\": \"बर्लिन\",\n  \"option3En\": \"Paris\",\n  \"option3Hi\": \"पेरिस\",\n  \"option4En\": \"Madrid\",\n  \"option4Hi\": \"मैड्रिड\",\n  \"correctOption\": 3,\n  \"explanationEn\": \"Paris is the capital of France (Updated)\",\n  \"explanationHi\": \"पेरिस फ्रांस की राजधानी है (अपडेटेड)\",\n  \"difficulty\": \"Medium\",\n  \"marks\": 1,\n  \"examId\": 1,\n  \"subjectId\": 1,\n  \"topicId\": 1,\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/{{questionId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "{{questionId}}"]
+								}
+							}
+						},
+						{
+							"name": "Delete Question",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/{{questionId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "{{questionId}}"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Question Filters",
+					"item": [
+						{
+							"name": "Get Questions by Exam ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/exam/{{examId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "exam", "{{examId}}"]
+								}
+							}
+						},
+						{
+							"name": "Get Questions by Subject ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/subject/{{subjectId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "subject", "{{subjectId}}"]
+								}
+							}
+						},
+						{
+							"name": "Get Questions by Topic ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/topic/{{topicId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "topic", "{{topicId}}"]
+								}
+							}
+						},
+						{
+							"name": "Get Question by Transaction ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/transaction/{{transactionId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "transaction", "{{transactionId}}"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Question Publishing",
+					"item": [
+						{
+							"name": "Publish Question",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"questionId\": {{questionId}},\n  \"reviewedBy\": {{adminId}}\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/publish",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "publish"]
+								}
+							}
+						},
+						{
+							"name": "Unpublish Question",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"questionId\": {{questionId}},\n  \"reviewedBy\": {{adminId}}\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/unpublish",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "unpublish"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Statistics",
+					"item": [
+						{
+							"name": "Get Question Statistics",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{adminToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/questions/statistics",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "questions", "statistics"]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "📝 Exam Service",
+			"item": [
+				{
+					"name": "Exam Management",
+					"item": [
+						{
+							"name": "Get All Exams",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/exam",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "exam"]
+								}
+							}
+						},
+						{
+							"name": "Get Exam by ID",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/exam/{{examId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "exam", "{{examId}}"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Seed Data",
+					"item": [
+						{
+							"name": "Seed Exam Data",
+							"request": {
+								"method": "POST",
+								"url": {
+									"raw": "{{baseUrl}}/api/seed/exams",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "seed", "exams"]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🏠 Home Dashboard Service",
+			"item": [
+				{
+					"name": "Dashboard",
+					"item": [
+						{
+							"name": "Get Dashboard Data",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/dashboard",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "dashboard"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Home",
+					"item": [
+						{
+							"name": "Get Home Data",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/home",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "home"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Subjects",
+					"item": [
+						{
+							"name": "Get Subjects",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/subject",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "subject"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Chapters",
+					"item": [
+						{
+							"name": "Get Chapters",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/chapter",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "chapter"]
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-refresh token if expired",
+					"if (pm.collectionVariables.get('adminToken')) {",
+					"    try {",
+					"        const token = pm.collectionVariables.get('adminToken');",
+					"        const payload = JSON.parse(atob(token.split('.')[1]));",
+					"        const now = Math.floor(Date.now() / 1000);",
+					"        ",
+					"        if (payload.exp < now) {",
+					"            console.log('Token expired, please login again');",
+					"            pm.collectionVariables.unset('adminToken');",
+					"        }",
+					"    } catch (e) {",
+					"        console.log('Invalid token format');",
+					"    }",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5087",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "adminId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "categoryId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "questionId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "examId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "subjectId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "topicId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "transactionId",
+			"value": "TXN123456",
+			"type": "string"
+		}
+	]
+}

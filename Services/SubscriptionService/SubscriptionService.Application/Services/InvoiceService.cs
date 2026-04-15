@@ -51,9 +51,9 @@ namespace SubscriptionService.Application.Services
                     UserSubscriptionId = userSubscriptionId,
                     InvoiceNumber = invoiceNumber,
                     InvoiceDate = DateTime.UtcNow,
-                    Subtotal = subscription.OriginalAmount,
+                    Subtotal = subscription.AmountPaid,
                     TaxAmount = 0,
-                    TotalAmount = subscription.FinalAmount,
+                    TotalAmount = subscription.AmountPaid,
                     Currency = "INR",
                     Status = InvoiceStatus.Generated,
                     CustomerName = $"User {subscription.UserId}",
@@ -235,7 +235,7 @@ Email: {invoice.CustomerEmail}
 
 Subscription Details:
 - Plan: {invoice.UserSubscription?.SubscriptionPlan?.Name}
-- Period: {invoice.UserSubscription?.StartDate:dd-MM-yyyy} to {invoice.UserSubscription?.EndDate:dd-MM-yyyy}
+- Period: {invoice.UserSubscription?.PurchasedDate:dd-MM-yyyy} to {invoice.UserSubscription?.ValidTill:dd-MM-yyyy}
 
 Amount Details:
 - Subtotal: {invoice.Subtotal:C}

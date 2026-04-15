@@ -4,9 +4,9 @@ namespace QuestionService.Domain.Entities
 {
     public enum QuestionType
     {
-        Text = 1,
-        Image = 2,
-        Video = 3
+        MCQ = 1,
+        TrueFalse = 2,
+        FillInBlanks = 3
     }
 
     public enum DifficultyLevel
@@ -18,103 +18,86 @@ namespace QuestionService.Domain.Entities
 
     public class Question : BaseEntity
     {
-        [MaxLength(2000)]
-        public string QuestionTextEnglish { get; set; } = string.Empty;
+        // Question metadata
+        public int? ModuleId { get; set; } // FK to Master Service Modules table
+        public int ExamId { get; set; } // FK to Master Service Exams table
+        public int SubjectId { get; set; } // FK to Master Service Subjects table
+        public int? TopicId { get; set; } // FK to Topics table
 
-        [MaxLength(2000)]
-        public string QuestionTextHindi { get; set; } = string.Empty;
-
+        // English question content (default)
         [Required]
-        public QuestionType Type { get; set; } = QuestionType.Text;
+        public string QuestionText { get; set; } = string.Empty;
 
         [MaxLength(500)]
-        public string? QuestionImageUrlEnglish { get; set; }
+        public string? OptionA { get; set; }
 
         [MaxLength(500)]
-        public string? QuestionImageUrlHindi { get; set; }
+        public string? OptionB { get; set; }
 
         [MaxLength(500)]
-        public string? QuestionVideoUrlEnglish { get; set; }
+        public string? OptionC { get; set; }
 
         [MaxLength(500)]
-        public string? QuestionVideoUrlHindi { get; set; }
-
-        [MaxLength(500)]
-        public string OptionAEnglish { get; set; } = string.Empty;
-
-        [MaxLength(500)]
-        public string OptionBEnglish { get; set; } = string.Empty;
-
-        [MaxLength(500)]
-        public string OptionCEnglish { get; set; } = string.Empty;
-
-        [MaxLength(500)]
-        public string OptionDEnglish { get; set; } = string.Empty;
-
-        [MaxLength(500)]
-        public string OptionAHindi { get; set; } = string.Empty;
-
-        [MaxLength(500)]
-        public string OptionBHindi { get; set; } = string.Empty;
-
-        [MaxLength(500)]
-        public string OptionCHindi { get; set; } = string.Empty;
-
-        [MaxLength(500)]
-        public string OptionDHindi { get; set; } = string.Empty;
-
-        [MaxLength(500)]
-        public string? OptionImageAUrl { get; set; }
-
-        [MaxLength(500)]
-        public string? OptionImageBUrl { get; set; }
-
-        [MaxLength(500)]
-        public string? OptionImageCUrl { get; set; }
-
-        [MaxLength(500)]
-        public string? OptionImageDUrl { get; set; }
+        public string? OptionD { get; set; }
 
         [Required]
         [MaxLength(1)]
-        public string CorrectAnswer { get; set; } = string.Empty;
+        public string CorrectAnswer { get; set; } = string.Empty; // A, B, C, D
 
-        [MaxLength(2000)]
-        public string? ExplanationEnglish { get; set; }
+        public string? Explanation { get; set; }
 
-        [MaxLength(2000)]
-        public string? ExplanationHindi { get; set; }
-
-        [MaxLength(500)]
-        public string? SolutionImageUrlEnglish { get; set; }
-
-        [MaxLength(500)]
-        public string? SolutionImageUrlHindi { get; set; }
-
-        [MaxLength(500)]
-        public string? SolutionVideoUrlEnglish { get; set; }
-
-        [MaxLength(500)]
-        public string? SolutionVideoUrlHindi { get; set; }
+        // Question properties
+        [Required]
+        public decimal Marks { get; set; } = 1.00m;
 
         [Required]
-        public DifficultyLevel Difficulty { get; set; } = DifficultyLevel.Easy;
+        public decimal NegativeMarks { get; set; } = 0.00m;
 
-        public int ChapterId { get; set; } // Reference to QuizService
+        [Required]
+        public string DifficultyLevel { get; set; } = "Medium"; // Easy, Medium, Hard
 
-        public int Marks { get; set; } = 1;
-        public decimal NegativeMarks { get; set; } = 0;
-        public int EstimatedTimeInSeconds { get; set; } = 120;
-        public bool IsMcq { get; set; } = true;
+        [Required]
+        public string QuestionType { get; set; } = "MCQ"; // MCQ, TrueFalse, FillInBlanks
 
-        // Backward compatibility properties
-        public int? SubjectId { get; set; }
-        public int? ExamId { get; set; }
-        public string Explanation => ExplanationEnglish ?? string.Empty;
-        public string ImageUrl => QuestionImageUrlEnglish ?? string.Empty;
-        public string VideoUrl => QuestionVideoUrlEnglish ?? string.Empty;
-        public string Tags { get; set; } = string.Empty;
-        public int Points => Marks;
-        public int TimeLimit => EstimatedTimeInSeconds;
+        // Image URLs
+        [MaxLength(500)]
+        public string? QuestionImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? OptionAImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? OptionBImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? OptionCImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? OptionDImageUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? ExplanationImageUrl { get; set; }
+
+        // Additional properties
+        public bool SameExplanationForAllLanguages { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? Reference { get; set; }
+
+        public string? Tags { get; set; } // JSON array of tags
+
+        // Audit fields
+        [Required]
+        public int CreatedBy { get; set; } // Admin user ID
+
+        public int? ReviewedBy { get; set; } // Reviewer admin user ID
+
+        public bool IsPublished { get; set; } = false;
+
+        public DateTime? PublishDate { get; set; }
+
+        // Navigation properties
+        public virtual Topic? Topic { get; set; }
+        public virtual ICollection<QuestionTranslation> Translations { get; set; } = new List<QuestionTranslation>();
     }
 }

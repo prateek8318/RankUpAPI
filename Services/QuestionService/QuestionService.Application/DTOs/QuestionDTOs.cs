@@ -1,0 +1,498 @@
+using System.ComponentModel.DataAnnotations;
+using QuestionService.Domain.Entities;
+
+namespace QuestionService.Application.DTOs
+{
+    public class QuestionDto
+    {
+        public int Id { get; set; }
+        public int? ModuleId { get; set; }
+        public int ExamId { get; set; }
+        public int SubjectId { get; set; }
+        public int? TopicId { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public string? Explanation { get; set; }
+        public decimal Marks { get; set; }
+        public decimal NegativeMarks { get; set; }
+        public string DifficultyLevel { get; set; } = "Medium";
+        public string QuestionType { get; set; } = "MCQ";
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
+        public bool SameExplanationForAllLanguages { get; set; }
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+        public int CreatedBy { get; set; }
+        public int? ReviewedBy { get; set; }
+        public bool IsPublished { get; set; }
+        public DateTime? PublishDate { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public bool IsActive { get; set; }
+        
+        // Navigation properties
+        public TopicDto? Topic { get; set; }
+        public List<QuestionTranslationDto> Translations { get; set; } = new();
+    }
+
+    public class QuestionTranslationDto
+    {
+        public int Id { get; set; }
+        public int QuestionId { get; set; }
+        public string LanguageCode { get; set; } = string.Empty;
+        public string QuestionText { get; set; } = string.Empty;
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string? Explanation { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    public class TopicDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int SubjectId { get; set; }
+        public string? Description { get; set; }
+        public int? ParentTopicId { get; set; }
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        
+        // Navigation properties
+        public TopicDto? ParentTopic { get; set; }
+        public List<TopicDto> ChildTopics { get; set; } = new();
+    }
+
+    public class CreateQuestionDto
+    {
+        [Required]
+        public int? ModuleId { get; set; }
+        
+        [Required]
+        public int ExamId { get; set; }
+        
+        [Required]
+        public int SubjectId { get; set; }
+        
+        public int? TopicId { get; set; }
+        
+        [Required]
+        public string QuestionText { get; set; } = string.Empty;
+        
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        
+        [Required]
+        [StringLength(1)]
+        public string CorrectAnswer { get; set; } = string.Empty;
+        
+        public string? Explanation { get; set; }
+        
+        [Required]
+        [Range(0.01, 100.00)]
+        public decimal Marks { get; set; } = 1.00m;
+        
+        [Range(0.00, 100.00)]
+        public decimal NegativeMarks { get; set; } = 0.00m;
+        
+        [Required]
+        public string DifficultyLevel { get; set; } = "Medium";
+        
+        [Required]
+        public string QuestionType { get; set; } = "MCQ";
+        
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
+        
+        public bool SameExplanationForAllLanguages { get; set; } = false;
+        
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+        
+        [Required]
+        public int CreatedBy { get; set; }
+        
+        // Translation support
+        public List<QuestionTranslationCreateDto>? Translations { get; set; }
+    }
+
+    public class QuestionTranslationCreateDto
+    {
+        [Required]
+        public string LanguageCode { get; set; } = string.Empty;
+        
+        [Required]
+        public string QuestionText { get; set; } = string.Empty;
+        
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        
+        public string? Explanation { get; set; }
+    }
+
+    public class QuestionTranslationUpsertDto
+    {
+        [Required]
+        public string LanguageCode { get; set; } = string.Empty;
+        
+        [Required]
+        public string QuestionText { get; set; } = string.Empty;
+        
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        
+        public string? Explanation { get; set; }
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+    }
+
+    public class UpdateQuestionDto
+    {
+        [Required]
+        public int Id { get; set; }
+        
+        public int? ModuleId { get; set; }
+        public int? TopicId { get; set; }
+        public string? QuestionText { get; set; }
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string? CorrectAnswer { get; set; }
+        public string? Explanation { get; set; }
+        public decimal? Marks { get; set; }
+        public decimal? NegativeMarks { get; set; }
+        public string? DifficultyLevel { get; set; }
+        public string? QuestionType { get; set; }
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
+        public bool? SameExplanationForAllLanguages { get; set; }
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+        
+        // Translation updates
+        public List<QuestionTranslationUpdateDto>? Translations { get; set; }
+    }
+
+    public class QuestionTranslationUpdateDto
+    {
+        [Required]
+        public string LanguageCode { get; set; } = string.Empty;
+        
+        public string? QuestionText { get; set; }
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string? Explanation { get; set; }
+    }
+
+    public class QuestionListRequestDto
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public int? ExamId { get; set; }
+        public int? SubjectId { get; set; }
+        public int? TopicId { get; set; }
+        public string? DifficultyLevel { get; set; }
+        public bool? IsPublished { get; set; }
+        public string LanguageCode { get; set; } = "en";
+    }
+
+    public class QuestionListResponseDto
+    {
+        public IReadOnlyList<QuestionDto> Items { get; set; } = new List<QuestionDto>();
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    public class QuestionStatisticsDto
+    {
+        public int TotalQuestions { get; set; }
+        public int AddedToday { get; set; }
+        public int NegativeMarksCount { get; set; }
+        public int UnpublishedCount { get; set; }
+        public int EasyCount { get; set; }
+        public int MediumCount { get; set; }
+        public int HardCount { get; set; }
+        public List<SubjectQuestionCountDto> QuestionsBySubject { get; set; } = new();
+        public List<ExamQuestionCountDto> QuestionsByExam { get; set; } = new();
+    }
+
+    public class SubjectQuestionCountDto
+    {
+        public string SubjectName { get; set; } = string.Empty;
+        public int QuestionCount { get; set; }
+    }
+
+    public class ExamQuestionCountDto
+    {
+        public string ExamName { get; set; } = string.Empty;
+        public int QuestionCount { get; set; }
+    }
+
+    public class CreateTopicDto
+    {
+        [Required]
+        public string Name { get; set; } = string.Empty;
+        
+        [Required]
+        public int SubjectId { get; set; }
+        
+        public string? Description { get; set; }
+        
+        public int? ParentTopicId { get; set; }
+        
+        [Range(0, int.MaxValue)]
+        public int SortOrder { get; set; } = 0;
+    }
+
+    public class UpdateTopicDto
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public int? ParentTopicId { get; set; }
+        public int? SortOrder { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    // Batch Upload DTOs
+    public class QuestionBatchDto
+    {
+        public int Id { get; set; }
+        public string BatchName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+        public int TotalQuestions { get; set; }
+        public int ProcessedQuestions { get; set; }
+        public int FailedQuestions { get; set; }
+        public BatchStatus Status { get; set; }
+        public string? ErrorMessage { get; set; }
+        public int UploadedBy { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public bool IsActive { get; set; }
+        
+        // Navigation properties
+        public List<QuestionErrorDto> Errors { get; set; } = new();
+    }
+
+    public class QuestionErrorDto
+    {
+        public int Id { get; set; }
+        public int BatchId { get; set; }
+        public int RowNumber { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
+        public string? RawData { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class CreateQuestionBatchDto
+    {
+        [Required]
+        public string BatchName { get; set; } = string.Empty;
+        
+        public string? Description { get; set; }
+        
+        [Required]
+        public string FileName { get; set; } = string.Empty;
+        
+        [Required]
+        public string FilePath { get; set; } = string.Empty;
+        
+        [Required]
+        public int UploadedBy { get; set; }
+    }
+
+    public class QuestionBatchListRequestDto
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public BatchStatus? Status { get; set; }
+    }
+
+    public class QuestionBatchListResponseDto
+    {
+        public IReadOnlyList<QuestionBatchDto> Items { get; set; } = new List<QuestionBatchDto>();
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    public class PublishQuestionDto
+    {
+        [Required]
+        public int QuestionId { get; set; }
+        
+        [Required]
+        public int ReviewedBy { get; set; }
+    }
+
+    public class ToggleQuestionPublishStatusDto
+    {
+        [Required]
+        public int QuestionId { get; set; }
+        
+        [Required]
+        public bool IsPublished { get; set; }
+        
+        [Required]
+        public int ReviewedBy { get; set; }
+    }
+
+    // Admin-specific DTOs
+    public class CreateQuestionAdminDto
+    {
+        public int ModuleId { get; set; }
+        public int ExamId { get; set; }
+        public int SubjectId { get; set; }
+        public int TopicId { get; set; }
+        public int Marks { get; set; } = 1;
+        public decimal NegativeMarks { get; set; } = 0;
+        public string DifficultyLevel { get; set; } = "Medium";
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public bool SameExplanationForAllLanguages { get; set; }
+        public bool IsPublished { get; set; }
+        public int CreatedBy { get; set; }
+        public List<QuestionTranslationUpsertDto> Translations { get; set; } = new();
+    }
+
+    public class UpdateQuestionAdminDto : CreateQuestionAdminDto
+    {
+        public int Id { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class QuestionAdminListItemDto
+    {
+        public int Id { get; set; }
+        public int ModuleId { get; set; }
+        public int ExamId { get; set; }
+        public int SubjectId { get; set; }
+        public int TopicId { get; set; }
+        public string DifficultyLevel { get; set; } = "Medium";
+        public int Marks { get; set; }
+        public decimal NegativeMarks { get; set; }
+        public bool IsPublished { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? DisplayQuestionText { get; set; }
+        public string? LanguageCode { get; set; }
+    }
+
+    public class QuestionAdminDetailDto
+    {
+        public int Id { get; set; }
+        public int ModuleId { get; set; }
+        public int ExamId { get; set; }
+        public int SubjectId { get; set; }
+        public int TopicId { get; set; }
+        public int Marks { get; set; }
+        public decimal NegativeMarks { get; set; }
+        public string DifficultyLevel { get; set; } = "Medium";
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public bool SameExplanationForAllLanguages { get; set; }
+        public bool IsPublished { get; set; }
+        public bool IsActive { get; set; }
+        public List<QuestionTranslationDto> Translations { get; set; } = new();
+    }
+
+    public class QuestionDashboardStatsDto
+    {
+        public int TotalQuestions { get; set; }
+        public int AddedToday { get; set; }
+        public int NegativeMarksCount { get; set; }
+        public int UnpublishedCount { get; set; }
+    }
+
+    public class QuestionFilterRequestDto
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public int? ModuleId { get; set; }
+        public int? SubjectId { get; set; }
+        public int? ExamId { get; set; }
+        public int? TopicId { get; set; }
+        public string? DifficultyLevel { get; set; }
+        public string? LanguageCode { get; set; }
+        public bool? IsPublished { get; set; }
+        public bool IncludeInactive { get; set; } = true;
+    }
+
+    public class QuestionPagedResponseDto
+    {
+        public IReadOnlyList<QuestionDto> Items { get; set; } = new List<QuestionDto>();
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    public class PublishQuestionRequestDto
+    {
+        [Required]
+        public int QuestionId { get; set; }
+        
+        [Required]
+        public bool IsPublished { get; set; }
+        
+        [Required]
+        public int ReviewedBy { get; set; }
+    }
+
+    public class BulkQuestionUploadRequestDto
+    {
+        [Required]
+        public string FileName { get; set; } = string.Empty;
+        
+        [Required]
+        public int ExamId { get; set; }
+        
+        [Required]
+        public int SubjectId { get; set; }
+        
+        public int? TopicId { get; set; }
+        
+        [Required]
+        public int UploadedBy { get; set; }
+        
+        public string? LanguageCode { get; set; } = "en";
+        
+        public bool SkipDuplicates { get; set; } = false;
+        
+        public bool ValidateOnly { get; set; } = false;
+    }
+}

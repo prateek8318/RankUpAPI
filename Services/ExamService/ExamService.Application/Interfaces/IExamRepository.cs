@@ -16,5 +16,16 @@ namespace ExamService.Application.Interfaces
         Task DeleteAsync(Exam exam);
         Task<bool> HardDeleteByIdAsync(int id);
         Task<int> SaveChangesAsync();
+
+        Task<IEnumerable<ExamCategory>> GetActiveCategoriesAsync();
+        Task<IEnumerable<ExamType>> GetTypesByCategoryIdAsync(int categoryId);
+        
+        // Admin specific methods
+        Task<ExamStatsDto> GetExamStatsAsync();
+        Task<IEnumerable<ExamCategory>> GetExamCategoriesAsync();
+        Task<IEnumerable<ExamType>> GetExamTypesByCategoryAsync(int categoryId);
+        Task<IEnumerable<Exam>> GetFilteredExamsAsync(int? categoryId, int? typeId, string? status);
+        Task<bool> UpdateExamStatusAsync(int id, string status);
+        Task<ExamDashboardDto> GetExamDashboardAsync();
     }
 }

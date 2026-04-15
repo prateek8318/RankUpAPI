@@ -425,6 +425,42 @@ namespace ExamService.Application.Services
                 return 0;
             }
         }
+
+        // Admin specific methods
+        public async Task<ExamStatsDto> GetExamStatsAsync()
+        {
+            var stats = await _examRepository.GetExamStatsAsync();
+            return stats;
+        }
+
+        public async Task<IEnumerable<ExamCategoryDto>> GetExamCategoriesAsync()
+        {
+            var categories = await _examRepository.GetExamCategoriesAsync();
+            return _mapper.Map<IEnumerable<ExamCategoryDto>>(categories);
+        }
+
+        public async Task<IEnumerable<ExamTypeDto>> GetExamTypesByCategoryAsync(int categoryId)
+        {
+            var types = await _examRepository.GetExamTypesByCategoryAsync(categoryId);
+            return _mapper.Map<IEnumerable<ExamTypeDto>>(types);
+        }
+
+        public async Task<IEnumerable<ExamDto>> GetFilteredExamsAsync(int? categoryId, int? typeId, string? status)
+        {
+            var exams = await _examRepository.GetFilteredExamsAsync(categoryId, typeId, status);
+            return _mapper.Map<IEnumerable<ExamDto>>(exams);
+        }
+
+        public async Task<bool> UpdateExamStatusAsync(int id, string status)
+        {
+            return await _examRepository.UpdateExamStatusAsync(id, status);
+        }
+
+        public async Task<ExamDashboardDto> GetExamDashboardAsync()
+        {
+            var dashboard = await _examRepository.GetExamDashboardAsync();
+            return dashboard;
+        }
     }
 
     public class UserServiceResponse

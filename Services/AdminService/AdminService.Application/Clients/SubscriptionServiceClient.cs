@@ -243,5 +243,51 @@ namespace AdminService.Application.Clients
                 return null;
             }
         }
+
+        public async Task<object?> GetUserSubscriptionHistoryAsync(int userId)
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.GetAsync($"/api/admin/usersubscriptions/user/{userId}"));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return JsonSerializer.Deserialize<object>(content);
+                }
+
+                _logger.LogWarning("Failed to get subscription history for user {UserId}: {StatusCode}", userId, response.StatusCode);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SubscriptionService for user subscription history {UserId}", userId);
+                return null;
+            }
+        }
+
+        public async Task<object?> GetStatsAsync()
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.GetAsync("/api/admin/subscription-plans/stats"));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return JsonSerializer.Deserialize<object>(content);
+                }
+
+                _logger.LogWarning("Failed to get subscription plan stats: {StatusCode}", response.StatusCode);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SubscriptionService for subscription plan stats");
+                return null;
+            }
+        }
     }
 }

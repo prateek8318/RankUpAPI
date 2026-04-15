@@ -34,8 +34,25 @@ namespace TestService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[TestQuestion_GetByTestId] @TestId";
-                return await connection.QueryAsync<TestQuestion>(sql, new { TestId = testId });
+                var sql = @"
+                    SELECT tq.Id, tq.TestId, tq.QuestionId, tq.DisplayOrder, tq.Marks, tq.IsActive, tq.CreatedAt, tq.UpdatedAt,
+                           q.Id, q.QuestionText, q.ImageUrl, q.VideoUrl, q.Explanation, q.Difficulty, q.Marks, q.DisplayOrder,
+                           q.IsActive, q.CreatedAt, q.UpdatedAt
+                    FROM dbo.TestQuestions tq
+                    INNER JOIN dbo.Questions q ON q.Id = tq.QuestionId
+                    WHERE tq.TestId = @TestId
+                      AND tq.IsActive = 1
+                    ORDER BY tq.DisplayOrder";
+
+                return await connection.QueryAsync<TestQuestion, Question, TestQuestion>(
+                    sql,
+                    (testQuestion, question) =>
+                    {
+                        testQuestion.Question = question;
+                        return testQuestion;
+                    },
+                    new { TestId = testId },
+                    splitOn: "Id");
             });
         }
 

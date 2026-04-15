@@ -13,9 +13,27 @@ namespace SubscriptionService.Infrastructure.Repositories
 
         public async Task<PaymentTransaction?> GetByTransactionIdAsync(string transactionId)
         {
-            return await _dbSet
-                .Include(pt => pt.UserSubscription)
+            return await _context.PaymentTransactions
                 .FirstOrDefaultAsync(pt => pt.TransactionId == transactionId);
+        }
+
+        public async Task<PaymentTransaction?> GetByProviderTransactionIdAsync(string providerTransactionId)
+        {
+            return await _context.PaymentTransactions
+                .FirstOrDefaultAsync(pt => pt.RazorpayPaymentId == providerTransactionId);
+        }
+
+        public async Task<IEnumerable<PaymentTransaction>> GetByPaymentIdAsync(int paymentId)
+        {
+            return await _context.PaymentTransactions
+                .Where(pt => pt.Id == paymentId)
+                .ToListAsync();
+        }
+
+        public async Task<PaymentTransaction?> GetByUserSubscriptionIdAsync(int userSubscriptionId)
+        {
+            return await _context.PaymentTransactions
+                .FirstOrDefaultAsync(pt => pt.UserSubscriptionId == userSubscriptionId);
         }
 
         public async Task<PaymentTransaction?> GetByRazorpayPaymentIdAsync(string razorpayPaymentId)

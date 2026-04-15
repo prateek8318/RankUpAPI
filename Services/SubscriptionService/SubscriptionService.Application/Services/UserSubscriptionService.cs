@@ -58,11 +58,11 @@ namespace SubscriptionService.Application.Services
                 {
                     UserId = createSubscriptionDto.UserId,
                     SubscriptionPlanId = createSubscriptionDto.SubscriptionPlanId,
-                    RazorpayOrderId = createSubscriptionDto.RazorpayOrderId,
-                    OriginalAmount = originalAmount,
-                    FinalAmount = finalAmount,
-                    Status = SubscriptionStatus.Pending,
-                    AutoRenew = createSubscriptionDto.AutoRenew
+                    RazorpayOrderId = "", // Not available in CreateUserSubscriptionDto
+                    AmountPaid = finalAmount,
+                    DiscountApplied = originalAmount - finalAmount,
+                    Status = "Pending",
+                    AutoRenewal = createSubscriptionDto.AutoRenewal
                 };
 
                 var createdSubscription = await _userSubscriptionRepository.AddAsync(subscription);
@@ -101,7 +101,8 @@ namespace SubscriptionService.Application.Services
                 }
 
                 // Get subscription by order ID
-                var subscription = await _userSubscriptionRepository.GetByRazorpayOrderIdAsync(activateSubscriptionDto.RazorpayOrderId);
+                var subscriptions = await _userSubscriptionRepository.GetByUserIdWithHistoryAsync(activateSubscriptionDto.UserId);
+                var subscription = subscriptions.FirstOrDefault(s => s.RazorpayOrderId == activateSubscriptionDto.RazorpayOrderId);
                 if (subscription == null)
                 {
                     return new PaymentVerificationResultDto
@@ -122,9 +123,9 @@ namespace SubscriptionService.Application.Services
                     RazorpayOrderId = activateSubscriptionDto.RazorpayOrderId,
                     RazorpayPaymentId = activateSubscriptionDto.RazorpayPaymentId,
                     RazorpaySignature = activateSubscriptionDto.RazorpaySignature,
-                    Amount = subscription.FinalAmount,
+                    Amount = subscription.AmountPaid,
                     Currency = "INR",
-                    Status = PaymentStatus.Completed,
+                    Status = PaymentStatus.Success,
                     Method = GetPaymentMethodFromRazorpay(paymentDetails.Method),
                     GatewayResponse = Newtonsoft.Json.JsonConvert.SerializeObject(paymentDetails),
                     CompletedAt = DateTime.UtcNow
@@ -135,9 +136,9 @@ namespace SubscriptionService.Application.Services
                 // Activate subscription
                 subscription.RazorpayPaymentId = activateSubscriptionDto.RazorpayPaymentId;
                 subscription.RazorpaySignature = activateSubscriptionDto.RazorpaySignature;
-                subscription.Status = SubscriptionStatus.Active;
-                subscription.StartDate = DateTime.UtcNow;
-                subscription.EndDate = DateTime.UtcNow.AddDays(subscription.SubscriptionPlan.ValidityDays);
+                subscription.Status = "Active";
+                subscription.PurchasedDate = DateTime.UtcNow;
+                subscription.ValidTill = DateTime.UtcNow.AddDays(subscription.SubscriptionPlan.ValidityDays);
                 subscription.UpdatedAt = DateTime.UtcNow;
 
                 await _userSubscriptionRepository.UpdateAsync(subscription);
@@ -149,7 +150,7 @@ namespace SubscriptionService.Application.Services
                 {
                     IsSuccess = true,
                     Message = "Payment verified and subscription activated successfully",
-                    Subscription = _mapper.Map<UserSubscriptionDto>(subscription),
+                    UserSubscription = _mapper.Map<UserSubscriptionDto>(subscription),
                     PaymentTransaction = _mapper.Map<PaymentTransactionDto>(paymentTransaction)
                 };
 
@@ -192,16 +193,16 @@ namespace SubscriptionService.Application.Services
                     UserId = subscription.UserId,
                     SubscriptionPlanId = subscription.SubscriptionPlanId,
                     RazorpayOrderId = $"renewal_{DateTime.UtcNow:yyyyMMddHHmmss}_{subscription.Id}",
-                    OriginalAmount = originalAmount,
-                    FinalAmount = finalAmount,
-                    Status = SubscriptionStatus.Pending,
-                    AutoRenew = renewSubscriptionDto.AutoRenew
+                    AmountPaid = finalAmount,
+                    DiscountApplied = originalAmount - finalAmount,
+                    Status = "Pending",
+                    AutoRenewal = renewSubscriptionDto.AutoRenewal
                 };
 
                 var createdSubscription = await _userSubscriptionRepository.AddAsync(newSubscription);
 
                 // Update old subscription
-                subscription.Status = SubscriptionStatus.Expired;
+                subscription.Status = "Expired";
                 subscription.UpdatedAt = DateTime.UtcNow;
                 await _userSubscriptionRepository.UpdateAsync(subscription);
 
@@ -229,9 +230,9 @@ namespace SubscriptionService.Application.Services
                     throw new KeyNotFoundException($"Subscription with ID {cancelSubscriptionDto.SubscriptionId} not found");
                 }
 
-                subscription.Status = SubscriptionStatus.Cancelled;
-                subscription.CancelledDate = DateTime.UtcNow;
-                subscription.CancellationReason = cancelSubscriptionDto.CancellationReason;
+                subscription.Status = "Cancelled";
+                // Note: CancelledDate and CancellationReason are not properties in UserSubscription entity
+                // These would need to be added to the entity if needed
                 subscription.UpdatedAt = DateTime.UtcNow;
 
                 await _userSubscriptionRepository.UpdateAsync(subscription);
@@ -264,7 +265,7 @@ namespace SubscriptionService.Application.Services
         {
             try
             {
-                var subscription = await _userSubscriptionRepository.GetByUserIdAsync(userId);
+                var subscription = await _userSubscriptionRepository.GetActiveSubscriptionByUserIdAsync(userId);
                 return subscription != null ? _mapper.Map<UserSubscriptionDto>(subscription) : null;
             }
             catch (Exception ex)
@@ -285,11 +286,11 @@ namespace SubscriptionService.Application.Services
                 {
                     UserId = userId,
                     Subscriptions = subscriptionDtos.ToList(),
-                    ActiveSubscriptionCount = subscriptionDtos.Count(s => s.Status == SubscriptionStatus.Active),
-                    ExpiredSubscriptionCount = subscriptionDtos.Count(s => s.Status == SubscriptionStatus.Expired),
-                    CancelledSubscriptionCount = subscriptionDtos.Count(s => s.Status == SubscriptionStatus.Cancelled),
-                    TotalSpent = subscriptionDtos.Where(s => s.Status == SubscriptionStatus.Active || s.Status == SubscriptionStatus.Expired)
-                                              .Sum(s => s.FinalAmount)
+                    ActiveSubscriptionCount = subscriptionDtos.Count(s => s.Status == "Active"),
+                    ExpiredSubscriptionCount = subscriptionDtos.Count(s => s.Status == "Expired"),
+                    CancelledSubscriptionCount = subscriptionDtos.Count(s => s.Status == "Cancelled"),
+                    TotalSpent = subscriptionDtos.Where(s => s.Status == "Active" || s.Status == "Expired")
+                                              .Sum(s => s.AmountPaid)
                 };
 
                 return history;
@@ -354,9 +355,9 @@ namespace SubscriptionService.Application.Services
                     UserSubscriptionId = subscription.Id,
                     InvoiceNumber = invoiceNumber,
                     InvoiceDate = DateTime.UtcNow,
-                    Subtotal = subscription.OriginalAmount,
+                    Subtotal = subscription.AmountPaid,
                     TaxAmount = 0, // Calculate tax based on your requirements
-                    TotalAmount = subscription.FinalAmount,
+                    TotalAmount = subscription.AmountPaid,
                     Currency = "INR",
                     Status = InvoiceStatus.Generated,
                     CustomerName = $"User {subscription.UserId}" // Get from user service if needed
@@ -382,6 +383,54 @@ namespace SubscriptionService.Application.Services
                 "emi" => PaymentMethod.Card,
                 _ => PaymentMethod.Card
             };
+        }
+
+        public async Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansAsync(string? language = null)
+        {
+            try
+            {
+                _logger.LogInformation("Getting active subscription plans for language: {Language}", language);
+                
+                var currentLanguage = language ?? "en";
+                var plans = await _subscriptionPlanRepository.GetActivePlansAsync();
+                var planDtos = _mapper.Map<List<SubscriptionPlanListDto>>(plans);
+                
+                // Apply localization if needed
+                ApplyLocalization(planDtos, plans, currentLanguage);
+                
+                return planDtos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active subscription plans");
+                throw;
+            }
+        }
+
+        private static void ApplyLocalization(List<SubscriptionPlanListDto> dtos, IEnumerable<SubscriptionPlan> entities, string? language)
+        {
+            var lang = NormalizeLanguage(language);
+            foreach (var dto in dtos)
+            {
+                dto.ExamType = dto.ExamCategory;
+                if (lang == "en") continue;
+
+                var entity = entities.FirstOrDefault(e => e.Id == dto.Id);
+                if (entity == null) continue;
+
+                var t = entity.Translations.FirstOrDefault(x => x.LanguageCode == lang);
+                if (t == null) continue;
+
+                dto.Name = t.Name;
+                dto.Description = t.Description;
+                dto.Features = t.Features ?? new List<string>();
+            }
+        }
+
+        private static string NormalizeLanguage(string? language)
+        {
+            if (string.IsNullOrWhiteSpace(language)) return "en";
+            return language.Trim().ToLowerInvariant();
         }
     }
 }

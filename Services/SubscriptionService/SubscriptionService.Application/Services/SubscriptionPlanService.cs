@@ -1,9 +1,12 @@
 using AutoMapper;
+
 using Microsoft.Extensions.Logging;
 using SubscriptionService.Application.DTOs;
 using SubscriptionService.Application.Interfaces;
 using SubscriptionService.Domain.Entities;
 using SubscriptionService.Domain.Interfaces;
+using System.Reflection;
+
 
 namespace SubscriptionService.Application.Services
 {
@@ -196,6 +199,40 @@ namespace SubscriptionService.Application.Services
             }
         }
 
+        public async Task<SubscriptionPlanPagedResponseDto> GetPlansPagedAsync(SubscriptionPlanPagedRequestDto request)
+        {
+            try
+            {
+                var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+                var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
+
+                var (plans, totalCount) = await _subscriptionPlanRepository.GetPagedAsync(
+                    pageNumber,
+                    pageSize,
+                    request.IncludeInactive,
+                    request.ExamId);
+
+                var list = _mapper.Map<List<SubscriptionPlanListDto>>(plans);
+                ApplyLocalization(list, plans, request.Language);
+
+                var totalPages = totalCount <= 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+
+                return new SubscriptionPlanPagedResponseDto
+                {
+                    Items = list,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    TotalPages = totalPages
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving paginated subscription plans");
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<SubscriptionPlanListDto>> GetAllPlansAsync(string? language = null)
         {
             try
@@ -311,6 +348,85 @@ namespace SubscriptionService.Application.Services
                 dto.Name = t.Name;
                 dto.Description = t.Description;
                 dto.Features = t.Features ?? new List<string>();
+            }
+        }
+
+        public async Task<SubscriptionPlanStatsDto> GetStatsAsync()
+        {
+            try
+            {
+                var stats = new SubscriptionPlanStatsDto();
+
+                // Get active plans count
+                var activePlans = await _subscriptionPlanRepository.GetActivePlansAsync();
+                stats.ActivePlans = activePlans.Count();
+
+                // Get monthly revenue (current month)
+                var monthlyRevenue = await GetMonthlyRevenueAsync();
+                stats.MonthlyRevenue = monthlyRevenue;
+
+                // Get expiring soon count (next 7 days)
+                var expiringSoon = await GetExpiringSoonCountAsync();
+                stats.ExpiringSoon = expiringSoon;
+
+                // Get new subscribers count (last 30 days)
+                var newSubscribers = await GetNewSubscribersCountAsync();
+                stats.NewSubscribers = newSubscribers;
+
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving subscription plan statistics");
+                throw;
+            }
+        }
+
+        private async Task<decimal> GetMonthlyRevenueAsync()
+        {
+            try
+            {
+                // For now, return 0 as we need to implement payment repository
+                // TODO: Implement payment repository to get actual revenue data
+                _logger.LogInformation("Monthly revenue calculation not yet implemented - returning 0");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating monthly revenue");
+                return 0;
+            }
+        }
+
+        private async Task<int> GetExpiringSoonCountAsync()
+        {
+            try
+            {
+                // For now, return 0 as we need to implement user subscription repository
+                // TODO: Implement user subscription repository to get actual expiring data
+                _logger.LogInformation("Expiring soon calculation not yet implemented - returning 0");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error counting expiring soon subscriptions");
+                return 0;
+            }
+        }
+
+        private async Task<int> GetNewSubscribersCountAsync()
+        {
+            try
+            {
+                // For now, return 0 as we need to implement user subscription repository
+                // TODO: Implement user subscription repository to get actual subscriber data
+                _logger.LogInformation("New subscribers calculation not yet implemented - returning 0");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error counting new subscribers");
+                return 0;
             }
         }
     }

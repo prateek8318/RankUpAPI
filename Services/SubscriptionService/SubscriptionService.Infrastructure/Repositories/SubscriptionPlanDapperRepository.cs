@@ -17,7 +17,8 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[SubscriptionPlan_GetById] @Id";
-                return await connection.QueryFirstOrDefaultAsync<SubscriptionPlan>(sql, new { Id = id });
+                var row = await connection.QueryFirstOrDefaultAsync<SubscriptionPlanDbRow>(sql, new { Id = id });
+                return row is null ? null : MapToEntity(row);
             });
         }
 
@@ -26,7 +27,8 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[SubscriptionPlan_GetAll]";
-                return await connection.QueryAsync<SubscriptionPlan>(sql);
+                var rows = await connection.QueryAsync<SubscriptionPlanDbRow>(sql);
+                return MapToEntityList(rows);
             });
         }
 
@@ -40,9 +42,9 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"
-                    EXEC [dbo].[SubscriptionPlan_Create] 
-                        @Name, @Description, @Price, @Duration, @Type, @ExamCategory, 
-                        @ExamId, @Features, @IsActive, @SortOrder, @CreatedAt, @UpdatedAt";
+                    EXEC [dbo].[SubscriptionPlan_Create]
+                        @Name, @Description, @Price, @Duration, @ValidityDays, @Type, @ExamCategory, @ExamId, @Features,
+                        @IsActive, @SortOrder, @CreatedAt, @UpdatedAt";
 
                 var parameters = new
                 {
@@ -50,14 +52,15 @@ namespace SubscriptionService.Infrastructure.Repositories
                     Description = entity.Description,
                     Price = entity.Price,
                     Duration = entity.Duration,
+                    ValidityDays = entity.ValidityDays,
                     Type = (int)entity.Type,
                     ExamCategory = entity.ExamCategory,
-                    ExamId = entity.ExamId,
+                    ExamId = entity.ExamId ?? 0,
                     Features = entity.Features != null ? string.Join(",", entity.Features) : null,
                     IsActive = entity.IsActive,
                     SortOrder = entity.SortOrder,
-                    CreatedAt = entity.CreatedAt,
-                    UpdatedAt = entity.UpdatedAt
+                    CreatedAt = entity.CreatedAt == default ? DateTime.UtcNow : entity.CreatedAt,
+                    UpdatedAt = entity.UpdatedAt ?? DateTime.UtcNow
                 };
 
                 await connection.ExecuteAsync(sql, parameters);
@@ -70,9 +73,23 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"
-                    EXEC [dbo].[SubscriptionPlan_Update] 
-                        @Id, @Name, @Description, @Price, @Duration, @Type, @ExamCategory, 
-                        @ExamId, @Features, @IsActive, @SortOrder, @UpdatedAt";
+                    EXEC [dbo].[SubscriptionPlan_Update]
+                        @Id = @Id, 
+                        @Name = @Name, 
+                        @Description = @Description, 
+                        @Price = @Price, 
+                        @Duration = @Duration, 
+                        @ValidityDays = @ValidityDays, 
+                        @Type = @Type, 
+                        @ExamCategory = @ExamCategory, 
+                        @ExamId = @ExamId, 
+                        @Features = @Features,
+                        @IsActive = @IsActive, 
+                        @SortOrder = @SortOrder, 
+                        @IsPopular = @IsPopular, 
+                        @IsRecommended = @IsRecommended, 
+                        @CardColorTheme = @CardColorTheme, 
+                        @UpdatedAt = @UpdatedAt";
 
                 var parameters = new
                 {
@@ -81,13 +98,17 @@ namespace SubscriptionService.Infrastructure.Repositories
                     Description = entity.Description,
                     Price = entity.Price,
                     Duration = entity.Duration,
+                    ValidityDays = entity.ValidityDays,
                     Type = (int)entity.Type,
                     ExamCategory = entity.ExamCategory,
-                    ExamId = entity.ExamId,
+                    ExamId = entity.ExamId ?? 0,
                     Features = entity.Features != null ? string.Join(",", entity.Features) : null,
                     IsActive = entity.IsActive,
                     SortOrder = entity.SortOrder,
-                    UpdatedAt = entity.UpdatedAt
+                    IsPopular = entity.IsPopular,
+                    IsRecommended = entity.IsRecommended,
+                    CardColorTheme = entity.CardColorTheme,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 await connection.ExecuteAsync(sql, parameters);
@@ -115,7 +136,8 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[SubscriptionPlan_GetByExamCategory] @ExamCategory";
-                return await connection.QueryAsync<SubscriptionPlan>(sql, new { ExamCategory = examCategory });
+                var rows = await connection.QueryAsync<SubscriptionPlanDbRow>(sql, new { ExamCategory = examCategory });
+                return MapToEntityList(rows);
             });
         }
 
@@ -124,7 +146,8 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[SubscriptionPlan_GetByExamId] @ExamId";
-                return await connection.QueryAsync<SubscriptionPlan>(sql, new { ExamId = examId });
+                var rows = await connection.QueryAsync<SubscriptionPlanDbRow>(sql, new { ExamId = examId });
+                return MapToEntityList(rows);
             });
         }
 
@@ -133,7 +156,30 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[SubscriptionPlan_GetActive]";
-                return await connection.QueryAsync<SubscriptionPlan>(sql);
+                var rows = await connection.QueryAsync<SubscriptionPlanDbRow>(sql);
+                return MapToEntityList(rows);
+            });
+        }
+
+        public async Task<(IEnumerable<SubscriptionPlan> Plans, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, bool includeInactive, int? examId = null)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[SubscriptionPlan_GetAllPaged] @PageNumber, @PageSize, @IncludeInactive, @ExamId";
+                var parameters = new
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    IncludeInactive = includeInactive,
+                    ExamId = examId
+                };
+
+                using var grid = await connection.QueryMultipleAsync(sql, parameters);
+                var planRows = await grid.ReadAsync<SubscriptionPlanDbRow>();
+                var plans = MapToEntityList(planRows);
+                var total = await grid.ReadFirstOrDefaultAsync<int>();
+
+                return (plans, total);
             });
         }
 
@@ -142,7 +188,8 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[SubscriptionPlan_GetByPlanType] @PlanType";
-                return await connection.QueryFirstOrDefaultAsync<SubscriptionPlan>(sql, new { PlanType = planType });
+                var row = await connection.QueryFirstOrDefaultAsync<SubscriptionPlanDbRow>(sql, new { PlanType = (int)planType });
+                return row is null ? null : MapToEntity(row);
             });
         }
 
@@ -151,15 +198,102 @@ namespace SubscriptionService.Infrastructure.Repositories
             var result = await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[SubscriptionPlan_ExistsByName] @Name, @ExamCategory, @PlanType, @ExcludeId, @ExamId";
-                return await connection.QueryFirstOrDefaultAsync<int>(sql, new { 
-                    Name = name, 
-                    ExamCategory = examCategory, 
-                    PlanType = type, 
-                    ExcludeId = excludeId, 
-                    ExamId = examId 
+                return await connection.QuerySingleAsync<int>(sql, new
+                {
+                    Name = name,
+                    ExamCategory = examCategory,
+                    PlanType = (int)type,
+                    ExcludeId = excludeId,
+                    ExamId = examId
                 });
             });
             return result > 0;
+        }
+
+        private static SubscriptionPlan MapToEntity(SubscriptionPlanDbRow row)
+        {
+            return new SubscriptionPlan
+            {
+                Id = row.Id,
+                Name = row.Name,
+                Description = row.Description,
+                Type = row.Type,
+                Price = row.Price,
+                Currency = row.Currency,
+                TestPapersCount = row.TestPapersCount,
+                Discount = row.Discount,
+                Duration = row.Duration,
+                DurationType = row.DurationType,
+                ValidityDays = row.ValidityDays,
+                ExamId = row.ExamId,
+                ExamCategory = row.ExamCategory,
+                Features = ParseFeatures(row.Features),
+                ImageUrl = row.ImageUrl,
+                IsPopular = row.IsPopular,
+                IsRecommended = row.IsRecommended,
+                CardColorTheme = row.CardColorTheme,
+                SortOrder = row.SortOrder,
+                IsActive = row.IsActive,
+                CreatedAt = row.CreatedAt,
+                UpdatedAt = row.UpdatedAt
+            };
+        }
+
+        private static List<string> ParseFeatures(string? features)
+        {
+            if (string.IsNullOrWhiteSpace(features))
+            {
+                return new List<string>();
+            }
+
+            var output = new List<string>();
+            var parts = features.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                var item = part.Trim();
+                if (!string.IsNullOrWhiteSpace(item))
+                {
+                    output.Add(item);
+                }
+            }
+
+            return output;
+        }
+
+        private static List<SubscriptionPlan> MapToEntityList(IEnumerable<SubscriptionPlanDbRow> rows)
+        {
+            var plans = new List<SubscriptionPlan>();
+            foreach (var row in rows)
+            {
+                plans.Add(MapToEntity(row));
+            }
+            return plans;
+        }
+
+        private sealed class SubscriptionPlanDbRow
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public PlanType Type { get; set; }
+            public decimal Price { get; set; }
+            public string Currency { get; set; } = "INR";
+            public int TestPapersCount { get; set; }
+            public decimal Discount { get; set; }
+            public int Duration { get; set; }
+            public string DurationType { get; set; } = "Monthly";
+            public int ValidityDays { get; set; }
+            public int? ExamId { get; set; }
+            public string? ExamCategory { get; set; }
+            public string? Features { get; set; }
+            public string? ImageUrl { get; set; }
+            public bool IsPopular { get; set; }
+            public bool IsRecommended { get; set; }
+            public string? CardColorTheme { get; set; }
+            public int SortOrder { get; set; }
+            public bool IsActive { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime? UpdatedAt { get; set; }
         }
     }
 }

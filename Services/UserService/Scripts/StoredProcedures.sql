@@ -217,6 +217,8 @@ CREATE PROCEDURE [dbo].[User_Create]
     @ProfilePhoto NVARCHAR(255),
     @IsActive BIT = 1,
     @PreferredLanguage NVARCHAR(5) = 'en',
+    @IsPhoneVerified BIT = 0,
+    @InterestedInIntlExam BIT = 0,
     @CreatedAt DATETIME,
     @UpdatedAt DATETIME,
     @UserId INT OUTPUT
@@ -226,11 +228,11 @@ BEGIN
     
     INSERT INTO [dbo].[Users] (
         Name, Email, PhoneNumber, PasswordHash, ProfilePhoto, 
-        IsActive, PreferredLanguage, CreatedAt, UpdatedAt
+        IsActive, PreferredLanguage, IsPhoneVerified, InterestedInIntlExam, CreatedAt, UpdatedAt
     )
     VALUES (
         @Name, @Email, @PhoneNumber, @PasswordHash, @ProfilePhoto, 
-        @IsActive, @PreferredLanguage, @CreatedAt, @UpdatedAt
+        @IsActive, @PreferredLanguage, @IsPhoneVerified, @InterestedInIntlExam, @CreatedAt, @UpdatedAt
     );
     
     SET @UserId = SCOPE_IDENTITY();

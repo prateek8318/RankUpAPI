@@ -34,7 +34,7 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllSubjects([FromQuery] int? languageId = null)
+        public async Task<IActionResult> GetAllSubjects([FromQuery] int? languageId = null, [FromQuery] bool includeInactive = false)
         {
             try
             {
@@ -43,7 +43,14 @@ namespace MasterService.API.Controllers
                     languageId = GetLanguageIdFromHeader();
                 }
 
+                var isAdmin = User.IsInRole("Admin");
+                var shouldIncludeInactive = includeInactive || isAdmin;
                 var subjects = await _subjectService.GetAllSubjectsAsync(languageId);
+                if (!shouldIncludeInactive)
+                {
+                    subjects = subjects.Where(subject => subject.IsActive);
+                }
+
                 return Ok(new
                 {
                     success = true,
@@ -54,6 +61,33 @@ namespace MasterService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all subjects");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllSubjectsForAdmin([FromQuery] int? languageId = null)
+        {
+            try
+            {
+                if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+
+                var subjects = await _subjectService.GetAllSubjectsIncludingInactiveAsync(languageId);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "All subjects (including inactive) retrieved successfully for admin",
+                    data = subjects
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all subjects for admin");
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
@@ -209,30 +243,37 @@ namespace MasterService.API.Controllers
             }
         }
 
-        [HttpPatch("{id}/toggle-status")]
+        [HttpPatch("{id}/status")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> ToggleSubjectStatus(int id, [FromBody] ToggleStatusDto toggleStatusDto)
+        public async Task<IActionResult> UpdateSubjectStatus(int id, [FromBody] bool isActive)
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(new { success = false, message = "Invalid request data", errors = ModelState });
-                }
-
-                var result = await _subjectService.ToggleSubjectStatusAsync(id, toggleStatusDto.IsActive);
+                var result = await _subjectService.ToggleSubjectStatusAsync(id, isActive);
                 if (!result)
                 {
                     return NotFound(new { success = false, message = "Subject not found" });
                 }
 
-                return Ok(new { success = true, message = $"Subject {(toggleStatusDto.IsActive ? "activated" : "deactivated")} successfully" });
+                return Ok(new { success = true, message = $"Subject {(isActive ? "activated" : "deactivated")} successfully", data = true });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error toggling subject status with id: {Id}", id);
+                _logger.LogError(ex, "Error updating subject status with id: {Id}", id);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
+        }
+
+        [HttpPatch("{id}/toggle-status")]
+        [Authorize(Roles = "Admin")]
+        public Task<IActionResult> ToggleSubjectStatus(int id, [FromBody] ToggleStatusDto toggleStatusDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Task.FromResult<IActionResult>(BadRequest(new { success = false, message = "Invalid request data", errors = ModelState }));
+            }
+
+            return UpdateSubjectStatus(id, toggleStatusDto.IsActive);
         }
 
         [HttpGet("exists/{id}")]

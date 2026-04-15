@@ -152,11 +152,41 @@ namespace SubscriptionService.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Get all active subscription plans for users
+        /// </summary>
+        /// <param name="language">Optional language code (en, hi, etc.)</param>
+        /// <returns>List of active subscription plans</returns>
+        [HttpGet("plans/active")]
+        public async Task<ActionResult<IEnumerable<SubscriptionPlanListDto>>> GetActivePlans([FromQuery] string? language = null)
+        {
+            try
+            {
+                var currentLanguage = language ?? "en";
+                var result = await _userSubscriptionService.GetActivePlansAsync(currentLanguage);
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    language = currentLanguage,
+                    message = "Active subscription plans fetched successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active subscription plans");
+                return StatusCode(500, new { success = false, message = "Error fetching active subscription plans" });
+            }
+        }
+
         private int GetUserIdFromToken()
         {
-            // This is a simplified version. In production, you should properly validate the JWT token
-            // and extract the user ID from claims
-            var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("sub");
+            // Extract user ID from JWT token claims
+            // The token is generated with ClaimTypes.NameIdentifier in AuthController
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) 
+                             ?? User.FindFirst("sub") 
+                             ?? User.FindFirst("UserId");
+            
             if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
             {
                 return userId;

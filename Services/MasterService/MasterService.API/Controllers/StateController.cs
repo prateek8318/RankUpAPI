@@ -46,41 +46,31 @@ namespace MasterService.API.Controllers
                     effectiveLanguageId = languageId ?? GetLanguageIdFromHeader();
                 }
 
-                IEnumerable<StateDto> states;
-                
-                if (!string.IsNullOrEmpty(selectedLanguage))
-                {
-                    // Use new language-based method
-                    if (!string.IsNullOrEmpty(countryCode))
-                    {
-                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, selectedLanguage);
-                    }
-                    else
-                    {
-                        states = await _stateService.GetAllStatesAsync(selectedLanguage);
-                    }
-                }
-                else
-                {
-                    // Use existing languageId-based method
-                    if (!string.IsNullOrEmpty(countryCode))
-                    {
-                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, effectiveLanguageId);
-                    }
-                    else
-                    {
-                        states = await _stateService.GetAllStatesAsync(effectiveLanguageId);
-                    }
-                }
-
                 // Role-based filtering: Admins can see inactive states, regular users only see active
                 var isAdmin = User.IsInRole("Admin");
                 var shouldIncludeInactive = includeInactive || isAdmin;
 
-                // Filter by status if not including inactive
-                if (!shouldIncludeInactive)
+                IEnumerable<StateDto> states;
+
+                if (!string.IsNullOrEmpty(selectedLanguage))
                 {
-                    states = states.Where(s => s.IsActive);
+                    states = shouldIncludeInactive
+                        ? (!string.IsNullOrEmpty(countryCode)
+                            ? await _stateService.GetStatesByCountryCodeIncludingInactiveAsync(countryCode, selectedLanguage)
+                            : await _stateService.GetAllStatesIncludingInactiveAsync(selectedLanguage))
+                        : (!string.IsNullOrEmpty(countryCode)
+                            ? await _stateService.GetStatesByCountryCodeAsync(countryCode, selectedLanguage)
+                            : await _stateService.GetAllStatesAsync(selectedLanguage));
+                }
+                else
+                {
+                    states = shouldIncludeInactive
+                        ? (!string.IsNullOrEmpty(countryCode)
+                            ? await _stateService.GetStatesByCountryCodeIncludingInactiveAsync(countryCode, effectiveLanguageId)
+                            : await _stateService.GetAllStatesIncludingInactiveAsync(effectiveLanguageId))
+                        : (!string.IsNullOrEmpty(countryCode)
+                            ? await _stateService.GetStatesByCountryCodeAsync(countryCode, effectiveLanguageId)
+                            : await _stateService.GetAllStatesAsync(effectiveLanguageId));
                 }
 
                 return Ok(states);
@@ -114,34 +104,14 @@ namespace MasterService.API.Controllers
                     effectiveLanguageId = languageId ?? GetLanguageIdFromHeader();
                 }
 
-                IEnumerable<StateDto> states;
-                
-                if (!string.IsNullOrEmpty(selectedLanguage))
-                {
-                    // Use new language-based method
-                    if (!string.IsNullOrEmpty(countryCode))
-                    {
-                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, selectedLanguage);
-                    }
-                    else
-                    {
-                        states = await _stateService.GetAllStatesAsync(selectedLanguage);
-                    }
-                }
-                else
-                {
-                    // Use existing languageId-based method
-                    if (!string.IsNullOrEmpty(countryCode))
-                    {
-                        states = await _stateService.GetStatesByCountryCodeAsync(countryCode, effectiveLanguageId);
-                    }
-                    else
-                    {
-                        states = await _stateService.GetAllStatesAsync(effectiveLanguageId);
-                    }
-                }
+                IEnumerable<StateDto> states = !string.IsNullOrEmpty(selectedLanguage)
+                    ? (!string.IsNullOrEmpty(countryCode)
+                        ? await _stateService.GetStatesByCountryCodeIncludingInactiveAsync(countryCode, selectedLanguage)
+                        : await _stateService.GetAllStatesIncludingInactiveAsync(selectedLanguage))
+                    : (!string.IsNullOrEmpty(countryCode)
+                        ? await _stateService.GetStatesByCountryCodeIncludingInactiveAsync(countryCode, effectiveLanguageId)
+                        : await _stateService.GetAllStatesIncludingInactiveAsync(effectiveLanguageId));
 
-                // Admin sees all states (both active and inactive)
                 return Ok(states);
             }
             catch (Exception ex)

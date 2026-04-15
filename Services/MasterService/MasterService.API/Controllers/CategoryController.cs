@@ -26,12 +26,16 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryDto>>>> GetCategories([FromQuery] string? language = null)
+        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryDto>>>> GetCategories([FromQuery] string? language = null, [FromQuery] bool includeInactive = false)
         {
             try
             {
                 var currentLanguage = language ?? _languageService.GetCurrentLanguage();
-                var categories = await _categoryService.GetCategoriesAsync(currentLanguage);
+                var isAdmin = User.IsInRole("Admin");
+                var shouldIncludeInactive = includeInactive || isAdmin;
+                var categories = shouldIncludeInactive
+                    ? await _categoryService.GetCategoriesIncludingInactiveAsync(currentLanguage)
+                    : await _categoryService.GetCategoriesAsync(currentLanguage);
                 
                 return Ok(new ApiResponse<IEnumerable<CategoryDto>>
                 {
@@ -147,6 +151,35 @@ namespace MasterService.API.Controllers
             }
         }
 
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<CategoryDto>>>> GetAllCategoriesForAdmin([FromQuery] string? language = null)
+        {
+            try
+            {
+                var currentLanguage = language ?? _languageService.GetCurrentLanguage();
+                var categories = await _categoryService.GetCategoriesIncludingInactiveAsync(currentLanguage);
+                
+                return Ok(new ApiResponse<IEnumerable<CategoryDto>>
+                {
+                    Success = true,
+                    Data = categories,
+                    Language = currentLanguage,
+                    Message = "All categories (including inactive) fetched successfully for admin"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all categories for admin");
+                return StatusCode(500, new ApiResponse<IEnumerable<CategoryDto>>
+                {
+                    Success = false,
+                    Message = "Error fetching categories",
+                    Error = ex.Message
+                });
+            }
+        }
+
         [HttpGet("all")]
         [AllowAnonymous]
         public async Task<ActionResult<object>> GetAllCategories([FromQuery] string? language = null)
@@ -207,7 +240,7 @@ namespace MasterService.API.Controllers
                     Message = "Category fetched successfully"
                 });
             }
-            catch (Exception ex)
+                        catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving category");
                 return StatusCode(500, new ApiResponse<CategoryDto>
@@ -402,6 +435,15 @@ namespace MasterService.API.Controllers
                     Data = true,
                     Language = _languageService.GetCurrentLanguage(),
                     Message = message
+                });
+            }
+            catch (Exception ex) when (ex.Message.Contains("Category not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Category not found",
+                    Error = $"Category with ID {id} not found"
                 });
             }
             catch (Exception ex)

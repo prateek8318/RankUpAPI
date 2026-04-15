@@ -18,7 +18,7 @@ namespace TestService.Domain.Entities
         public int Score { get; set; } = 0;
         public int TotalMarks { get; set; } = 0;
         public decimal Accuracy { get; set; } = 0;
-        public TestAttemptStatus Status { get; set; } = TestAttemptStatus.NotStarted;
+        public TestAttemptStatus Status { get; set; } = TestAttemptStatus.InProgress;
 
         [MaxLength(1000)]
         public string? AnswersJson { get; set; }

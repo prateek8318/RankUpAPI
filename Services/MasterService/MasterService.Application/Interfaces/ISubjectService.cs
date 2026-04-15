@@ -9,6 +9,7 @@ namespace MasterService.Application.Interfaces
     public interface ISubjectService
     {
         Task<IEnumerable<SubjectDto>> GetAllSubjectsAsync(int? languageId = null);
+        Task<IEnumerable<SubjectDto>> GetAllSubjectsIncludingInactiveAsync(int? languageId = null);
         Task<SubjectDto?> GetSubjectByIdAsync(int id, int? languageId = null);
         Task<IEnumerable<SubjectListDto>> GetActiveSubjectsAsync(int? languageId = null);
         Task<SubjectDto> CreateSubjectAsync(CreateSubjectDto createSubjectDto);

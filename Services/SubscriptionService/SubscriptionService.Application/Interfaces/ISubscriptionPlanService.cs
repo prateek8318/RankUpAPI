@@ -8,9 +8,11 @@ namespace SubscriptionService.Application.Interfaces
         Task<SubscriptionPlanDto> UpdatePlanAsync(int id, UpdateSubscriptionPlanDto updatePlanDto);
         Task<bool> DeletePlanAsync(int id);
         Task<SubscriptionPlanDto?> GetPlanByIdAsync(int id, string? language = null);
+        Task<SubscriptionPlanPagedResponseDto> GetPlansPagedAsync(SubscriptionPlanPagedRequestDto request);
         Task<IEnumerable<SubscriptionPlanListDto>> GetAllPlansAsync(string? language = null);
         Task<IEnumerable<SubscriptionPlanListDto>> GetPlansByExamCategoryAsync(string examCategory, string? language = null);
         Task<IEnumerable<SubscriptionPlanListDto>> GetPlansByExamIdAsync(int examId, string? language = null);
         Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansAsync(string? language = null);
+        Task<SubscriptionPlanStatsDto> GetStatsAsync();
     }
 }

@@ -427,8 +427,15 @@ namespace MasterService.Application.Services
 
                 exam.ImageUrl = imageUrl;
                 exam.UpdatedAt = DateTime.UtcNow;
-                
-                await _examRepository.UpdateAsync(exam, null, null);
+
+                var namesJson = LanguagePayloadSerializer.SerializeItems(
+                    exam.ExamLanguages,
+                    language => new { language.LanguageId, language.Name, language.Description });
+                var relationsJson = LanguagePayloadSerializer.SerializeItems(
+                    exam.ExamQualifications,
+                    relation => new { relation.QualificationId, relation.StreamId });
+
+                await _examRepository.UpdateAsync(exam, namesJson, relationsJson);
                 await _examRepository.SaveChangesAsync();
                 
                 _logger.LogInformation("Updated image URL for exam {ExamId}: {ImageUrl}", examId, imageUrl);
@@ -456,6 +463,8 @@ namespace MasterService.Application.Services
             var names = exam.ExamLanguages?.Select(el => new ExamLanguageDto
             {
                 LanguageId = el.LanguageId,
+                LanguageCode = el.Language?.Code ?? string.Empty,
+                LanguageName = el.Language?.Name ?? string.Empty,
                 Name = el.Name,
                 Description = el.Description
             }).ToList() ?? new List<ExamLanguageDto>();

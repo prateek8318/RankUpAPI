@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using SubscriptionService.Application.Interfaces;
 using SubscriptionService.Application.Mappings;
 using SubscriptionService.Application.Services;
@@ -8,7 +10,10 @@ using SubscriptionService.Domain.Interfaces;
 using SubscriptionService.Infrastructure.Data;
 using SubscriptionService.Infrastructure.Repositories;
 using SubscriptionService.Infrastructure.Services;
+using Swashbuckle.AspNetCore.Swagger;
+using System.Text.Json;
 using System.Text;
+using System.Text.RegularExpressions;
 using Common.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,11 +41,12 @@ builder.Services.AddDbContext<SubscriptionDbContext>(options =>
 
 // Register connection string for Dapper repositories
 var connectionString = builder.Configuration.GetConnectionString("SubscriptionServiceConnection");
-builder.Services.AddSingleton(connectionString);
+builder.Services.AddSingleton<string>(connectionString);
 
 // Register repositories
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanDapperRepository>();
 builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionDapperRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IDemoAccessLogRepository, DemoAccessLogRepository>();
@@ -192,11 +198,14 @@ try
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<SubscriptionDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var swaggerProvider = scope.ServiceProvider.GetRequiredService<ISwaggerProvider>();
     
     logger.LogInformation("Initializing SubscriptionService database...");
     if (await context.Database.CanConnectAsync())
     {
         await context.Database.MigrateAsync();
+        await ExecuteStoredProcedureScriptAsync(app, logger);
+        await GeneratePostmanCollectionAsync(app, logger, swaggerProvider);
         logger.LogInformation("Database initialization completed.");
     }
 }
@@ -207,3 +216,110 @@ catch (Exception ex)
 }
 
 app.Run();
+
+static async Task ExecuteStoredProcedureScriptAsync(WebApplication app, ILogger logger)
+{
+    var contentRoot = app.Environment.ContentRootPath;
+    var scriptPath = Path.GetFullPath(Path.Combine(contentRoot, "..", "Scripts", "SubscriptionService_StoredProcedures.sql"));
+    if (!File.Exists(scriptPath))
+    {
+        logger.LogWarning("Stored procedure script not found at {ScriptPath}", scriptPath);
+        return;
+    }
+
+    var connectionString = app.Configuration.GetConnectionString("SubscriptionServiceConnection");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        logger.LogWarning("Connection string is missing; skipping stored procedure script execution.");
+        return;
+    }
+
+    var scriptText = await File.ReadAllTextAsync(scriptPath);
+    var batches = Regex.Split(scriptText, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+    await using var connection = new SqlConnection(connectionString);
+    await connection.OpenAsync();
+
+    foreach (var batch in batches)
+    {
+        var sql = batch.Trim();
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            continue;
+        }
+
+        await using var command = new SqlCommand(sql, connection)
+        {
+            CommandType = System.Data.CommandType.Text,
+            CommandTimeout = 180
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    logger.LogInformation("Stored procedures synced successfully from {ScriptPath}", scriptPath);
+}
+
+static async Task GeneratePostmanCollectionAsync(WebApplication app, ILogger logger, ISwaggerProvider swaggerProvider)
+{
+    var openApi = swaggerProvider.GetSwagger("v1");
+    var baseUrlValue = app.Configuration["Postman:BaseUrl"] ?? "http://localhost:5004";
+
+    var items = new List<object>();
+    foreach (var (path, pathItem) in openApi.Paths)
+    {
+        var pathRequests = new List<object>();
+        foreach (var (method, operation) in pathItem.Operations)
+        {
+            var route = path.StartsWith("/") ? path : "/" + path;
+            pathRequests.Add(new
+            {
+                name = operation.Summary ?? $"{method.ToString().ToUpperInvariant()} {route}",
+                request = new
+                {
+                    method = method.ToString().ToUpperInvariant(),
+                    header = new object[]
+                    {
+                        new { key = "Content-Type", value = "application/json", type = "text" }
+                    },
+                    url = new
+                    {
+                        raw = "{{baseUrl}}" + route
+                    },
+                    description = operation.Description ?? operation.Summary ?? string.Empty
+                },
+                response = Array.Empty<object>()
+            });
+        }
+
+        items.Add(new
+        {
+            name = path,
+            item = pathRequests
+        });
+    }
+
+    var collection = new
+    {
+        info = new
+        {
+            name = "RankUpAPI SubscriptionService",
+            _postman_id = Guid.NewGuid().ToString(),
+            schema = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+        },
+        item = items,
+        variable = new object[]
+        {
+            new { key = "baseUrl", value = baseUrlValue }
+        }
+    };
+
+    var repoRoot = Directory.GetParent(app.Environment.ContentRootPath)?.Parent?.Parent?.FullName;
+    var outputPath = string.IsNullOrWhiteSpace(repoRoot)
+        ? Path.Combine(app.Environment.ContentRootPath, "SubscriptionService-Postman-Collection.json")
+        : Path.Combine(repoRoot, "RankUpAPI-Postman-Collection.json");
+
+    var json = JsonSerializer.Serialize(collection, new JsonSerializerOptions { WriteIndented = true });
+    await File.WriteAllTextAsync(outputPath, json);
+    logger.LogInformation("Postman collection refreshed at {OutputPath}", outputPath);
+}

@@ -137,6 +137,69 @@ namespace TestService.Application.Services
             return true;
         }
 
+        public async Task<UserTestListResponseDto> GetAvailableTestsForUserAsync(UserTestListRequestDto request)
+        {
+            var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+            var pageSize = request.PageSize < 1 ? 20 : request.PageSize;
+
+            var (items, totalCount) = await _testRepository.GetAvailableTestsForUserAsync(
+                request.UserId,
+                request.ExamId,
+                request.PracticeModeId,
+                request.SubjectId,
+                request.SeriesId,
+                request.Year,
+                pageNumber,
+                pageSize);
+
+            var list = items.Select(x => new UserTestListItemDto
+            {
+                Id = x.Id,
+                ExamId = x.ExamId,
+                PracticeModeId = x.PracticeModeId,
+                SubjectId = x.SubjectId,
+                SeriesId = x.SeriesId,
+                Year = x.Year,
+                Title = x.Title,
+                Description = x.Description,
+                DurationInMinutes = x.DurationInMinutes,
+                TotalQuestions = x.TotalQuestions,
+                TotalMarks = x.TotalMarks,
+                IsLocked = x.IsLocked,
+                IsUnlocked = x.IsUnlocked,
+                SubscriptionPlanId = x.SubscriptionPlanId,
+                SubscriptionPlanName = x.SubscriptionPlanName
+            }).ToList();
+
+            return new UserTestListResponseDto
+            {
+                Items = list,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalCount <= 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+        }
+
+        public async Task<bool> MapTestToPlanAsync(MapTestToPlanDto dto)
+        {
+            return await _testRepository.MapTestToPlanAsync(dto.TestId, dto.SubscriptionPlanId);
+        }
+
+        public async Task<IReadOnlyList<LeaderboardEntryDto>> GetLeaderboardAsync(int testId, int top = 20)
+        {
+            var rows = await _testRepository.GetLeaderboardAsync(testId, top);
+            return rows.Select(x => new LeaderboardEntryDto
+            {
+                Rank = x.Rank,
+                UserId = x.UserId,
+                UserName = x.UserName,
+                Score = (int)x.Score,
+                Accuracy = x.Accuracy,
+                TimeTakenSeconds = x.TimeTakenSeconds
+            }).ToList();
+        }
+
         public async Task<TestBulkUploadResultDto> BulkUploadTestsAsync(int seriesId, Stream fileStream, string fileName, int userId)
         {
             var result = new TestBulkUploadResultDto

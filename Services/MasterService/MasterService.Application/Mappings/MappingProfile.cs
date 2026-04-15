@@ -19,16 +19,16 @@ namespace MasterService.Application.Mappings
                 .ForMember(dest => dest.Names, opt => opt.MapFrom(src => src.StateLanguages));
 
             CreateMap<StateLanguage, StateLanguageDto>()
-                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language.Code))
-                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language.Name));
+                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language != null ? src.Language.Code : string.Empty))
+                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language != null ? src.Language.Name : string.Empty));
 
             CreateMap<CreateQualificationDto, Qualification>();
             CreateMap<UpdateQualificationDto, Qualification>();
             CreateMap<Qualification, QualificationDto>()
                 .ForMember(dest => dest.Names, opt => opt.MapFrom(src => src.QualificationLanguages));
             CreateMap<QualificationLanguage, QualificationLanguageDto>()
-                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language.Code))
-                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language.Name));
+                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language != null ? src.Language.Code : string.Empty))
+                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language != null ? src.Language.Name : string.Empty));
 
             CreateMap<CreateExamDto, Exam>();
             CreateMap<UpdateExamDto, Exam>();
@@ -39,8 +39,8 @@ namespace MasterService.Application.Mappings
                 .ForMember(dest => dest.StreamIds,
                     opt => opt.MapFrom(src => src.ExamQualifications.Select(eq => eq.StreamId)));
             CreateMap<ExamLanguage, ExamLanguageDto>()
-                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language.Code))
-                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language.Name));
+                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language != null ? src.Language.Code : string.Empty))
+                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language != null ? src.Language.Name : string.Empty));
 
             CreateMap<CreateStreamDto, StreamEntity>();
             CreateMap<UpdateStreamDto, StreamEntity>();
@@ -48,8 +48,8 @@ namespace MasterService.Application.Mappings
                 .ForMember(dest => dest.QualificationName, opt => opt.MapFrom(src => src.Qualification != null ? src.Qualification.Name : null))
                 .ForMember(dest => dest.Names, opt => opt.MapFrom(src => src.StreamLanguages));
             CreateMap<StreamLanguage, StreamLanguageDto>()
-                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language.Code))
-                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language.Name));
+                .ForMember(dest => dest.LanguageCode, opt => opt.MapFrom(src => src.Language != null ? src.Language.Code : string.Empty))
+                .ForMember(dest => dest.LanguageName, opt => opt.MapFrom(src => src.Language != null ? src.Language.Name : string.Empty));
         }
     }
 }

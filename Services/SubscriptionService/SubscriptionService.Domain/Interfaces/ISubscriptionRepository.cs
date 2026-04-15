@@ -18,6 +18,7 @@ namespace SubscriptionService.Domain.Interfaces
         Task<IEnumerable<SubscriptionPlan>> GetByExamCategoryAsync(string examCategory);
         Task<IEnumerable<SubscriptionPlan>> GetByExamIdAsync(int examId);
         Task<IEnumerable<SubscriptionPlan>> GetActivePlansAsync();
+        Task<(IEnumerable<SubscriptionPlan> Plans, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, bool includeInactive, int? examId = null);
         Task<SubscriptionPlan?> GetByPlanTypeAsync(PlanType planType);
 
         /// <summary>
@@ -32,16 +33,19 @@ namespace SubscriptionService.Domain.Interfaces
         Task<IEnumerable<UserSubscription>> GetByUserIdWithHistoryAsync(int userId);
         Task<IEnumerable<UserSubscription>> GetActiveSubscriptionsAsync();
         Task<IEnumerable<UserSubscription>> GetExpiringSubscriptionsAsync(int daysBeforeExpiry);
-        Task<UserSubscription?> GetByRazorpayOrderIdAsync(string orderId);
-        Task<UserSubscription?> GetByRazorpayPaymentIdAsync(string paymentId);
+        Task<IEnumerable<UserSubscription>> GetByPaymentIdAsync(int paymentId);
+        Task<UserSubscription?> GetActiveSubscriptionByUserIdAsync(int userId);
+        Task<(IEnumerable<UserSubscription> Subscriptions, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? userId = null, string? planName = null, SubscriptionStatus? status = null, bool? isActive = null, DateTime? startDateFrom = null, DateTime? startDateTo = null, DateTime? endDateFrom = null, DateTime? endDateTo = null, bool? autoRenew = null);
     }
 
-    public interface IPaymentTransactionRepository : ISubscriptionRepository<PaymentTransaction>
+    public interface IPaymentRepository : ISubscriptionRepository<Payment>
     {
-        Task<PaymentTransaction?> GetByTransactionIdAsync(string transactionId);
-        Task<PaymentTransaction?> GetByRazorpayPaymentIdAsync(string razorpayPaymentId);
-        Task<PaymentTransaction?> GetByRazorpayOrderIdAsync(string razorpayOrderId);
-        Task<IEnumerable<PaymentTransaction>> GetByUserIdAsync(int userId);
+        Task<Payment?> GetByTransactionIdAsync(string transactionId);
+        Task<Payment?> GetByProviderOrderIdAsync(string providerOrderId);
+        Task<IEnumerable<Payment>> GetByUserIdAsync(int userId);
+        Task<IEnumerable<Payment>> GetByStatusAsync(PaymentStatus status);
+        Task<(IEnumerable<Payment> Payments, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? userId = null, string? transactionId = null, PaymentStatus? status = null, PaymentMethod? paymentMethod = null, decimal? amountFrom = null, decimal? amountTo = null, DateTime? createdDateFrom = null, DateTime? createdDateTo = null, string? providerOrderId = null);
+        Task<(int TotalPayments, decimal TotalRevenue, decimal TodayRevenue, decimal ThisMonthRevenue, int SuccessfulPayments, int FailedPayments, int PendingPayments, decimal AverageTransactionAmount, int UniquePayingUsers)> GetStatisticsAsync();
     }
 
     public interface IInvoiceRepository : ISubscriptionRepository<Invoice>

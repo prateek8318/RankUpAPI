@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/exam/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/exams/{everything}",
@@ -14,7 +14,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/exams/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/admin/exams/{everything}",
@@ -22,7 +22,7 @@
       "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/exams/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/users/{everything}",
@@ -30,31 +30,15 @@
       "DownstreamHostAndPorts": [{ "Host": "userservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/users/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
-    {
-      "DownstreamPathTemplate": "/api/admin/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
-      "UpstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
-    },
-    {
-      "DownstreamPathTemplate": "/api/admin/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
-      "UpstreamPathTemplate": "/api/admin/subscriptions/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
-    },
-    {
+        {
       "DownstreamPathTemplate": "/api/admin/auth/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/auth/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/uploads/{everything}",
@@ -69,7 +53,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/qualifications",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/qualifications/{everything}",
@@ -77,7 +61,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/qualification/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/qualifications",
@@ -85,7 +69,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/qualification",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/qualifications/{everything}",
@@ -93,7 +77,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/qualifications/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/streams",
@@ -101,7 +85,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/streams",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/streams/{everything}",
@@ -109,7 +93,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/streams/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/categories",
@@ -117,7 +101,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/categories",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/categories/{everything}",
@@ -125,7 +109,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/categories/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/countries",
@@ -133,7 +117,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/countries",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/countries/{everything}",
@@ -141,7 +125,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/countries/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/{everything}",
@@ -149,7 +133,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/master/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/states",
@@ -157,7 +141,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/states",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/states/{everything}",
@@ -165,7 +149,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/states/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/languages",
@@ -173,7 +157,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/languages",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/languages/{everything}",
@@ -181,7 +165,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/languages/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/subjects",
@@ -189,7 +173,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/subjects",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/subjects/{everything}",
@@ -197,7 +181,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/subjects/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/cms",
@@ -205,7 +189,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/cms",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/cms/{everything}",
@@ -213,7 +197,7 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/cms/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/admin/{everything}",
@@ -221,7 +205,7 @@
       "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
       "DownstreamPathTemplate": "/api/home",
@@ -271,7 +255,124 @@
       "DownstreamHostAndPorts": [{ "Host": "questionservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/questions/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "DownstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/public/subscription-plans/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/public/subscription-plans/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/subscriptions/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/user/subscriptions/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/payments/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/payments/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/payments/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/user/payments/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/subscriptions/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/user/subscriptions/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/userplans/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/user/userplans/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/wallet/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/user/wallet/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/invoices/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/user/invoices/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/usersubscriptions/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/usersubscriptions/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/adminpayments/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/adminpayments/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/adminwallet/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/adminwallet/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/adminsubscription/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/adminsubscription/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
     }
   ],
   "GlobalConfiguration": {

@@ -15,10 +15,11 @@ namespace AdminService.API.Controllers
 {
 
     /// <summary>
-
     /// Admin Dashboard Controller - Real-time Overview
-
     /// </summary>
+    /// <remarks>
+    /// This controller provides real-time overview of the admin dashboard.
+    /// </remarks>
 
     [Route("api/admin/dashboard")]
 

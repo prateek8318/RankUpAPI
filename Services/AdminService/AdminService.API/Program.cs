@@ -12,6 +12,7 @@ using System.Text;
 using Common.Middleware;
 using Common.Services;
 using Common.HttpClient;
+using Common.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -287,6 +288,8 @@ try
     if (await context.Database.CanConnectAsync())
     {
         await context.Database.MigrateAsync();
+        var connectionString = builder.Configuration.GetConnectionString("AdminServiceConnection");
+        await SqlScriptBootstrapper.ExecuteScriptsAsync(app.Environment.ContentRootPath, connectionString, logger);
         logger.LogInformation("Database initialization completed.");
     }
 }

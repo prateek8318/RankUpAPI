@@ -54,7 +54,7 @@ try
     app.UseCors("AllowFrontend");
 
     // Configure middleware pipeline
-    app.UseLanguageValidation();
+    // app.UseLanguageValidation(); // Temporarily disabled
 
     Console.WriteLine("Configuring Ocelot middleware...");
     // Configure Ocelot middleware

@@ -1,0 +1,1197 @@
+{
+  "info": {
+    "_postman_id": "subscription-service-collection",
+    "name": "RankUp Subscription Service API",
+    "description": "Complete collection for RankUp Subscription Service API including admin, user, and payment endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.token) {",
+                  "        pm.environment.set(\"adminToken\", response.token);",
+                  "        pm.environment.set(\"adminUserId\", response.userId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.token) {",
+                  "        pm.environment.set(\"userToken\", response.token);",
+                  "        pm.environment.set(\"userId\", response.userId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for getting admin and user tokens"
+    },
+    {
+      "name": "Admin Subscription Management",
+      "item": [
+        {
+          "name": "Get Subscription Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/statistics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "statistics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Paginated Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/payments?pageNumber=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "payments"],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Paginated User Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/user-subscriptions?pageNumber=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "user-subscriptions"],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Paginated Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/plans?pageNumber=1&pageSize=20&includeInactive=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "plans"],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "includeInactive",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Subscription Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Monthly\",\n  \"description\": \"Access all premium features for one month\",\n  \"type\": \"Premium\",\n  \"price\": 299.00,\n  \"currency\": \"INR\",\n  \"testPapersCount\": 50,\n  \"discount\": 0,\n  \"duration\": 1,\n  \"durationType\": \"Monthly\",\n  \"validityDays\": 30,\n  \"examId\": 1,\n  \"examCategory\": \"Engineering\",\n  \"features\": [\n    \"Unlimited test papers\",\n    \"Detailed solutions\",\n    \"Performance analytics\",\n    \"Mock interviews\"\n  ],\n  \"imageUrl\": \"https://example.com/premium.jpg\",\n  \"isPopular\": true,\n  \"isRecommended\": false,\n  \"cardColorTheme\": \"#FF6B6B\",\n  \"sortOrder\": 1,\n  \"translations\": [\n    {\n      \"languageCode\": \"hi\",\n      \"name\": \"प्रीमियम मासिक\",\n      \"description\": \"एक महीने के लिए सभी प्रीमियम सुविधाओं तक पहुंच\",\n      \"features\": [\n        \"असीमित टेस्ट पेपर\",\n        \"विस्तृत समाधान\",\n        \"प्रदर्शन विश्लेषण\",\n        \"मॉक इंटरव्यू\"\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "plans"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plan by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/plans/{{planId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "plans", "{{planId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Subscription Plan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Monthly Updated\",\n  \"description\": \"Access all premium features for one month - Updated\",\n  \"type\": \"Premium\",\n  \"price\": 399.00,\n  \"currency\": \"INR\",\n  \"testPapersCount\": 60,\n  \"discount\": 10,\n  \"duration\": 1,\n  \"durationType\": \"Monthly\",\n  \"validityDays\": 30,\n  \"examId\": 1,\n  \"examCategory\": \"Engineering\",\n  \"features\": [\n    \"Unlimited test papers\",\n    \"Detailed solutions\",\n    \"Performance analytics\",\n    \"Mock interviews\",\n    \"Expert guidance\"\n  ],\n  \"imageUrl\": \"https://example.com/premium-updated.jpg\",\n  \"isPopular\": true,\n  \"isRecommended\": true,\n  \"cardColorTheme\": \"#4ECDC4\",\n  \"sortOrder\": 1,\n  \"isActive\": true,\n  \"translations\": [\n    {\n      \"languageCode\": \"hi\",\n      \"name\": \"प्रीमियम मासिक अपडेटेड\",\n      \"description\": \"एक महीने के लिए सभी प्रीमियम सुविधाओं तक पहुंच - अपडेटेड\",\n      \"features\": [\n        \"असीमित टेस्ट पेपर\",\n        \"विस्तृत समाधान\",\n        \"प्रदर्शन विश्लेषण\",\n        \"मॉक इंटरव्यू\",\n        \"विशेषज्ञ मार्गदर्शन\"\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/plans/{{planId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "plans", "{{planId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Subscription Plan",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/plans/{{planId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "plans", "{{planId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Plan Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": {{planId}},\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/plans/toggle-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "plans", "toggle-status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Plan Popularity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": {{planId}},\n  \"isPopular\": true,\n  \"isRecommended\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/plans/update-popularity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "plans", "update-popularity"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Update Plans",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"planId\": {{planId}},\n      \"isActive\": true,\n      \"isPopular\": true,\n      \"isRecommended\": false,\n      \"sortOrder\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/plans/bulk-update",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "plans", "bulk-update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Subscription by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/user-subscriptions/{{subscriptionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "user-subscriptions", "{{subscriptionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel User Subscription (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": {{subscriptionId}},\n  \"cancellationReason\": \"Cancelled by admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/user-subscriptions/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "user-subscriptions", "cancel"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Extend User Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": {{subscriptionId}},\n  \"days\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription/user-subscriptions/extend",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription", "user-subscriptions", "extend"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Admin endpoints for managing subscriptions and plans"
+    },
+    {
+      "name": "Admin Subscription Plans",
+      "item": [
+        {
+          "name": "Get All Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans?examId=1&language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans"],
+              "query": [
+                {
+                  "key": "examId",
+                  "value": "1"
+                },
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Plan (Alternative Endpoint)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Basic Monthly\",\n  \"description\": \"Basic access for one month\",\n  \"type\": \"Basic\",\n  \"price\": 99.00,\n  \"currency\": \"INR\",\n  \"testPapersCount\": 20,\n  \"discount\": 0,\n  \"duration\": 1,\n  \"durationType\": \"Monthly\",\n  \"validityDays\": 30,\n  \"examId\": 1,\n  \"examCategory\": \"Engineering\",\n  \"features\": [\n    \"Limited test papers\",\n    \"Basic analytics\"\n  ],\n  \"imageUrl\": \"https://example.com/basic.jpg\",\n  \"isPopular\": false,\n  \"isRecommended\": false,\n  \"cardColorTheme\": \"#95E1D3\",\n  \"sortOrder\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Plan (Alternative Endpoint)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Basic Monthly Updated\",\n  \"description\": \"Basic access for one month - Updated\",\n  \"type\": \"Basic\",\n  \"price\": 149.00,\n  \"currency\": \"INR\",\n  \"testPapersCount\": 25,\n  \"discount\": 5,\n  \"duration\": 1,\n  \"durationType\": \"Monthly\",\n  \"validityDays\": 30,\n  \"examId\": 1,\n  \"examCategory\": \"Engineering\",\n  \"features\": [\n    \"Limited test papers\",\n    \"Basic analytics\",\n    \"Email support\"\n  ],\n  \"imageUrl\": \"https://example.com/basic-updated.jpg\",\n  \"isPopular\": false,\n  \"isRecommended\": true,\n  \"cardColorTheme\": \"#F38181\",\n  \"sortOrder\": 2,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{{planId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans", "{{planId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Plan (Alternative Endpoint)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{{planId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans", "{{planId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plan by ID (Alternative)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{{planId}}?language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans", "{{planId}}"],
+              "query": [
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Paginated Plans (Alternative)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/paged?pageNumber=1&pageSize=20&includeInactive=true&examId=1&language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans", "paged"],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "includeInactive",
+                  "value": "true"
+                },
+                {
+                  "key": "examId",
+                  "value": "1"
+                },
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plans by Exam ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/by-exam-id/1?language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans", "by-exam-id", "1"],
+              "query": [
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plans by Exam Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/by-exam/Engineering?language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans", "by-exam", "Engineering"],
+              "query": [
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/active?language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "subscription-plans", "active"],
+              "query": [
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Alternative admin endpoints for subscription plan management"
+    },
+    {
+      "name": "Admin User Subscriptions Management",
+      "item": [
+        {
+          "name": "Get All User Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "user-subscriptions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Subscription History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/user/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "user-subscriptions", "user", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Renew User Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": {{subscriptionId}},\n  \"autoRenewal\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/renew",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "user-subscriptions", "renew"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel User Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": {{subscriptionId}},\n  \"cancellationReason\": \"User requested cancellation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "user-subscriptions", "cancel"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "user-subscriptions", "active"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Expiring Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/expiring?daysBeforeExpiry=7",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "user-subscriptions", "expiring"],
+              "query": [
+                {
+                  "key": "daysBeforeExpiry",
+                  "value": "7"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Admin endpoints for managing user subscriptions"
+    },
+    {
+      "name": "User Subscription Management",
+      "item": [
+        {
+          "name": "Get My Subscription",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions/my-subscription",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "subscriptions", "my-subscription"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subscription History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "subscriptions", "history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{userId}},\n  \"subscriptionPlanId\": {{planId}},\n  \"autoRenewal\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "subscriptions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{userId}},\n  \"subscriptionPlanId\": {{planId}},\n  \"amountPaid\": 299.00,\n  \"paymentId\": \"pay_123456789\",\n  \"razorpayOrderId\": \"order_123456789\",\n  \"razorpayPaymentId\": \"pay_razorpay_123\",\n  \"razorpaySignature\": \"signature123\",\n  \"autoRenewal\": false,\n  \"testsTotal\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "subscriptions", "activate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": {{subscriptionId}},\n  \"cancellationReason\": \"No longer needed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "subscriptions", "cancel"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "User endpoints for managing their own subscriptions"
+    },
+    {
+      "name": "Payment Management",
+      "item": [
+        {
+          "name": "Initiate Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": {{planId}},\n  \"userId\": {{userId}},\n  \"paymentMethod\": \"UPI\",\n  \"paymentProvider\": \"Razorpay\",\n  \"currency\": \"INR\",\n  \"receipt\": \"receipt_123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/initiate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "initiate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionId\": \"txn_123456789\",\n  \"paymentProvider\": \"Razorpay\",\n  \"userId\": {{userId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Request Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": {{paymentId}},\n  \"amount\": 299.00,\n  \"reason\": \"Service not satisfactory\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "refund"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "{{paymentId}}"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Payment related endpoints for subscription transactions"
+    },
+    {
+      "name": "Public Endpoints",
+      "item": [
+        {
+          "name": "Get Active Plans (Public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/public/subscription-plans/active?language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "subscription-plans", "active"],
+              "query": [
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plans by Exam (Public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/public/subscription-plans/by-exam/Engineering?language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "subscription-plans", "by-exam", "Engineering"],
+              "query": [
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plan Details (Public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/public/subscription-plans/{{planId}}?language=en",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "subscription-plans", "{{planId}}"],
+              "query": [
+                {
+                  "key": "language",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Public endpoints accessible without authentication"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "// Add any common headers or logging here"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test(\"Response time is less than 5000ms\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test(\"Response has valid JSON\", function () {",
+          "    try {",
+          "        pm.response.json();",
+          "    } catch (e) {",
+          "        pm.expect.fail(\"Response is not valid JSON\");",
+          "    }",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:7001",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@rankup.com",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin@123",
+      "type": "string"
+    },
+    {
+      "key": "userEmail",
+      "value": "user@rankup.com",
+      "type": "string"
+    },
+    {
+      "key": "userPassword",
+      "value": "User@123",
+      "type": "string"
+    },
+    {
+      "key": "planId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}

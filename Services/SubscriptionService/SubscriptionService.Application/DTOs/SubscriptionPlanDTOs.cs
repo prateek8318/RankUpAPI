@@ -186,4 +186,30 @@ namespace SubscriptionService.Application.DTOs
         public string? CardColorTheme { get; set; }
         public bool IsActive { get; set; }
     }
+
+    public class SubscriptionPlanPagedRequestDto
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public bool IncludeInactive { get; set; } = true;
+        public int? ExamId { get; set; }
+        public string? Language { get; set; }
+    }
+
+    public class SubscriptionPlanPagedResponseDto
+    {
+        public IReadOnlyList<SubscriptionPlanListDto> Items { get; set; } = new List<SubscriptionPlanListDto>();
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    public class SubscriptionPlanStatsDto
+    {
+        public int ActivePlans { get; set; }
+        public decimal MonthlyRevenue { get; set; }
+        public int ExpiringSoon { get; set; }
+        public int NewSubscribers { get; set; }
+    }
 }

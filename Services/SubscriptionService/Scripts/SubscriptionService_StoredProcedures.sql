@@ -16,18 +16,109 @@ BEGIN
     SELECT 
         Id,
         Name,
+        Description,
         Type,
         Price,
+        Currency,
+        TestPapersCount,
+        Discount,
         Duration,
+        DurationType,
+        ValidityDays,
+        ExamId,
+        ExamCategory,
+        Features,
+        ImageUrl,
         CardColorTheme,
         IsPopular,
         IsRecommended,
+        SortOrder,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM SubscriptionPlans
-    WHERE IsActive = 1
-    ORDER BY Price;
+    ORDER BY SortOrder, Name;
+END
+GO
+
+-- SubscriptionPlan_GetAllPaged (admin: can include active/inactive)
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SubscriptionPlan_GetAllPaged]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[SubscriptionPlan_GetAllPaged]
+GO
+
+CREATE PROCEDURE [dbo].[SubscriptionPlan_GetAllPaged]
+    @PageNumber INT = 1,
+    @PageSize INT = 20,
+    @IncludeInactive BIT = 1,
+    @ExamId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @PageNumber < 1 SET @PageNumber = 1;
+    IF @PageSize < 1 SET @PageSize = 20;
+
+    ;WITH FilteredPlans AS
+    (
+        SELECT
+            Id,
+            Name,
+            Description,
+            Type,
+            Price,
+            Currency,
+            Discount,
+            Duration,
+            DurationType,
+            ValidityDays,
+            TestPapersCount,
+            ExamId,
+            ExamCategory,
+            Features,
+            ImageUrl,
+            CardColorTheme,
+            IsPopular,
+            IsRecommended,
+            SortOrder,
+            IsActive,
+            CreatedAt,
+            UpdatedAt
+        FROM SubscriptionPlans
+        WHERE (@IncludeInactive = 1 OR IsActive = 1)
+          AND (@ExamId IS NULL OR ExamId = @ExamId)
+    )
+    SELECT
+        Id,
+        Name,
+        Description,
+        Type,
+        Price,
+        Currency,
+        Discount,
+        Duration,
+        DurationType,
+        ValidityDays,
+        TestPapersCount,
+        ExamId,
+        ExamCategory,
+        Features,
+        ImageUrl,
+        CardColorTheme,
+        IsPopular,
+        IsRecommended,
+        SortOrder,
+        IsActive,
+        CreatedAt,
+        UpdatedAt
+    FROM FilteredPlans
+    ORDER BY SortOrder ASC, CreatedAt DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(1) AS TotalCount
+    FROM SubscriptionPlans
+    WHERE (@IncludeInactive = 1 OR IsActive = 1)
+      AND (@ExamId IS NULL OR ExamId = @ExamId);
 END
 GO
 
@@ -45,12 +136,23 @@ BEGIN
     SELECT 
         Id,
         Name,
+        Description,
         Type,
         Price,
+        Currency,
+        TestPapersCount,
+        Discount,
         Duration,
+        DurationType,
+        ValidityDays,
+        ExamId,
+        ExamCategory,
+        Features,
+        ImageUrl,
         CardColorTheme,
         IsPopular,
         IsRecommended,
+        SortOrder,
         IsActive,
         CreatedAt,
         UpdatedAt
@@ -69,6 +171,7 @@ CREATE PROCEDURE [dbo].[SubscriptionPlan_Create]
     @Description NVARCHAR(MAX),
     @Price DECIMAL(10,2),
     @Duration INT,
+    @ValidityDays INT,
     @Type INT,
     @ExamCategory NVARCHAR(50),
     @ExamId INT,
@@ -82,11 +185,11 @@ BEGIN
     SET NOCOUNT ON;
     
     INSERT INTO SubscriptionPlans (
-        Name, Description, Price, Duration, Type, ExamCategory,
+        Name, Description, Price, Duration, ValidityDays, Type, ExamCategory,
         ExamId, Features, IsActive, SortOrder, CreatedAt, UpdatedAt
     )
     VALUES (
-        @Name, @Description, @Price, @Duration, @Type, @ExamCategory,
+        @Name, @Description, @Price, @Duration, @ValidityDays, @Type, @ExamCategory,
         @ExamId, @Features, @IsActive, @SortOrder, @CreatedAt, @UpdatedAt
     );
 END
@@ -103,12 +206,16 @@ CREATE PROCEDURE [dbo].[SubscriptionPlan_Update]
     @Description NVARCHAR(MAX),
     @Price DECIMAL(10,2),
     @Duration INT,
+    @ValidityDays INT,
     @Type INT,
     @ExamCategory NVARCHAR(50),
     @ExamId INT,
     @Features NVARCHAR(MAX),
     @IsActive BIT,
     @SortOrder INT,
+    @IsPopular BIT,
+    @IsRecommended BIT,
+    @CardColorTheme NVARCHAR(50),
     @UpdatedAt DATETIME
 AS
 BEGIN
@@ -120,12 +227,16 @@ BEGIN
         Description = @Description,
         Price = @Price,
         Duration = @Duration,
+        ValidityDays = @ValidityDays,
         Type = @Type,
         ExamCategory = @ExamCategory,
         ExamId = @ExamId,
         Features = @Features,
         IsActive = @IsActive,
         SortOrder = @SortOrder,
+        IsPopular = @IsPopular,
+        IsRecommended = @IsRecommended,
+        CardColorTheme = @CardColorTheme,
         UpdatedAt = @UpdatedAt
     WHERE Id = @Id;
 END
@@ -160,18 +271,29 @@ BEGIN
     SELECT 
         Id,
         Name,
+        Description,
         Type,
         Price,
+        Currency,
+        TestPapersCount,
+        Discount,
         Duration,
+        DurationType,
+        ValidityDays,
+        ExamId,
+        ExamCategory,
+        Features,
+        ImageUrl,
         CardColorTheme,
         IsPopular,
         IsRecommended,
+        SortOrder,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM SubscriptionPlans
     WHERE ExamCategory = @ExamCategory AND IsActive = 1
-    ORDER BY Price;
+    ORDER BY SortOrder, Name;
 END
 GO
 
@@ -189,18 +311,29 @@ BEGIN
     SELECT 
         Id,
         Name,
+        Description,
         Type,
         Price,
+        Currency,
+        TestPapersCount,
+        Discount,
         Duration,
+        DurationType,
+        ValidityDays,
+        ExamId,
+        ExamCategory,
+        Features,
+        ImageUrl,
         CardColorTheme,
         IsPopular,
         IsRecommended,
+        SortOrder,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM SubscriptionPlans
     WHERE ExamId = @ExamId AND IsActive = 1
-    ORDER BY Price;
+    ORDER BY SortOrder, Name;
 END
 GO
 
@@ -217,18 +350,29 @@ BEGIN
     SELECT 
         Id,
         Name,
+        Description,
         Type,
         Price,
+        Currency,
+        TestPapersCount,
+        Discount,
         Duration,
+        DurationType,
+        ValidityDays,
+        ExamId,
+        ExamCategory,
+        Features,
+        ImageUrl,
         CardColorTheme,
         IsPopular,
         IsRecommended,
+        SortOrder,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM SubscriptionPlans
     WHERE IsActive = 1
-    ORDER BY SortOrder, Price;
+    ORDER BY SortOrder, Name;
 END
 GO
 
@@ -246,18 +390,29 @@ BEGIN
     SELECT 
         Id,
         Name,
+        Description,
         Type,
         Price,
+        Currency,
+        TestPapersCount,
+        Discount,
         Duration,
+        DurationType,
+        ValidityDays,
+        ExamId,
+        ExamCategory,
+        Features,
+        ImageUrl,
         CardColorTheme,
         IsPopular,
         IsRecommended,
+        SortOrder,
         IsActive,
         CreatedAt,
         UpdatedAt
     FROM SubscriptionPlans
     WHERE Type = @PlanType AND IsActive = 1
-    ORDER BY Price;
+    ORDER BY SortOrder, Name;
 END
 GO
 
@@ -764,3 +919,354 @@ END
 GO
 
 PRINT 'All UserSubscription stored procedures created successfully.';
+
+-- =============================================
+-- Payment Stored Procedures
+-- =============================================
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_GetById]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_GetById]
+GO
+CREATE PROCEDURE [dbo].[Payment_GetById]
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
+        PaymentMethod, PaymentProvider,
+        ProviderOrderId AS RazorpayOrderId,
+        TransactionId AS RazorpayPaymentId,
+        RazorpaySignature,
+        Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
+        RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
+    FROM Payments
+    WHERE Id = @Id AND IsActive = 1;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_GetAll]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_GetAll]
+GO
+CREATE PROCEDURE [dbo].[Payment_GetAll]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
+        PaymentMethod, PaymentProvider,
+        ProviderOrderId AS RazorpayOrderId,
+        TransactionId AS RazorpayPaymentId,
+        RazorpaySignature,
+        Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
+        RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
+    FROM Payments
+    WHERE IsActive = 1
+    ORDER BY CreatedAt DESC;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_Create]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_Create]
+GO
+CREATE PROCEDURE [dbo].[Payment_Create]
+    @UserId INT,
+    @SubscriptionPlanId INT,
+    @UserSubscriptionId INT = NULL,
+    @Amount DECIMAL(18,2),
+    @Currency NVARCHAR(3),
+    @DiscountAmount DECIMAL(18,2),
+    @FinalAmount DECIMAL(18,2),
+    @PaymentMethod INT,
+    @PaymentProvider NVARCHAR(50),
+    @RazorpayOrderId NVARCHAR(100),
+    @RazorpayPaymentId NVARCHAR(100) = NULL,
+    @RazorpaySignature NVARCHAR(100) = NULL,
+    @Status INT,
+    @PaymentDate DATETIME = NULL,
+    @FailureReason NVARCHAR(500) = NULL,
+    @RefundAmount DECIMAL(18,2) = NULL,
+    @RefundDate DATETIME = NULL,
+    @RefundReason NVARCHAR(500) = NULL,
+    @RazorpayRefundId NVARCHAR(100) = NULL,
+    @Metadata NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO Payments
+    (
+        UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
+        PaymentMethod, PaymentProvider, ProviderOrderId, TransactionId, RazorpaySignature, Status,
+        PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason, RazorpayRefundId, Metadata,
+        IsActive, CreatedAt
+    )
+    VALUES
+    (
+        @UserId, @SubscriptionPlanId, @UserSubscriptionId, @Amount, @Currency, @DiscountAmount, @FinalAmount,
+        @PaymentMethod, @PaymentProvider, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature, @Status,
+        @PaymentDate, @FailureReason, @RefundAmount, @RefundDate, @RefundReason, @RazorpayRefundId, @Metadata,
+        1, GETUTCDATE()
+    );
+
+    SELECT CAST(SCOPE_IDENTITY() AS INT);
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_Update]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_Update]
+GO
+CREATE PROCEDURE [dbo].[Payment_Update]
+    @Id INT,
+    @UserId INT,
+    @SubscriptionPlanId INT,
+    @UserSubscriptionId INT = NULL,
+    @Amount DECIMAL(18,2),
+    @Currency NVARCHAR(3),
+    @DiscountAmount DECIMAL(18,2),
+    @FinalAmount DECIMAL(18,2),
+    @PaymentMethod INT,
+    @PaymentProvider NVARCHAR(50),
+    @RazorpayOrderId NVARCHAR(100),
+    @RazorpayPaymentId NVARCHAR(100) = NULL,
+    @RazorpaySignature NVARCHAR(100) = NULL,
+    @Status INT,
+    @PaymentDate DATETIME = NULL,
+    @FailureReason NVARCHAR(500) = NULL,
+    @RefundAmount DECIMAL(18,2) = NULL,
+    @RefundDate DATETIME = NULL,
+    @RefundReason NVARCHAR(500) = NULL,
+    @RazorpayRefundId NVARCHAR(100) = NULL,
+    @Metadata NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Payments
+    SET
+        UserId = @UserId,
+        SubscriptionPlanId = @SubscriptionPlanId,
+        UserSubscriptionId = @UserSubscriptionId,
+        Amount = @Amount,
+        Currency = @Currency,
+        DiscountAmount = @DiscountAmount,
+        FinalAmount = @FinalAmount,
+        PaymentMethod = @PaymentMethod,
+        PaymentProvider = @PaymentProvider,
+        ProviderOrderId = @RazorpayOrderId,
+        TransactionId = @RazorpayPaymentId,
+        RazorpaySignature = @RazorpaySignature,
+        Status = @Status,
+        PaymentDate = @PaymentDate,
+        FailureReason = @FailureReason,
+        RefundAmount = @RefundAmount,
+        RefundDate = @RefundDate,
+        RefundReason = @RefundReason,
+        RazorpayRefundId = @RazorpayRefundId,
+        Metadata = @Metadata,
+        UpdatedAt = GETUTCDATE()
+    WHERE Id = @Id AND IsActive = 1;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_Delete]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_Delete]
+GO
+CREATE PROCEDURE [dbo].[Payment_Delete]
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Payments SET IsActive = 0, UpdatedAt = GETUTCDATE() WHERE Id = @Id AND IsActive = 1;
+    SELECT @@ROWCOUNT;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_GetByTransactionId]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_GetByTransactionId]
+GO
+CREATE PROCEDURE [dbo].[Payment_GetByTransactionId]
+    @TransactionId NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
+        PaymentMethod, PaymentProvider,
+        ProviderOrderId AS RazorpayOrderId,
+        TransactionId AS RazorpayPaymentId,
+        RazorpaySignature,
+        Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
+        RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
+    FROM Payments
+    WHERE TransactionId = @TransactionId AND IsActive = 1;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_GetByProviderOrderId]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_GetByProviderOrderId]
+GO
+CREATE PROCEDURE [dbo].[Payment_GetByProviderOrderId]
+    @ProviderOrderId NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
+        PaymentMethod, PaymentProvider,
+        ProviderOrderId AS RazorpayOrderId,
+        TransactionId AS RazorpayPaymentId,
+        RazorpaySignature,
+        Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
+        RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
+    FROM Payments
+    WHERE ProviderOrderId = @ProviderOrderId AND IsActive = 1;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_GetByUserId]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_GetByUserId]
+GO
+CREATE PROCEDURE [dbo].[Payment_GetByUserId]
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
+        PaymentMethod, PaymentProvider,
+        ProviderOrderId AS RazorpayOrderId,
+        TransactionId AS RazorpayPaymentId,
+        RazorpaySignature,
+        Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
+        RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
+    FROM Payments
+    WHERE UserId = @UserId AND IsActive = 1
+    ORDER BY CreatedAt DESC;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_GetByStatus]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_GetByStatus]
+GO
+CREATE PROCEDURE [dbo].[Payment_GetByStatus]
+    @Status INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
+        PaymentMethod, PaymentProvider,
+        ProviderOrderId AS RazorpayOrderId,
+        TransactionId AS RazorpayPaymentId,
+        RazorpaySignature,
+        Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
+        RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
+    FROM Payments
+    WHERE Status = @Status AND IsActive = 1
+    ORDER BY CreatedAt DESC;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_GetPaged]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_GetPaged]
+GO
+CREATE PROCEDURE [dbo].[Payment_GetPaged]
+    @PageNumber INT = 1,
+    @PageSize INT = 20,
+    @UserId INT = NULL,
+    @SearchTerm NVARCHAR(100) = NULL,
+    @Status INT = NULL,
+    @PaymentMethod INT = NULL,
+    @AmountFrom DECIMAL(18,2) = NULL,
+    @AmountTo DECIMAL(18,2) = NULL,
+    @DateFrom DATETIME = NULL,
+    @DateTo DATETIME = NULL,
+    @Reference NVARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF @PageNumber < 1 SET @PageNumber = 1;
+    IF @PageSize < 1 SET @PageSize = 20;
+
+    ;WITH Filtered AS
+    (
+        SELECT
+            Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
+            PaymentMethod, PaymentProvider,
+            ProviderOrderId AS RazorpayOrderId,
+            TransactionId AS RazorpayPaymentId,
+            RazorpaySignature,
+            Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
+            RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
+        FROM Payments
+        WHERE IsActive = 1
+          AND (@UserId IS NULL OR UserId = @UserId)
+          AND (@Status IS NULL OR Status = @Status)
+          AND (@PaymentMethod IS NULL OR PaymentMethod = @PaymentMethod)
+          AND (@AmountFrom IS NULL OR FinalAmount >= @AmountFrom)
+          AND (@AmountTo IS NULL OR FinalAmount <= @AmountTo)
+          AND (@DateFrom IS NULL OR CreatedAt >= @DateFrom)
+          AND (@DateTo IS NULL OR CreatedAt <= @DateTo)
+          AND (
+                @SearchTerm IS NULL
+                OR ProviderOrderId LIKE '%' + @SearchTerm + '%'
+                OR TransactionId LIKE '%' + @SearchTerm + '%'
+              )
+          AND (
+                @Reference IS NULL
+                OR ProviderOrderId = @Reference
+                OR TransactionId = @Reference
+              )
+    )
+    SELECT *
+    FROM Filtered
+    ORDER BY CreatedAt DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(1) AS TotalCount
+    FROM Payments
+    WHERE IsActive = 1
+      AND (@UserId IS NULL OR UserId = @UserId)
+      AND (@Status IS NULL OR Status = @Status)
+      AND (@PaymentMethod IS NULL OR PaymentMethod = @PaymentMethod)
+      AND (@AmountFrom IS NULL OR FinalAmount >= @AmountFrom)
+      AND (@AmountTo IS NULL OR FinalAmount <= @AmountTo)
+      AND (@DateFrom IS NULL OR CreatedAt >= @DateFrom)
+      AND (@DateTo IS NULL OR CreatedAt <= @DateTo)
+      AND (
+            @SearchTerm IS NULL
+            OR ProviderOrderId LIKE '%' + @SearchTerm + '%'
+            OR TransactionId LIKE '%' + @SearchTerm + '%'
+          )
+      AND (
+            @Reference IS NULL
+            OR ProviderOrderId = @Reference
+            OR TransactionId = @Reference
+          );
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Payment_GetStatistics]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Payment_GetStatistics]
+GO
+CREATE PROCEDURE [dbo].[Payment_GetStatistics]
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        COUNT(1) AS TotalPayments,
+        ISNULL(SUM(CASE WHEN Status = 2 THEN FinalAmount ELSE 0 END), 0) AS TotalRevenue,
+        ISNULL(SUM(CASE WHEN Status = 2 AND CAST(CreatedAt AS DATE) = CAST(GETUTCDATE() AS DATE) THEN FinalAmount ELSE 0 END), 0) AS TodayRevenue,
+        ISNULL(SUM(CASE WHEN Status = 2 AND YEAR(CreatedAt) = YEAR(GETUTCDATE()) AND MONTH(CreatedAt) = MONTH(GETUTCDATE()) THEN FinalAmount ELSE 0 END), 0) AS ThisMonthRevenue,
+        ISNULL(SUM(CASE WHEN Status = 2 THEN 1 ELSE 0 END), 0) AS SuccessfulPayments,
+        ISNULL(SUM(CASE WHEN Status = 3 THEN 1 ELSE 0 END), 0) AS FailedPayments,
+        ISNULL(SUM(CASE WHEN Status = 1 THEN 1 ELSE 0 END), 0) AS PendingPayments,
+        ISNULL(AVG(CASE WHEN Status = 2 THEN FinalAmount END), 0) AS AverageTransactionAmount,
+        ISNULL(COUNT(DISTINCT CASE WHEN Status = 2 THEN UserId END), 0) AS UniquePayingUsers
+    FROM Payments
+    WHERE IsActive = 1;
+END
+GO
+
+PRINT 'Payment stored procedures created successfully.';

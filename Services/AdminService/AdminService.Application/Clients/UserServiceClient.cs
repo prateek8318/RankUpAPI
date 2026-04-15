@@ -47,7 +47,8 @@ namespace AdminService.Application.Clients
 
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<UserDto>();
+                    var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>();
+                    return apiResponse?.Data;
                 }
 
                 _logger.LogWarning($"Failed to get user {userId}: {response.StatusCode}");
@@ -94,7 +95,8 @@ namespace AdminService.Application.Clients
 
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<IEnumerable<UserDto>>();
+                    var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<IEnumerable<UserDto>>>();
+                    return apiResponse?.Data;
                 }
 
                 return null;

@@ -24,7 +24,64 @@ namespace MasterService.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<StreamDto>>> GetStreams([FromQuery] string? language = null, [FromQuery] int? languageId = null, [FromQuery] int? qualificationId = null)
+        public async Task<ActionResult<IEnumerable<StreamDto>>> GetStreams([FromQuery] string? language = null, [FromQuery] int? languageId = null, [FromQuery] int? qualificationId = null, [FromQuery] bool includeInactive = false)
+        {
+            try
+            {
+                // Priority: language parameter > languageId > header
+                string? selectedLanguage = null;
+                
+                if (!string.IsNullOrEmpty(language))
+                {
+                    selectedLanguage = language;
+                }
+                else if (!languageId.HasValue)
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+                else
+                {
+                    languageId = GetLanguageIdFromHeader();
+                }
+
+                var isAdmin = User.IsInRole("Admin");
+                var shouldIncludeInactive = includeInactive || isAdmin;
+                IEnumerable<StreamDto> list;
+                
+                if (!string.IsNullOrEmpty(selectedLanguage))
+                {
+                    list = shouldIncludeInactive
+                        ? (qualificationId.HasValue
+                            ? await _streamService.GetStreamsByQualificationIdIncludingInactiveAsync(qualificationId.Value, selectedLanguage)
+                            : await _streamService.GetAllStreamsIncludingInactiveAsync(selectedLanguage))
+                        : (qualificationId.HasValue
+                            ? await _streamService.GetStreamsByQualificationIdAsync(qualificationId.Value, selectedLanguage)
+                            : await _streamService.GetAllStreamsAsync(selectedLanguage));
+                }
+                else
+                {
+                    list = shouldIncludeInactive
+                        ? (qualificationId.HasValue
+                            ? await _streamService.GetStreamsByQualificationIdIncludingInactiveAsync(qualificationId.Value, languageId)
+                            : await _streamService.GetAllStreamsIncludingInactiveAsync(languageId))
+                        : (qualificationId.HasValue
+                            ? await _streamService.GetStreamsByQualificationIdAsync(qualificationId.Value, languageId)
+                            : await _streamService.GetAllStreamsAsync(languageId));
+                }
+
+                var filtered = FilterByLanguage(list, languageId);
+                return Ok(filtered);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving streams");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<IEnumerable<StreamDto>>> GetAllStreamsForAdmin([FromQuery] string? language = null, [FromQuery] int? languageId = null, [FromQuery] int? qualificationId = null)
         {
             try
             {
@@ -48,26 +105,29 @@ namespace MasterService.API.Controllers
                 
                 if (!string.IsNullOrEmpty(selectedLanguage))
                 {
-                    // Use new language-based method
                     list = qualificationId.HasValue
-                        ? await _streamService.GetStreamsByQualificationIdAsync(qualificationId.Value, selectedLanguage)
-                        : await _streamService.GetAllStreamsAsync(selectedLanguage);
+                        ? await _streamService.GetStreamsByQualificationIdIncludingInactiveAsync(qualificationId.Value, selectedLanguage)
+                        : await _streamService.GetAllStreamsIncludingInactiveAsync(selectedLanguage);
                 }
                 else
                 {
-                    // Use existing languageId-based method
                     list = qualificationId.HasValue
-                        ? await _streamService.GetStreamsByQualificationIdAsync(qualificationId.Value, languageId)
-                        : await _streamService.GetAllStreamsAsync(languageId);
+                        ? await _streamService.GetStreamsByQualificationIdIncludingInactiveAsync(qualificationId.Value, languageId)
+                        : await _streamService.GetAllStreamsIncludingInactiveAsync(languageId);
                 }
 
                 var filtered = FilterByLanguage(list, languageId);
-                return Ok(filtered);
+                return Ok(new
+                {
+                    success = true,
+                    data = filtered,
+                    message = "All streams (including inactive) fetched successfully for admin"
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving streams");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error retrieving all streams for admin");
+                return StatusCode(500, new { success = false, message = "Error fetching streams" });
             }
         }
 

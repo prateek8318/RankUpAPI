@@ -252,6 +252,7 @@ namespace MasterService.Application.DTOs
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string LanguageCode { get; set; } = string.Empty;
+        public string LanguageName { get; set; } = string.Empty;
     }
 
     public class CreateExamDto : BaseCreateDto

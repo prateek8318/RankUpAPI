@@ -13,5 +13,8 @@ namespace TestService.Domain.Interfaces
             int? year = null);
         Task<Test?> GetByIdWithQuestionsAsync(int id);
         Task<IEnumerable<Test>> GetActiveTestsAsync();
+        Task<(IEnumerable<UserAvailableTest> Items, int TotalCount)> GetAvailableTestsForUserAsync(int userId, int examId, int? practiceModeId, int? subjectId, int? seriesId, int? year, int pageNumber, int pageSize);
+        Task<bool> MapTestToPlanAsync(int testId, int subscriptionPlanId);
+        Task<IReadOnlyList<LeaderboardEntry>> GetLeaderboardAsync(int testId, int top = 20);
     }
 }

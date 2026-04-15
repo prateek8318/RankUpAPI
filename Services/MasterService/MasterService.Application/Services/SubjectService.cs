@@ -36,12 +36,40 @@ namespace MasterService.Application.Services
             }
         }
 
+        public async Task<IEnumerable<SubjectDto>> GetAllSubjectsIncludingInactiveAsync(int? languageId = null)
+        {
+            try
+            {
+                // Use GetAllAsync which already returns all subjects including inactive
+                var subjects = await _subjectRepository.GetAllAsync(languageId);
+                return subjects.Select(MapToSubjectDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all subjects including inactive");
+                throw;
+            }
+        }
+
         public async Task<SubjectDto?> GetSubjectByIdAsync(int id, int? languageId = null)
         {
             try
             {
-                var subject = await _subjectRepository.GetByIdAsync(id, languageId);
-                return subject == null ? null : MapToSubjectDto(subject);
+                _logger.LogInformation("Getting subject {SubjectId} for language {LanguageId}", id, languageId);
+                
+                // Use GetAllAsync to get consistent data with admin endpoint
+                var allSubjects = await _subjectRepository.GetAllAsync(languageId);
+                var subject = allSubjects.FirstOrDefault(s => s.Id == id);
+                
+                if (subject == null)
+                {
+                    _logger.LogWarning("Subject {SubjectId} not found in repository", id);
+                    return null;
+                }
+
+                _logger.LogInformation("Subject {SubjectId} found: {SubjectName}, IsActive: {IsActive}", 
+                    id, subject.Name, subject.IsActive);
+                return MapToSubjectDto(subject);
             }
             catch (Exception ex)
             {
@@ -163,13 +191,26 @@ namespace MasterService.Application.Services
         {
             try
             {
-                var subject = await _subjectRepository.GetByIdAsync(id);
+                _logger.LogInformation("Toggling subject {SubjectId} status to {IsActive}", id, isActive);
+                
+                // Use GetAllAsync to get consistent data with admin endpoint
+                var allSubjects = await _subjectRepository.GetAllAsync((int?)null);
+                var subject = allSubjects.FirstOrDefault(s => s.Id == id);
+                
                 if (subject == null)
                 {
+                    _logger.LogWarning("Subject {SubjectId} not found for status toggle", id);
                     return false;
                 }
 
-                return await _subjectRepository.ToggleSubjectStatusAsync(id, isActive);
+                // Update the subject status
+                subject.IsActive = isActive;
+                subject.UpdatedAt = DateTime.UtcNow;
+                
+                await _subjectRepository.UpdateAsync(subject, null);
+                
+                _logger.LogInformation("Subject {SubjectId} status updated to {IsActive}", id, isActive);
+                return true;
             }
             catch (Exception ex)
             {

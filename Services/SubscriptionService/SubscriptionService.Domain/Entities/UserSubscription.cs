@@ -10,6 +10,8 @@ namespace SubscriptionService.Domain.Entities
         [Required]
         public int SubscriptionPlanId { get; set; }
 
+        public int? PaymentId { get; set; }
+
         [Required]
         [MaxLength(100)]
         public string RazorpayOrderId { get; set; } = string.Empty;
@@ -21,34 +23,37 @@ namespace SubscriptionService.Domain.Entities
         public string? RazorpaySignature { get; set; }
 
         [Required]
-        public decimal OriginalAmount { get; set; }
+        public DateTime PurchasedDate { get; set; }
 
         [Required]
-        public decimal FinalAmount { get; set; }
+        public DateTime ValidTill { get; set; }
 
         [Required]
-        public DateTime StartDate { get; set; }
+        public int TestsUsed { get; set; } = 0;
 
         [Required]
-        public DateTime EndDate { get; set; }
+        public int TestsTotal { get; set; } = 0;
 
-        public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Pending;
+        [Required]
+        public decimal AmountPaid { get; set; }
 
-        public bool AutoRenew { get; set; } = false;
+        [Required]
+        [MaxLength(3)]
+        public string Currency { get; set; } = "INR";
 
-        [MaxLength(100)]
-        public string? RazorpaySubscriptionId { get; set; } // For recurring payments
+        [Required]
+        public decimal DiscountApplied { get; set; } = 0;
 
-        public DateTime? LastRenewalDate { get; set; }
+        [Required]
+        [MaxLength(20)]
+        public string Status { get; set; } = "Active"; // Active, Expired, Cancelled
 
-        public DateTime? CancelledDate { get; set; }
+        public bool AutoRenewal { get; set; } = false;
 
-        [MaxLength(500)]
-        public string? CancellationReason { get; set; }
+        public DateTime? RenewalDate { get; set; }
 
         // Navigation properties
         public virtual SubscriptionPlan SubscriptionPlan { get; set; } = null!;
-        public virtual ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
-        public virtual Invoice? Invoice { get; set; }
+        public virtual Payment? Payment { get; set; }
     }
 }

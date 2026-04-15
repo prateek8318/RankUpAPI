@@ -172,6 +172,60 @@ namespace MasterService.Application.Services
         public async Task<IEnumerable<StateDto>> GetAllStatesAsync(int? languageId = null)
         {
             var states = await _stateRepository.GetActiveAsync();
+            return MapStates(states, languageId);
+        }
+
+        public async Task<IEnumerable<StateDto>> GetAllStatesIncludingInactiveAsync(int? languageId = null)
+        {
+            var states = await _stateRepository.GetAllAsync();
+            return MapStates(states, languageId);
+        }
+
+        public async Task<IEnumerable<StateDto>> GetAllStatesIncludingInactiveAsync(string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                var states = await _stateRepository.GetAllAsync();
+                return states
+                    .OrderBy(s => s.Name)
+                    .Select(s => MapToOptimizedStateDto(s, normalizedLanguage))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all states including inactive for language {Language}", language);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<StateDto>> GetStatesByCountryCodeIncludingInactiveAsync(string countryCode, int? languageId = null)
+        {
+            var states = await _stateRepository.GetAllAsync();
+            return MapStates(states.Where(s => string.Equals(s.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase)), languageId);
+        }
+
+        public async Task<IEnumerable<StateDto>> GetStatesByCountryCodeIncludingInactiveAsync(string countryCode, string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                var states = await _stateRepository.GetAllAsync();
+                return states
+                    .Where(s => string.Equals(s.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(s => s.Name)
+                    .Select(s => MapToOptimizedStateDto(s, normalizedLanguage))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting states by country code including inactive for language {Language}", language);
+                throw;
+            }
+        }
+
+        private IEnumerable<StateDto> MapStates(IEnumerable<State> states, int? languageId)
+        {
             var stateDtos = new List<StateDto>();
 
             foreach (var state in states.OrderBy(s => s.Name))
@@ -213,11 +267,6 @@ namespace MasterService.Application.Services
                 var stateList = states
                     .Select(s => MapToOptimizedStateDto(s, normalizedLanguage))
                     .ToList();
-
-                if (!stateList.Any())
-                {
-                    return await GetDefaultStatesOptimized(normalizedLanguage);
-                }
 
                 return stateList;
             }
@@ -359,35 +408,7 @@ namespace MasterService.Application.Services
         public async Task<IEnumerable<StateDto>> GetStatesByCountryCodeAsync(string countryCode, int? languageId = null)
         {
             var states = await _stateRepository.GetActiveByCountryCodeAsync(countryCode);
-            var stateDtos = new List<StateDto>();
-
-            foreach (var state in states.OrderBy(s => s.Name))
-            {
-                var stateDto = _mapper.Map<StateDto>(state);
-                
-                // Populate Names collection with all available languages
-                stateDto.Names = state.StateLanguages?.Select(sl => new StateLanguageDto
-                {
-                    LanguageId = sl.LanguageId,
-                    LanguageCode = sl.Language?.Code ?? string.Empty,
-                    LanguageName = sl.Language?.Name ?? string.Empty,
-                    Name = sl.Name
-                }).ToList() ?? new List<StateLanguageDto>();
-                
-                // Set the primary name based on language preference
-                if (languageId.HasValue)
-                {
-                    var languageName = state.StateLanguages
-                        .FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
-                    
-                    if (!string.IsNullOrEmpty(languageName))
-                        stateDto.Name = languageName;
-                }
-                
-                stateDtos.Add(stateDto);
-            }
-
-            return stateDtos;
+            return MapStates(states, languageId);
         }
 
         public async Task<bool> ToggleStateStatusAsync(int id, bool isActive)

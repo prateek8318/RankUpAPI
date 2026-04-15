@@ -14,5 +14,6 @@ namespace SubscriptionService.Application.Interfaces
         Task<IEnumerable<UserSubscriptionDto>> GetAllUserSubscriptionsAsync();
         Task<IEnumerable<UserSubscriptionDto>> GetActiveSubscriptionsAsync();
         Task<IEnumerable<UserSubscriptionDto>> GetExpiringSubscriptionsAsync(int daysBeforeExpiry);
+        Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansAsync(string? language = null);
     }
 }

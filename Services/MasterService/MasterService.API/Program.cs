@@ -10,6 +10,7 @@ using System.Text;
 using Common.Middleware;
 using Common.Services;
 using Common.Language;
+using Common.Startup;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -204,7 +205,9 @@ try
     {
         logger.LogInformation("Database connection verified.");
         // No automatic migrations - using stored procedures
-        
+        var connectionString = builder.Configuration.GetConnectionString("MasterServiceConnection");
+        await SqlScriptBootstrapper.ExecuteScriptsAsync(app.Environment.ContentRootPath, connectionString, logger);
+
         logger.LogInformation("Database initialization completed.");
     }
 }

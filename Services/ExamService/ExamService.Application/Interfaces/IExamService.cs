@@ -17,5 +17,16 @@ namespace ExamService.Application.Interfaces
         Task<IEnumerable<ExamDto>> GetExamsForUserAsync(int userId);
         Task<bool> ToggleExamStatusAsync(int id, bool isActive);
         Task<int> SeedInternationalExamsAsync();
+
+        Task<IEnumerable<ExamCategoryDto>> GetActiveCategoriesAsync();
+        Task<IEnumerable<ExamTypeDto>> GetTypesByCategoryIdAsync(int categoryId);
+        
+        // Admin specific methods
+        Task<ExamStatsDto> GetExamStatsAsync();
+        Task<IEnumerable<ExamCategoryDto>> GetExamCategoriesAsync();
+        Task<IEnumerable<ExamTypeDto>> GetExamTypesByCategoryAsync(int categoryId);
+        Task<IEnumerable<ExamDto>> GetFilteredExamsAsync(int? categoryId, int? typeId, string? status);
+        Task<bool> UpdateExamStatusAsync(int id, string status);
+        Task<ExamDashboardDto> GetExamDashboardAsync();
     }
 }

@@ -17,7 +17,10 @@ namespace TestService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[UserTestAttempt_GetById] @Id";
+                var sql = @"SELECT Id, TestId, UserId, StartedAt, CompletedAt, CurrentQuestionIndex, Score, TotalMarks,
+                                   Accuracy, Status, AnswersJson, IsActive, CreatedAt, UpdatedAt
+                            FROM dbo.UserTestAttempts
+                            WHERE Id = @Id";
                 return await connection.QueryFirstOrDefaultAsync<UserTestAttempt>(sql, new { Id = id });
             });
         }
@@ -26,7 +29,9 @@ namespace TestService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[UserTestAttempt_GetAll]";
+                var sql = @"SELECT Id, TestId, UserId, StartedAt, CompletedAt, CurrentQuestionIndex, Score, TotalMarks,
+                                   Accuracy, Status, AnswersJson, IsActive, CreatedAt, UpdatedAt
+                            FROM dbo.UserTestAttempts";
                 return await connection.QueryAsync<UserTestAttempt>(sql);
             });
         }
@@ -41,13 +46,35 @@ namespace TestService.Infrastructure.Repositories
             await WithConnectionAsync(async connection =>
             {
                 var sql = @"
-                    EXEC [dbo].[UserTestAttempt_Create] 
-                        @UserId, @TestId, @Status, @StartedAt, @CompletedAt, 
-                        @TimeTaken, @TotalQuestions, @AttemptedQuestions, 
-                        @CorrectAnswers, @WrongAnswers, @Marks, @Percentage, 
-                        @CreatedAt, @UpdatedAt";
+                    INSERT INTO dbo.UserTestAttempts
+                    (
+                        TestId, UserId, StartedAt, CompletedAt, CurrentQuestionIndex, Score, TotalMarks,
+                        Accuracy, Status, AnswersJson, IsActive, CreatedAt, UpdatedAt
+                    )
+                    VALUES
+                    (
+                        @TestId, @UserId, @StartedAt, @CompletedAt, @CurrentQuestionIndex, @Score, @TotalMarks,
+                        @Accuracy, @Status, @AnswersJson, @IsActive, @CreatedAt, @UpdatedAt
+                    );
 
-                await connection.ExecuteAsync(sql, entity);
+                    SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+                entity.Id = await connection.ExecuteScalarAsync<int>(sql, new
+                {
+                    entity.TestId,
+                    entity.UserId,
+                    entity.StartedAt,
+                    entity.CompletedAt,
+                    entity.CurrentQuestionIndex,
+                    entity.Score,
+                    entity.TotalMarks,
+                    entity.Accuracy,
+                    Status = (int)entity.Status,
+                    entity.AnswersJson,
+                    entity.IsActive,
+                    entity.CreatedAt,
+                    entity.UpdatedAt
+                });
             });
         }
 
@@ -56,13 +83,37 @@ namespace TestService.Infrastructure.Repositories
             await WithConnectionAsync(async connection =>
             {
                 var sql = @"
-                    EXEC [dbo].[UserTestAttempt_Update] 
-                        @Id, @UserId, @TestId, @Status, @StartedAt, @CompletedAt, 
-                        @TimeTaken, @TotalQuestions, @AttemptedQuestions, 
-                        @CorrectAnswers, @WrongAnswers, @Marks, @Percentage, 
-                        @UpdatedAt";
+                    UPDATE dbo.UserTestAttempts
+                    SET TestId = @TestId,
+                        UserId = @UserId,
+                        StartedAt = @StartedAt,
+                        CompletedAt = @CompletedAt,
+                        CurrentQuestionIndex = @CurrentQuestionIndex,
+                        Score = @Score,
+                        TotalMarks = @TotalMarks,
+                        Accuracy = @Accuracy,
+                        Status = @Status,
+                        AnswersJson = @AnswersJson,
+                        IsActive = @IsActive,
+                        UpdatedAt = @UpdatedAt
+                    WHERE Id = @Id";
 
-                await connection.ExecuteAsync(sql, entity);
+                await connection.ExecuteAsync(sql, new
+                {
+                    entity.Id,
+                    entity.TestId,
+                    entity.UserId,
+                    entity.StartedAt,
+                    entity.CompletedAt,
+                    entity.CurrentQuestionIndex,
+                    entity.Score,
+                    entity.TotalMarks,
+                    entity.Accuracy,
+                    Status = (int)entity.Status,
+                    entity.AnswersJson,
+                    entity.IsActive,
+                    entity.UpdatedAt
+                });
             });
         }
 
@@ -84,8 +135,17 @@ namespace TestService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[UserTestAttempt_GetOngoingByUserId] @UserId";
-                return await connection.QueryAsync<UserTestAttempt>(sql, new { UserId = userId });
+                var sql = @"SELECT Id, TestId, UserId, StartedAt, CompletedAt, CurrentQuestionIndex, Score, TotalMarks,
+                                   Accuracy, Status, AnswersJson, IsActive, CreatedAt, UpdatedAt
+                            FROM dbo.UserTestAttempts
+                            WHERE UserId = @UserId
+                              AND IsActive = 1
+                              AND Status = @InProgressStatus";
+                return await connection.QueryAsync<UserTestAttempt>(sql, new
+                {
+                    UserId = userId,
+                    InProgressStatus = (int)TestAttemptStatus.InProgress
+                });
             });
         }
 
@@ -93,8 +153,25 @@ namespace TestService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[UserTestAttempt_GetByIdWithTest] @Id";
-                return await connection.QueryFirstOrDefaultAsync<UserTestAttempt>(sql, new { Id = id });
+                var sql = @"
+                    SELECT a.Id, a.TestId, a.UserId, a.StartedAt, a.CompletedAt, a.CurrentQuestionIndex, a.Score,
+                           a.TotalMarks, a.Accuracy, a.Status, a.AnswersJson, a.IsActive, a.CreatedAt, a.UpdatedAt,
+                           t.Id, t.ExamId, t.PracticeModeId, t.SeriesId, t.SubjectId, t.Year, t.Title, t.Description,
+                           t.DurationInMinutes, t.TotalQuestions, t.TotalMarks, t.PassingMarks, t.InstructionsEnglish,
+                           t.InstructionsHindi, t.DisplayOrder, t.IsLocked, t.IsActive, t.CreatedAt, t.UpdatedAt
+                    FROM dbo.UserTestAttempts a
+                    INNER JOIN dbo.Tests t ON t.Id = a.TestId
+                    WHERE a.Id = @Id";
+
+                return (await connection.QueryAsync<UserTestAttempt, Test, UserTestAttempt>(
+                    sql,
+                    (attempt, test) =>
+                    {
+                        attempt.Test = test;
+                        return attempt;
+                    },
+                    new { Id = id },
+                    splitOn: "Id")).FirstOrDefault();
             });
         }
 
@@ -102,7 +179,11 @@ namespace TestService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[UserTestAttempt_GetByUserId] @UserId, @Limit";
+                var sql = @"SELECT TOP (@Limit) Id, TestId, UserId, StartedAt, CompletedAt, CurrentQuestionIndex, Score,
+                                   TotalMarks, Accuracy, Status, AnswersJson, IsActive, CreatedAt, UpdatedAt
+                            FROM dbo.UserTestAttempts
+                            WHERE UserId = @UserId
+                            ORDER BY CreatedAt DESC";
                 return await connection.QueryAsync<UserTestAttempt>(sql, new { UserId = userId, Limit = limit });
             });
         }

@@ -137,5 +137,73 @@ namespace ExamService.Infrastructure.Repositories
         {
             throw new NotImplementedException("SaveChangesAsync is not supported in pure Dapper implementation. Use specific stored procedures for data operations.");
         }
+
+        // Admin specific methods
+        public async Task<ExamStatsDto> GetExamStatsAsync()
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetStats]";
+                var stats = await connection.QuerySingleAsync<ExamStatsDto>(sql);
+                return stats;
+            });
+        }
+
+        public async Task<IEnumerable<ExamCategory>> GetExamCategoriesAsync()
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[ExamCategory_GetAll]";
+                return await connection.QueryAsync<ExamCategory>(sql);
+            });
+        }
+
+        public async Task<IEnumerable<ExamType>> GetExamTypesByCategoryAsync(int categoryId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[ExamType_GetByCategoryId] @ExamCategoryId";
+                return await connection.QueryAsync<ExamType>(sql, new { ExamCategoryId = categoryId });
+            });
+        }
+
+        public async Task<IEnumerable<Exam>> GetFilteredExamsAsync(int? categoryId, int? typeId, string? status)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetFiltered] @ExamCategoryId, @ExamTypeId, @Status";
+                return await connection.QueryAsync<Exam>(sql, new { ExamCategoryId = categoryId, ExamTypeId = typeId, Status = status });
+            });
+        }
+
+        public async Task<bool> UpdateExamStatusAsync(int id, string status)
+        {
+            var affectedRows = await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_UpdateStatus] @Id, @Status";
+                return await connection.ExecuteAsync(sql, new { Id = id, Status = status });
+            });
+            return affectedRows > 0;
+        }
+
+        public async Task<ExamDashboardDto> GetExamDashboardAsync()
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Exam_GetDashboard]";
+                using var multi = await connection.QueryMultipleAsync(sql);
+                
+                var stats = await multi.ReadSingleAsync<ExamStatsDto>();
+                var recentExams = await multi.ReadAsync<RecentExamDto>();
+                var categoryDistribution = await multi.ReadAsync<CategoryDistributionDto>();
+                
+                return new ExamDashboardDto
+                {
+                    Stats = stats,
+                    RecentExams = recentExams.ToList(),
+                    CategoryDistribution = categoryDistribution.ToList()
+                };
+            });
+        }
     }
 }

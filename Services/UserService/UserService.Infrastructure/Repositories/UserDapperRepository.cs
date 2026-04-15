@@ -170,11 +170,38 @@ WHERE u.Id = @Id
                     @PreferredExam, @StateId, @LanguageId, @QualificationId,
                     @ExamId, @CategoryId, @StreamId, @RefreshToken,
                     @RefreshTokenExpiryTime, @IsPhoneVerified, @InterestedInIntlExam,
-                    @IsActive, @UpdatedAt, @LastLoginAt, @DeviceId, @DeviceType, 
-                    @DeviceName, @FcmToken, @LastDeviceLoginAt, @LastDeviceType, @LastDeviceName";
+                    @IsActive, @UpdatedAt, @LastLoginAt";
+
+            var parameters = new
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                CountryCode = user.CountryCode,
+                Gender = user.Gender,
+                DateOfBirth = user.DateOfBirth,
+                Qualification = user.Qualification,
+                PreferredLanguage = user.PreferredLanguage,
+                ProfilePhoto = user.ProfilePhoto,
+                PreferredExam = user.PreferredExam,
+                StateId = user.StateId,
+                LanguageId = user.LanguageId,
+                QualificationId = user.QualificationId,
+                ExamId = user.ExamId,
+                CategoryId = user.CategoryId,
+                StreamId = user.StreamId,
+                RefreshToken = user.RefreshToken,
+                RefreshTokenExpiryTime = user.RefreshTokenExpiryTime,
+                IsPhoneVerified = user.IsPhoneVerified,
+                InterestedInIntlExam = user.InterestedInIntlExam,
+                IsActive = user.IsActive,
+                UpdatedAt = DateTime.UtcNow,
+                LastLoginAt = user.LastLoginAt
+            };
 
             await WithConnectionAsync(async connection => 
-                await connection.ExecuteAsync(sql, user));
+                await connection.ExecuteAsync(sql, parameters));
         }
 
         public async Task DeleteAsync(User user)

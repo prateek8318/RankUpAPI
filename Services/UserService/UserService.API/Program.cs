@@ -11,6 +11,7 @@ using Common.Middleware;
 using Common.Services;
 using Common.HttpClient;
 using Common.Language;
+using Common.Startup;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -205,10 +206,12 @@ try
     if (await context.Database.CanConnectAsync())
     {
         logger.LogInformation("Database connection verified.");
-    // No automatic migrations - using stored procedures
-    // No seeding - using stored procedures
-        
-    logger.LogInformation("Database initialization completed.");
+        // No automatic migrations - using stored procedures
+        // No seeding - using stored procedures
+        var connectionString = builder.Configuration.GetConnectionString("UserServiceConnection");
+        await SqlScriptBootstrapper.ExecuteScriptsAsync(app.Environment.ContentRootPath, connectionString, logger);
+
+        logger.LogInformation("Database initialization completed.");
     }
 }
 catch (Exception ex)

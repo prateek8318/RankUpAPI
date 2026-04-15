@@ -112,5 +112,55 @@ namespace AdminService.API.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        [HttpGet("users")]
+        public async Task<ActionResult<ApiResponseDto<object>>> GetAllUserSubscriptions()
+        {
+            try
+            {
+                var subscriptions = await _subscriptionServiceClient.GetAllUserSubscriptionsAsync();
+                return Ok(new ApiResponseDto<object> { Success = true, Data = subscriptions });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all user subscriptions");
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+            }
+        }
+
+        [HttpGet("users/expiring")]
+        public async Task<ActionResult<ApiResponseDto<object>>> GetExpiringUserSubscriptions([FromQuery] int daysBeforeExpiry = 30)
+        {
+            try
+            {
+                var subscriptions = await _subscriptionServiceClient.GetExpiringUserSubscriptionsAsync(daysBeforeExpiry);
+                return Ok(new ApiResponseDto<object> { Success = true, Data = subscriptions });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting expiring user subscriptions");
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+            }
+        }
+
+        [HttpGet("users/{userId}/history")]
+        public async Task<ActionResult<ApiResponseDto<object>>> GetUserSubscriptionHistory(int userId)
+        {
+            try
+            {
+                var history = await _subscriptionServiceClient.GetUserSubscriptionHistoryAsync(userId);
+                if (history == null)
+                {
+                    return NotFound(new ApiResponseDto<object> { Success = false, ErrorMessage = "Subscription history not found" });
+                }
+
+                return Ok(new ApiResponseDto<object> { Success = true, Data = history });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting subscription history for user {UserId}", userId);
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+            }
+        }
     }
 }

@@ -180,53 +180,7 @@ namespace MasterService.Application.Services
             try
             {
                 var qualifications = await _qualificationRepository.GetActiveAsync();
-                var dtos = qualifications.OrderBy(q => q.Name).Select(q => _mapper.Map<QualificationDto>(q)).ToList();
-                
-                // Populate Names array and apply language filtering
-                foreach (var dto in dtos)
-                {
-                    var q = qualifications.FirstOrDefault(x => x.Id == dto.Id);
-                    if (q != null)
-                    {
-                        // Map QualificationLanguages to Names collection
-                        dto.Names = q.QualificationLanguages?.Select(ql => new QualificationLanguageDto
-                        {
-                            LanguageId = ql.LanguageId,
-                            LanguageCode = ql.Language?.Code ?? string.Empty,
-                            LanguageName = ql.Language?.Name ?? string.Empty,
-                            Name = ql.Name,
-                            Description = ql.Description
-                        }).ToList() ?? new List<QualificationLanguageDto>();
-                        
-                        // Apply language filtering to name and description
-                        if (language.ToLower() == "hi")
-                        {
-                            if (!string.IsNullOrEmpty(q.NameHi))
-                            {
-                                dto.Name = q.NameHi;
-                            }
-                            // Check QualificationLanguages for Hindi description
-                            var hindiDesc = q.QualificationLanguages?.FirstOrDefault(ql => ql.LanguageId == 49)?.Description;
-                            if (!string.IsNullOrEmpty(hindiDesc))
-                            {
-                                dto.Description = hindiDesc;
-                            }
-                        }
-                        else
-                        {
-                            // Default to English
-                            dto.Name = q.Name;
-                            // Check QualificationLanguages for English description
-                            var englishDesc = q.QualificationLanguages?.FirstOrDefault(ql => ql.LanguageId == 50)?.Description;
-                            if (!string.IsNullOrEmpty(englishDesc))
-                            {
-                                dto.Description = englishDesc;
-                            }
-                        }
-                    }
-                }
-                
-                return dtos;
+                return MapQualificationList(qualifications, language);
             }
             catch (Exception ex)
             {
@@ -238,71 +192,25 @@ namespace MasterService.Application.Services
         public async Task<IEnumerable<QualificationDto>> GetAllQualificationsAsync(int? languageId = null)
         {
             var qualifications = await _qualificationRepository.GetActiveAsync();
-            var dtos = qualifications.OrderBy(q => q.Name).Select(q => _mapper.Map<QualificationDto>(q)).ToList();
-            
-            // Populate Names array for all qualifications
-            foreach (var dto in dtos)
-            {
-                var q = qualifications.FirstOrDefault(x => x.Id == dto.Id);
-                if (q != null)
-                {
-                    // Map QualificationLanguages to Names collection
-                    dto.Names = q.QualificationLanguages?.Select(ql => new QualificationLanguageDto
-                    {
-                        LanguageId = ql.LanguageId,
-                        LanguageCode = ql.Language?.Code ?? string.Empty,
-                        LanguageName = ql.Language?.Name ?? string.Empty,
-                        Name = ql.Name,
-                        Description = ql.Description
-                    }).ToList() ?? new List<QualificationLanguageDto>();
-                    
-                    if (languageId.HasValue)
-                    {
-                        var langName = q.QualificationLanguages.FirstOrDefault(ql => ql.LanguageId == languageId.Value && ql.IsActive)?.Name;
-                        if (!string.IsNullOrEmpty(langName) && IsValidQualificationName(langName))
-                            dto.Name = langName;
-                        var langDesc = q.QualificationLanguages.FirstOrDefault(ql => ql.LanguageId == languageId.Value && ql.IsActive)?.Description;
-                        if (langDesc != null && IsValidQualificationName(langDesc))
-                            dto.Description = langDesc;
-                    }
-                }
-            }
-            return dtos;
+            return MapQualificationList(qualifications, languageId);
+        }
+
+        public async Task<IEnumerable<QualificationDto>> GetAllQualificationsIncludingInactiveAsync(string language)
+        {
+            var qualifications = await _qualificationRepository.GetAllAsync();
+            return MapQualificationList(qualifications, language);
+        }
+
+        public async Task<IEnumerable<QualificationDto>> GetAllQualificationsIncludingInactiveAsync(int? languageId = null)
+        {
+            var qualifications = await _qualificationRepository.GetAllAsync();
+            return MapQualificationList(qualifications, languageId);
         }
 
         public async Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeAsync(string countryCode, int? languageId = null)
         {
             var qualifications = await _qualificationRepository.GetActiveByCountryCodeAsync(countryCode);
-            var dtos = qualifications.OrderBy(q => q.Name).Select(q => _mapper.Map<QualificationDto>(q)).ToList();
-            
-            // Populate Names array for all qualifications
-            foreach (var dto in dtos)
-            {
-                var q = qualifications.FirstOrDefault(x => x.Id == dto.Id);
-                if (q != null)
-                {
-                    // Map QualificationLanguages to Names collection
-                    dto.Names = q.QualificationLanguages?.Select(ql => new QualificationLanguageDto
-                    {
-                        LanguageId = ql.LanguageId,
-                        LanguageCode = ql.Language?.Code ?? string.Empty,
-                        LanguageName = ql.Language?.Name ?? string.Empty,
-                        Name = ql.Name,
-                        Description = ql.Description
-                    }).ToList() ?? new List<QualificationLanguageDto>();
-                    
-                    if (languageId.HasValue)
-                    {
-                        var langName = q.QualificationLanguages.FirstOrDefault(ql => ql.LanguageId == languageId.Value && ql.IsActive)?.Name;
-                        if (!string.IsNullOrEmpty(langName) && IsValidQualificationName(langName))
-                            dto.Name = langName;
-                        var langDesc = q.QualificationLanguages.FirstOrDefault(ql => ql.LanguageId == languageId.Value && ql.IsActive)?.Description;
-                        if (langDesc != null && IsValidQualificationName(langDesc))
-                            dto.Description = langDesc;
-                    }
-                }
-            }
-            return dtos;
+            return MapQualificationList(qualifications, languageId);
         }
 
         public async Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeAsync(string countryCode, string language)
@@ -352,6 +260,20 @@ namespace MasterService.Application.Services
             }
         }
 
+        public async Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeIncludingInactiveAsync(string countryCode, int? languageId = null)
+        {
+            var qualifications = (await _qualificationRepository.GetAllAsync())
+                .Where(q => string.Equals(q.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
+            return MapQualificationList(qualifications, languageId);
+        }
+
+        public async Task<IEnumerable<QualificationDto>> GetQualificationsByCountryCodeIncludingInactiveAsync(string countryCode, string language)
+        {
+            var qualifications = (await _qualificationRepository.GetAllAsync())
+                .Where(q => string.Equals(q.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
+            return MapQualificationList(qualifications, language);
+        }
+
         private static bool IsValidQualificationName(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
@@ -370,6 +292,81 @@ namespace MasterService.Application.Services
         public async Task<bool> ToggleQualificationStatusAsync(int id, bool isActive)
         {
             return await _qualificationRepository.SetActiveAsync(id, isActive);
+        }
+
+        private IEnumerable<QualificationDto> MapQualificationList(IEnumerable<Qualification> qualifications, int? languageId)
+        {
+            var qualificationList = qualifications.ToList();
+            var dtos = qualificationList.OrderBy(q => q.Name).Select(q => _mapper.Map<QualificationDto>(q)).ToList();
+
+            foreach (var dto in dtos)
+            {
+                var q = qualificationList.FirstOrDefault(x => x.Id == dto.Id);
+                if (q == null)
+                    continue;
+
+                dto.Names = q.QualificationLanguages?.Select(ql => new QualificationLanguageDto
+                {
+                    LanguageId = ql.LanguageId,
+                    LanguageCode = ql.Language?.Code ?? string.Empty,
+                    LanguageName = ql.Language?.Name ?? string.Empty,
+                    Name = ql.Name,
+                    Description = ql.Description
+                }).ToList() ?? new List<QualificationLanguageDto>();
+
+                if (languageId.HasValue)
+                {
+                    var langName = q.QualificationLanguages.FirstOrDefault(ql => ql.LanguageId == languageId.Value && ql.IsActive)?.Name;
+                    if (!string.IsNullOrEmpty(langName) && IsValidQualificationName(langName))
+                        dto.Name = langName;
+                    var langDesc = q.QualificationLanguages.FirstOrDefault(ql => ql.LanguageId == languageId.Value && ql.IsActive)?.Description;
+                    if (langDesc != null && IsValidQualificationName(langDesc))
+                        dto.Description = langDesc;
+                }
+            }
+
+            return dtos;
+        }
+
+        private IEnumerable<QualificationDto> MapQualificationList(IEnumerable<Qualification> qualifications, string language)
+        {
+            var qualificationList = qualifications.ToList();
+            var dtos = qualificationList.OrderBy(q => q.Name).Select(q => _mapper.Map<QualificationDto>(q)).ToList();
+
+            foreach (var dto in dtos)
+            {
+                var q = qualificationList.FirstOrDefault(x => x.Id == dto.Id);
+                if (q == null)
+                    continue;
+
+                dto.Names = q.QualificationLanguages?.Select(ql => new QualificationLanguageDto
+                {
+                    LanguageId = ql.LanguageId,
+                    LanguageCode = ql.Language?.Code ?? string.Empty,
+                    LanguageName = ql.Language?.Name ?? string.Empty,
+                    Name = ql.Name,
+                    Description = ql.Description
+                }).ToList() ?? new List<QualificationLanguageDto>();
+
+                if (language.ToLower() == "hi")
+                {
+                    if (!string.IsNullOrEmpty(q.NameHi))
+                        dto.Name = q.NameHi;
+
+                    var hindiDesc = q.QualificationLanguages?.FirstOrDefault(ql => ql.LanguageId == 49)?.Description;
+                    if (!string.IsNullOrEmpty(hindiDesc))
+                        dto.Description = hindiDesc;
+                }
+                else
+                {
+                    dto.Name = q.Name;
+                    var englishDesc = q.QualificationLanguages?.FirstOrDefault(ql => ql.LanguageId == 50)?.Description;
+                    if (!string.IsNullOrEmpty(englishDesc))
+                        dto.Description = englishDesc;
+                }
+            }
+
+            return dtos;
         }
 
         // Pagination support methods

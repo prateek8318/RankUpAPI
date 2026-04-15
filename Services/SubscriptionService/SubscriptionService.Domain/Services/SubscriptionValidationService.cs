@@ -43,11 +43,11 @@ namespace SubscriptionService.Domain.Services
                 result.PlanName = subscription.SubscriptionPlan.Name;
                 result.ExamCategory = subscription.SubscriptionPlan.ExamCategory;
                 result.Features = subscription.SubscriptionPlan.Features;
-                result.ExpiryDate = subscription.EndDate;
+                result.ExpiryDate = subscription.ValidTill;
 
                 // Check if subscription is expired
                 var now = DateTime.UtcNow;
-                if (subscription.EndDate <= now)
+                if (subscription.ValidTill <= now)
                 {
                     result.IsExpired = true;
                     result.IsValid = false;
@@ -56,7 +56,7 @@ namespace SubscriptionService.Domain.Services
                     result.RequiresRenewal = true;
                     result.RenewalUrl = "/api/user/subscriptions/plans";
                 }
-                else if (subscription.Status == SubscriptionStatus.Cancelled)
+                else if (subscription.Status == "Cancelled")
                 {
                     result.IsCancelled = true;
                     result.IsValid = false;
@@ -65,12 +65,12 @@ namespace SubscriptionService.Domain.Services
                     result.RequiresRenewal = true;
                     result.RenewalUrl = "/api/user/subscriptions/plans";
                 }
-                else if (subscription.Status == SubscriptionStatus.Active)
+                else if (subscription.Status == "Active")
                 {
                     result.IsValid = true;
                     result.Status = SubscriptionStatus.Active;
                     result.Message = "Subscription is active";
-                    result.DaysUntilExpiry = (int)(subscription.EndDate - now).TotalDays;
+                    result.DaysUntilExpiry = (int)(subscription.ValidTill - now).TotalDays;
 
                     // Check if exam category matches (if specified)
                     if (!string.IsNullOrEmpty(examCategory) && 
@@ -169,8 +169,8 @@ namespace SubscriptionService.Domain.Services
             {
                 var subscription = await _userSubscriptionRepository.GetByUserIdAsync(userId);
                 return subscription != null && 
-                       subscription.Status == SubscriptionStatus.Active && 
-                       subscription.EndDate > DateTime.UtcNow;
+                       subscription.Status == "Active" && 
+                       subscription.ValidTill > DateTime.UtcNow;
             }
             catch (Exception ex)
             {

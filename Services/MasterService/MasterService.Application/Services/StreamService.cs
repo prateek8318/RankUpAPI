@@ -142,11 +142,6 @@ namespace MasterService.Application.Services
                     .Select(s => MapToOptimizedStreamDto(s, normalizedLanguage))
                     .ToList();
 
-                if (!streamList.Any())
-                {
-                    return await GetDefaultStreamsOptimized(normalizedLanguage);
-                }
-
                 return streamList;
             }
             catch (Exception ex)
@@ -156,60 +151,40 @@ namespace MasterService.Application.Services
             }
         }
 
+        public async Task<IEnumerable<StreamDto>> GetAllStreamsIncludingInactiveAsync(string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                var streams = await _streamRepository.GetAllAsync();
+                return streams
+                    .OrderBy(s => s.Name)
+                    .Select(s => MapToOptimizedStreamDto(s, normalizedLanguage))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all streams including inactive for language {Language}", language);
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<StreamDto>> GetAllStreamsAsync(int? languageId = null)
         {
             var streams = await _streamRepository.GetActiveAsync();
-            var dtos = streams.OrderBy(s => s.Name).Select(s =>
-            {
-                var dto = _mapper.Map<StreamDto>(s);
-                dto.QualificationName = s.Qualification?.Name;
-                return dto;
-            }).ToList();
-            if (languageId.HasValue)
-            {
-                foreach (var dto in dtos)
-                {
-                    var s = streams.FirstOrDefault(x => x.Id == dto.Id);
-                    if (s != null)
-                    {
-                        var langName = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
-                        if (!string.IsNullOrEmpty(langName) && IsValidStreamName(langName))
-                            dto.Name = langName;
-                        var langDesc = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Description;
-                        if (langDesc != null && IsValidStreamName(langDesc))
-                            dto.Description = langDesc;
-                    }
-                }
-            }
-            return dtos;
+            return MapStreamList(streams, languageId);
+        }
+
+        public async Task<IEnumerable<StreamDto>> GetAllStreamsIncludingInactiveAsync(int? languageId = null)
+        {
+            var streams = await _streamRepository.GetAllAsync();
+            return MapStreamList(streams, languageId);
         }
 
         public async Task<IEnumerable<StreamDto>> GetStreamsByQualificationIdAsync(int qualificationId, int? languageId = null)
         {
             var streams = await _streamRepository.GetActiveByQualificationIdAsync(qualificationId);
-            var dtos = streams.OrderBy(s => s.Name).Select(s =>
-            {
-                var dto = _mapper.Map<StreamDto>(s);
-                dto.QualificationName = s.Qualification?.Name;
-                return dto;
-            }).ToList();
-            if (languageId.HasValue)
-            {
-                foreach (var dto in dtos)
-                {
-                    var s = streams.FirstOrDefault(x => x.Id == dto.Id);
-                    if (s != null)
-                    {
-                        var langName = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
-                        if (!string.IsNullOrEmpty(langName) && IsValidStreamName(langName))
-                            dto.Name = langName;
-                        var langDesc = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Description;
-                        if (langDesc != null && IsValidStreamName(langDesc))
-                            dto.Description = langDesc;
-                    }
-                }
-            }
-            return dtos;
+            return MapStreamList(streams, languageId);
         }
 
         public async Task<IEnumerable<StreamDto>> GetStreamsByQualificationIdAsync(int qualificationId, string language)
@@ -228,9 +203,65 @@ namespace MasterService.Application.Services
             }
         }
 
+        public async Task<IEnumerable<StreamDto>> GetStreamsByQualificationIdIncludingInactiveAsync(int qualificationId, int? languageId = null)
+        {
+            var streams = (await _streamRepository.GetAllAsync())
+                .Where(s => s.QualificationId == qualificationId);
+            return MapStreamList(streams, languageId);
+        }
+
+        public async Task<IEnumerable<StreamDto>> GetStreamsByQualificationIdIncludingInactiveAsync(int qualificationId, string language)
+        {
+            try
+            {
+                var normalizedLanguage = LanguageValidator.NormalizeLanguage(language);
+                var streams = (await _streamRepository.GetAllAsync())
+                    .Where(s => s.QualificationId == qualificationId)
+                    .OrderBy(s => s.Name)
+                    .Select(s => MapToOptimizedStreamDto(s, normalizedLanguage))
+                    .ToList();
+                return streams;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting streams by qualification id including inactive for language {Language}", language);
+                throw;
+            }
+        }
+
         public async Task<bool> ToggleStreamStatusAsync(int id, bool isActive)
         {
             return await _streamRepository.SetActiveAsync(id, isActive);
+        }
+
+        private IEnumerable<StreamDto> MapStreamList(IEnumerable<StreamEntity> streams, int? languageId)
+        {
+            var streamList = streams.ToList();
+            var dtos = streamList.OrderBy(s => s.Name).Select(s =>
+            {
+                var dto = _mapper.Map<StreamDto>(s);
+                dto.QualificationName = s.Qualification?.Name;
+                return dto;
+            }).ToList();
+
+            if (languageId.HasValue)
+            {
+                foreach (var dto in dtos)
+                {
+                    var s = streamList.FirstOrDefault(x => x.Id == dto.Id);
+                    if (s == null)
+                        continue;
+
+                    var langName = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Name;
+                    if (!string.IsNullOrEmpty(langName) && IsValidStreamName(langName))
+                        dto.Name = langName;
+                    var langDesc = s.StreamLanguages.FirstOrDefault(sl => sl.LanguageId == languageId.Value && sl.IsActive)?.Description;
+                    if (langDesc != null && IsValidStreamName(langDesc))
+                        dto.Description = langDesc;
+                }
+            }
+
+            return dtos;
         }
 
         // Pagination support methods

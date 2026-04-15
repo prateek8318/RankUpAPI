@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TestService.Application.DTOs;
 using TestService.Application.Services;
+using TestService.API.Models;
 using TestServiceAppService = TestService.Application.Services.TestService;
 
 namespace TestService.API.Controllers
@@ -36,6 +38,33 @@ namespace TestService.API.Controllers
             }
         }
 
+        [HttpGet("user/available")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<UserTestListResponseDto>>> GetAvailableTestsForUser(
+            [FromQuery] int examId,
+            [FromQuery] int? practiceModeId = null,
+            [FromQuery] int? subjectId = null,
+            [FromQuery] int? seriesId = null,
+            [FromQuery] int? year = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var userId = GetUserIdOrThrow();
+            var result = await _testService.GetAvailableTestsForUserAsync(new UserTestListRequestDto
+            {
+                UserId = userId,
+                ExamId = examId,
+                PracticeModeId = practiceModeId,
+                SubjectId = subjectId,
+                SeriesId = seriesId,
+                Year = year,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            });
+
+            return Ok(new ApiResponse<UserTestListResponseDto> { Success = true, Message = "Success", Data = result });
+        }
+
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<ActionResult<TestDto>> GetById(int id)
@@ -63,6 +92,27 @@ namespace TestService.API.Controllers
             {
                 return NotFound(ex.Message);
             }
+        }
+
+        [HttpPost("map-plan")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> MapPlan([FromBody] MapTestToPlanDto dto)
+        {
+            var result = await _testService.MapTestToPlanAsync(dto);
+            if (!result)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Unable to map test to plan.", Data = null });
+            }
+
+            return Ok(new ApiResponse<object> { Success = true, Message = "Success", Data = null });
+        }
+
+        [HttpGet("{testId:int}/leaderboard")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<LeaderboardEntryDto>>>> GetLeaderboard(int testId, [FromQuery] int top = 20)
+        {
+            var rows = await _testService.GetLeaderboardAsync(testId, top);
+            return Ok(new ApiResponse<IReadOnlyList<LeaderboardEntryDto>> { Success = true, Message = "Success", Data = rows });
         }
 
         [HttpPut("{id}")]
@@ -117,6 +167,19 @@ namespace TestService.API.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        private int GetUserIdOrThrow()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                              ?? User.FindFirst("sub")?.Value
+                              ?? User.FindFirst("userId")?.Value;
+            if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+            {
+                throw new UnauthorizedAccessException("Valid user claim not found in token.");
+            }
+
+            return userId;
         }
     }
 }

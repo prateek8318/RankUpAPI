@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using QuestionService.Domain.Entities;
 
 namespace QuestionService.Application.DTOs
@@ -494,5 +495,216 @@ namespace QuestionService.Application.DTOs
         public bool SkipDuplicates { get; set; } = false;
         
         public bool ValidateOnly { get; set; } = false;
+    }
+
+    // Image Upload DTOs
+    public class QuestionImageUploadDto
+    {
+        [Required]
+        public IFormFile Image { get; set; } = null!;
+        
+        [Required]
+        public string ImageType { get; set; } = string.Empty; // Question, OptionA, OptionB, OptionC, OptionD, Explanation
+        
+        public int? QuestionId { get; set; }
+        
+        public string? LanguageCode { get; set; } = "en";
+    }
+
+    public class ImageUploadResponseDto
+    {
+        public string ImageUrl { get; set; } = string.Empty;
+        public string ImageType { get; set; } = string.Empty;
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    // Quiz and Subject Management DTOs
+    public class SubjectListDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int QuestionCount { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class ExamListDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int QuestionCount { get; set; }
+        public int Duration { get; set; } // in minutes
+        public bool IsActive { get; set; }
+        public bool IsLocked { get; set; } // For mobile app unlock functionality
+    }
+
+    public class QuizQuestionDto
+    {
+        public int Id { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public decimal Marks { get; set; }
+        public decimal NegativeMarks { get; set; }
+        public string DifficultyLevel { get; set; } = "Medium";
+        public int QuestionNumber { get; set; }
+        public bool IsMarkedForReview { get; set; }
+        public bool IsAnswered { get; set; }
+        public string? SelectedAnswer { get; set; }
+    }
+
+    public class QuizSessionDto
+    {
+        public int Id { get; set; }
+        public int ExamId { get; set; }
+        public string ExamName { get; set; } = string.Empty;
+        public int UserId { get; set; }
+        public string LanguageCode { get; set; } = "en";
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public int Duration { get; set; } // in minutes
+        public int TotalQuestions { get; set; }
+        public int AnsweredQuestions { get; set; }
+        public int MarkedForReview { get; set; }
+        public decimal TotalMarks { get; set; }
+        public decimal ObtainedMarks { get; set; }
+        public string Status { get; set; } = "NotStarted"; // NotStarted, InProgress, Completed, Submitted
+        public List<QuizQuestionDto> Questions { get; set; } = new();
+    }
+
+    public class QuizStartRequestDto
+    {
+        [Required]
+        public int ExamId { get; set; }
+        
+        [Required]
+        public int UserId { get; set; }
+        
+        public string LanguageCode { get; set; } = "en";
+        
+        public int? SubjectId { get; set; }
+        
+        public int? TopicId { get; set; }
+        
+        public int NumberOfQuestions { get; set; } = 100;
+        
+        public string? DifficultyLevel { get; set; }
+    }
+
+    public class QuizAnswerRequestDto
+    {
+        [Required]
+        public int QuizSessionId { get; set; }
+        
+        [Required]
+        public int QuestionId { get; set; }
+        
+        [Required]
+        public string Answer { get; set; } = string.Empty;
+        
+        public bool MarkForReview { get; set; } = false;
+        
+        public int TimeSpent { get; set; } = 0; // in seconds
+    }
+
+    public class QuizSubmitRequestDto
+    {
+        [Required]
+        public int QuizSessionId { get; set; }
+        
+        public List<QuizAnswerRequestDto> Answers { get; set; } = new();
+    }
+
+    public class QuizResultDto
+    {
+        public int QuizSessionId { get; set; }
+        public int ExamId { get; set; }
+        public string ExamName { get; set; } = string.Empty;
+        public int UserId { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public TimeSpan Duration { get; set; }
+        public int TotalQuestions { get; set; }
+        public int CorrectAnswers { get; set; }
+        public int WrongAnswers { get; set; }
+        public int SkippedQuestions { get; set; }
+        public decimal TotalMarks { get; set; }
+        public decimal ObtainedMarks { get; set; }
+        public decimal Percentage { get; set; }
+        public string Grade { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public List<QuestionResultDto> QuestionResults { get; set; } = new();
+    }
+
+    public class QuestionResultDto
+    {
+        public int QuestionId { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public string? UserAnswer { get; set; }
+        public bool IsCorrect { get; set; }
+        public decimal Marks { get; set; }
+        public decimal NegativeMarks { get; set; }
+        public decimal ObtainedMarks { get; set; }
+        public bool WasMarkedForReview { get; set; }
+        public int TimeSpent { get; set; } // in seconds
+    }
+
+    // Bulk Upload Processing DTOs
+    public class BulkUploadProcessDto
+    {
+        public int BatchId { get; set; }
+        public string BatchName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public int TotalQuestions { get; set; }
+        public int ProcessedQuestions { get; set; }
+        public int FailedQuestions { get; set; }
+        public int SuccessQuestions { get; set; }
+        public List<string> ErrorMessages { get; set; } = new();
+        public DateTime StartedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+    }
+
+    public class ExcelQuestionRowDto
+    {
+        public int RowNumber { get; set; }
+        public string? Module { get; set; }
+        public string Exam { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string? Topic { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public string? Explanation { get; set; }
+        public decimal Marks { get; set; } = 1;
+        public decimal NegativeMarks { get; set; } = 0;
+        public string DifficultyLevel { get; set; } = "Medium";
+        public string QuestionType { get; set; } = "MCQ";
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+        public bool SameExplanationForAllLanguages { get; set; } = false;
+        public List<QuestionTranslationCreateDto>? Translations { get; set; }
     }
 }

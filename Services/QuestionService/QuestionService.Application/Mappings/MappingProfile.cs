@@ -11,6 +11,10 @@ namespace QuestionService.Application.Mappings
             CreateMap<CreateQuestionDto, Question>();
             CreateMap<UpdateQuestionDto, Question>();
             CreateMap<Question, QuestionDto>();
+            CreateMap<QuestionTranslation, QuestionTranslationDto>();
+            CreateMap<Topic, TopicDto>();
+            CreateMap<QuestionAdminListItemDto, QuestionDto>()
+                .ForMember(dest => dest.QuestionText, opt => opt.MapFrom(src => src.DisplayQuestionText ?? string.Empty));
         }
     }
 }

@@ -64,6 +64,29 @@ namespace SubscriptionService.API.Controllers
         }
 
         /// <summary>
+        /// Get active subscription for a specific user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>User active subscription details</returns>
+        [HttpGet("user/{userId}/active")]
+        public async Task<ActionResult<UserSubscriptionDto>> GetActiveSubscriptionForUser(int userId)
+        {
+            try
+            {
+                var result = await _userSubscriptionService.GetActiveSubscriptionForUserAsync(userId);
+                if (result == null)
+                    return NotFound(new { Message = "No active subscription found for this user" });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active subscription for user: {UserId}", userId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
         /// Manually renew a user subscription
         /// </summary>
         /// <param name="renewSubscriptionDto">Renewal details</param>

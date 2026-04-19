@@ -64,6 +64,38 @@ namespace SubscriptionService.Application.Mappings
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+
+            // PlanDurationOption mappings
+            CreateMap<PlanDurationOption, PlanDurationOptionDto>();
+
+            CreateMap<CreatePlanDurationOptionDto, PlanDurationOption>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
+
+            CreateMap<UpdatePlanDurationOptionDto, PlanDurationOption>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+
+            // PlanWithDurationOptions mappings
+            CreateMap<SubscriptionPlan, PlanWithDurationOptionsDto>()
+                .ForMember(dest => dest.LocalizedName, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.LocalizedDescription, opt => opt.MapFrom(src => src.Description))
+                .ForMember(dest => dest.LocalizedFeatures, opt => opt.MapFrom(src => src.Features));
+
+            CreateMap<CreateSubscriptionPlanWithDurationDto, SubscriptionPlan>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.Translations, opt => opt.Ignore())
+                .ForMember(dest => dest.DurationOptions, opt => opt.Ignore())
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src.BasePrice))
+                .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => 1))
+                .ForMember(dest => dest.DurationType, opt => opt.MapFrom(src => "Monthly"))
+                .ForMember(dest => dest.ValidityDays, opt => opt.MapFrom(src => 30));
         }
     }
 

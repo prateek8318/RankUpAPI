@@ -1,4 +1,6 @@
 using ExamService.Domain.Entities;
+using ExamService.Application.DTOs;
+using System.Data;
 
 namespace ExamService.Application.Interfaces
 {
@@ -16,6 +18,9 @@ namespace ExamService.Application.Interfaces
         Task DeleteAsync(Exam exam);
         Task<bool> HardDeleteByIdAsync(int id);
         Task<int> SaveChangesAsync();
+        Task<IDbTransaction> BeginTransactionAsync();
+        Task CommitAsync(IDbTransaction transaction);
+        Task RollbackAsync(IDbTransaction transaction);
 
         Task<IEnumerable<ExamCategory>> GetActiveCategoriesAsync();
         Task<IEnumerable<ExamType>> GetTypesByCategoryIdAsync(int categoryId);

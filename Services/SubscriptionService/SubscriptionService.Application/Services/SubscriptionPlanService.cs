@@ -286,9 +286,55 @@ namespace SubscriptionService.Application.Services
             try
             {
                 var plans = await _subscriptionPlanRepository.GetActivePlansAsync();
-                var list = _mapper.Map<IEnumerable<SubscriptionPlanListDto>>(plans).ToList();
-                ApplyLocalization(list, plans, language);
-                return list;
+                var result = _mapper.Map<IEnumerable<SubscriptionPlanListDto>>(plans);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active subscription plans");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansAsync(string? language = null, int? examId = null, int? userId = null)
+        {
+            try
+            {
+                // Filter by exam ID - ExamCategory contains ExamId from Master Service
+                IEnumerable<SubscriptionPlan> plans;
+                if (examId.HasValue)
+                {
+                    // Get plans where ExamCategory matches user's selected ExamId
+                    plans = await _subscriptionPlanRepository.GetActivePlansAsync();
+                    plans = plans.Where(p => p.ExamCategory == examId.Value.ToString());
+                }
+                else
+                {
+                    plans = await _subscriptionPlanRepository.GetActivePlansAsync();
+                }
+
+                // Filter out inactive plans
+                plans = plans.Where(p => p.IsActive);
+
+                // Filter out plans that user has already purchased
+                if (userId.HasValue)
+                {
+                    var purchasedPlanIds = new HashSet<int>();
+                    var userSubscriptions = await _subscriptionPlanRepository.GetUserActiveSubscriptionsAsync(userId.Value);
+                    
+                    foreach (var subscription in userSubscriptions)
+                    {
+                        purchasedPlanIds.Add(subscription.SubscriptionPlanId);
+                    }
+
+                    plans = plans.Where(plan => !purchasedPlanIds.Contains(plan.Id));
+                    
+                    _logger.LogInformation("Filtered out {Count} already purchased plans for user {UserId}", 
+                        purchasedPlanIds.Count, userId);
+                }
+
+                var result = _mapper.Map<IEnumerable<SubscriptionPlanListDto>>(plans);
+                return result;
             }
             catch (Exception ex)
             {
@@ -427,6 +473,296 @@ namespace SubscriptionService.Application.Services
             {
                 _logger.LogError(ex, "Error counting new subscribers");
                 return 0;
+            }
+        }
+
+        // New methods for duration options support
+        public async Task<PlanWithDurationOptionsDto> CreatePlanWithDurationsAsync(CreateSubscriptionPlanWithDurationDto createPlanDto)
+        {
+            try
+            {
+                _logger.LogInformation("Creating new subscription plan with durations: {PlanName}", createPlanDto.Name);
+
+                // Check for duplicate plan - ExamCategory contains ExamId from Master Service
+                var duplicate = await _subscriptionPlanRepository.ExistsByNameAsync(createPlanDto.Name, createPlanDto.ExamCategory, createPlanDto.Type, examId: createPlanDto.ExamId);
+                if (duplicate)
+                    throw new InvalidOperationException($"Subscription plan '{createPlanDto.Name}' already exists for this exam type.");
+
+                // Create base plan
+                var plan = new SubscriptionPlan
+                {
+                    Name = createPlanDto.Name,
+                    Description = createPlanDto.Description,
+                    Type = createPlanDto.Type,
+                    Price = createPlanDto.BasePrice, // Use base price for 1 month
+                    Currency = createPlanDto.Currency,
+                    TestPapersCount = createPlanDto.TestPapersCount,
+                    Duration = 1, // Default to 1 month
+                    DurationType = "Monthly",
+                    ValidityDays = 30, // Default to 30 days
+                    ExamId = createPlanDto.ExamId,
+                    ExamCategory = createPlanDto.ExamCategory,
+                    Features = createPlanDto.Features ?? new List<string>(),
+                    ImageUrl = createPlanDto.ImageUrl,
+                    CardColorTheme = createPlanDto.CardColorTheme,
+                    SortOrder = createPlanDto.SortOrder,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                // Prepare duration options
+                var durationOptions = createPlanDto.DurationOptions.Select(dto => new PlanDurationOption
+                {
+                    DurationMonths = dto.DurationMonths,
+                    Price = dto.Price,
+                    DiscountPercentage = dto.DiscountPercentage,
+                    DisplayLabel = dto.DisplayLabel,
+                    IsPopular = dto.IsPopular,
+                    SortOrder = dto.SortOrder,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                }).ToList();
+
+                // Prepare translations
+                var translations = createPlanDto.Translations?
+                    .Where(t => !string.IsNullOrWhiteSpace(t.LanguageCode) && t.LanguageCode.Trim().ToLowerInvariant() != "en")
+                    .Select(t => new SubscriptionPlanTranslation
+                    {
+                        LanguageCode = t.LanguageCode.Trim().ToLowerInvariant(),
+                        Name = t.Name,
+                        Description = t.Description,
+                        Features = t.Features ?? new List<string>()
+                    }).ToList();
+
+                // Create plan with durations and translations in a single transaction
+                var createdPlan = await _subscriptionPlanRepository.CreatePlanWithDurationsAsync(plan, durationOptions, translations);
+
+                return await GetPlanWithDurationsAsync(createdPlan.Id, "en");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating plan with durations: {PlanName}", createPlanDto.Name);
+                throw;
+            }
+        }
+
+        public async Task<PlanWithDurationOptionsDto?> GetPlanWithDurationsAsync(int id, string? language = null, int? userId = null)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanRepository.GetPlanWithDurationsAsync(id, language ?? "en");
+                if (plan == null)
+                    return null;
+
+                // Hide plan if already purchased by user
+                if (userId.HasValue)
+                {
+                    var existingSubscription = await _subscriptionPlanRepository.GetUserActiveSubscriptionAsync(userId.Value, id);
+                    if (existingSubscription != null)
+                    {
+                        _logger.LogInformation("User {UserId} has already purchased plan {PlanId}, hiding from view", userId, id);
+                        return null;
+                    }
+                }
+
+                return _mapper.Map<PlanWithDurationOptionsDto>(plan);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving plan with durations: {PlanId}", id);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<PlanWithDurationOptionsDto>> GetActivePlansWithDurationsAsync(string? language = null, int? examId = null, int? userId = null)
+        {
+            try
+            {
+                var plans = await _subscriptionPlanRepository.GetActivePlansWithDurationsAsync(language ?? "en", examId);
+                var planDtos = _mapper.Map<IEnumerable<PlanWithDurationOptionsDto>>(plans).ToList();
+
+                // Additional filtering by ExamCategory if examId is provided
+                if (examId.HasValue)
+                {
+                    planDtos = planDtos.Where(plan => plan.ExamCategory == examId.Value.ToString()).ToList();
+                }
+
+                // Filter out plans that user has already purchased
+                if (userId.HasValue)
+                {
+                    var purchasedPlanIds = new HashSet<int>();
+                    var userSubscriptions = await _subscriptionPlanRepository.GetUserActiveSubscriptionsAsync(userId.Value);
+                    
+                    foreach (var subscription in userSubscriptions)
+                    {
+                        purchasedPlanIds.Add(subscription.SubscriptionPlanId);
+                    }
+
+                    planDtos = planDtos.Where(plan => !purchasedPlanIds.Contains(plan.Id)).ToList();
+                    
+                    _logger.LogInformation("Filtered out {Count} already purchased plans for user {UserId}", 
+                        purchasedPlanIds.Count, userId);
+                }
+
+                return planDtos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active plans with durations");
+                throw;
+            }
+        }
+
+        public async Task<bool> AddDurationOptionsAsync(int planId, List<CreatePlanDurationOptionDto> durationOptions)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanRepository.GetByIdAsync(planId);
+                if (plan == null)
+                    throw new KeyNotFoundException($"Subscription plan with ID {planId} not found");
+
+                foreach (var dto in durationOptions)
+                {
+                    var option = new PlanDurationOption
+                    {
+                        SubscriptionPlanId = planId,
+                        DurationMonths = dto.DurationMonths,
+                        Price = dto.Price,
+                        DiscountPercentage = dto.DiscountPercentage,
+                        DisplayLabel = dto.DisplayLabel,
+                        IsPopular = dto.IsPopular,
+                        SortOrder = dto.SortOrder,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _subscriptionPlanRepository.AddDurationOptionAsync(option);
+                }
+
+                await _subscriptionPlanRepository.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding duration options to plan: {PlanId}", planId);
+                throw;
+            }
+        }
+
+        public async Task<PlanDurationOptionDto> UpdateDurationOptionAsync(int durationOptionId, UpdatePlanDurationOptionDto updateDto)
+        {
+            try
+            {
+                var option = await _subscriptionPlanRepository.GetDurationOptionAsync(durationOptionId);
+                if (option == null)
+                    throw new KeyNotFoundException($"Duration option with ID {durationOptionId} not found");
+
+                option.DurationMonths = updateDto.DurationMonths;
+                option.Price = updateDto.Price;
+                option.DiscountPercentage = updateDto.DiscountPercentage;
+                option.DisplayLabel = updateDto.DisplayLabel;
+                option.IsPopular = updateDto.IsPopular;
+                option.SortOrder = updateDto.SortOrder;
+                option.IsActive = updateDto.IsActive;
+                option.UpdatedAt = DateTime.UtcNow;
+
+                await _subscriptionPlanRepository.UpdateDurationOptionAsync(option);
+                await _subscriptionPlanRepository.SaveChangesAsync();
+
+                return _mapper.Map<PlanDurationOptionDto>(option);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating duration option: {DurationOptionId}", durationOptionId);
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteDurationOptionAsync(int durationOptionId)
+        {
+            try
+            {
+                var option = await _subscriptionPlanRepository.GetDurationOptionAsync(durationOptionId);
+                if (option == null)
+                    return false;
+
+                option.IsActive = false;
+                option.UpdatedAt = DateTime.UtcNow;
+
+                await _subscriptionPlanRepository.UpdateDurationOptionAsync(option);
+                await _subscriptionPlanRepository.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting duration option: {DurationOptionId}", durationOptionId);
+                throw;
+            }
+        }
+
+        public async Task<PurchasePlanResponseDto> PurchasePlanAsync(int userId, PurchasePlanRequestDto purchaseRequest)
+        {
+            try
+            {
+                // Get plan with duration options
+                var plan = await _subscriptionPlanRepository.GetPlanWithDurationsAsync(purchaseRequest.PlanId, "en");
+                if (plan == null)
+                    throw new KeyNotFoundException($"Subscription plan with ID {purchaseRequest.PlanId} not found");
+
+                var durationOption = plan.DurationOptions.FirstOrDefault(d => d.Id == purchaseRequest.DurationOptionId);
+                if (durationOption == null)
+                    throw new KeyNotFoundException($"Duration option with ID {purchaseRequest.DurationOptionId} not found");
+
+                // Check if user already has active subscription for this plan
+                var existingSubscription = await _subscriptionPlanRepository.GetUserActiveSubscriptionAsync(userId, purchaseRequest.PlanId);
+                if (existingSubscription != null)
+                    throw new InvalidOperationException("You already have an active subscription for this plan");
+
+                // Create Razorpay order (this would integrate with payment service)
+                // For now, return a mock response
+                var response = new PurchasePlanResponseDto
+                {
+                    Success = true,
+                    Message = "Order created successfully",
+                    RazorpayOrderId = $"order_{Guid.NewGuid():N}",
+                    Amount = durationOption.EffectivePrice * 100, // Convert to paise
+                    Currency = purchaseRequest.Currency,
+                    Plan = _mapper.Map<PlanWithDurationOptionsDto>(plan),
+                    SelectedDuration = _mapper.Map<PlanDurationOptionDto>(durationOption)
+                };
+
+                _logger.LogInformation("Created purchase order for user {UserId}, plan {PlanId}, duration {DurationMonths}", 
+                    userId, purchaseRequest.PlanId, durationOption.DurationMonths);
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing plan purchase for user {UserId}", userId);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<PlanWithDurationOptionsDto>> GetAllPlansWithDurationsAsync(string? language = null, bool includeInactive = false)
+        {
+            try
+            {
+                var currentLanguage = language ?? "en";
+                var plans = await _subscriptionPlanRepository.GetActivePlansWithDurationsAsync(currentLanguage, null);
+                var planDtos = _mapper.Map<IEnumerable<PlanWithDurationOptionsDto>>(plans).ToList();
+
+                // Filter out inactive plans if not requested
+                if (!includeInactive)
+                {
+                    planDtos = planDtos.Where(plan => plan.IsActive).ToList();
+                }
+
+                return planDtos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all subscription plans with durations");
+                throw;
             }
         }
     }

@@ -270,7 +270,483 @@ namespace SubscriptionService.Infrastructure.Repositories
             return plans;
         }
 
-        private sealed class SubscriptionPlanDbRow
+        // New methods for duration options support
+        public async Task<SubscriptionPlan?> GetPlanWithDurationsAsync(int id, string languageCode = "en")
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                // Get subscription plan with translations
+                var planSql = @"
+                    SELECT 
+                        sp.Id,
+                        sp.Name,
+                        sp.Description,
+                        sp.Type,
+                        sp.Price,
+                        sp.Currency,
+                        sp.TestPapersCount,
+                        sp.Discount,
+                        sp.Duration,
+                        sp.DurationType,
+                        sp.ValidityDays,
+                        sp.ExamId,
+                        sp.ExamCategory,
+                        sp.Features,
+                        sp.ImageUrl,
+                        sp.IsPopular,
+                        sp.IsRecommended,
+                        sp.CardColorTheme,
+                        sp.SortOrder,
+                        sp.CreatedAt,
+                        sp.UpdatedAt,
+                        sp.IsActive,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Name
+                            ELSE sp.Name
+                        END AS LocalizedName,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Description
+                            ELSE sp.Description
+                        END AS LocalizedDescription,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Features
+                            ELSE sp.Features
+                        END AS LocalizedFeatures
+                    FROM SubscriptionPlans sp
+                    LEFT JOIN SubscriptionPlanTranslations spt ON sp.Id = spt.SubscriptionPlanId AND spt.LanguageCode = @LanguageCode
+                    WHERE sp.Id = @PlanId";
+
+                var planRow = await connection.QueryFirstOrDefaultAsync<SubscriptionPlanWithDurationsDbRow>(planSql, new { PlanId = id, LanguageCode = languageCode });
+                if (planRow == null) return null;
+
+                // Get duration options for this plan
+                var durationSql = @"
+                    SELECT 
+                        pdo.Id,
+                        pdo.SubscriptionPlanId,
+                        pdo.DurationMonths,
+                        pdo.Price,
+                        pdo.DiscountPercentage,
+                        pdo.DisplayLabel,
+                        pdo.IsPopular,
+                        pdo.SortOrder,
+                        pdo.IsActive,
+                        pdo.CreatedAt,
+                        pdo.UpdatedAt
+                    FROM PlanDurationOptions pdo
+                    WHERE pdo.SubscriptionPlanId = @PlanId AND pdo.IsActive = 1
+                    ORDER BY pdo.SortOrder";
+
+                var durationRows = await connection.QueryAsync<PlanDurationOptionDbRow>(durationSql, new { PlanId = id });
+                
+                var plan = MapToEntityWithDurations(planRow, durationRows);
+                return plan;
+            });
+        }
+
+        public async Task<IEnumerable<SubscriptionPlan>> GetActivePlansWithDurationsAsync(string languageCode = "en", int? examId = null)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                // Get active subscription plans with translations
+                var planSql = @"
+                    SELECT 
+                        sp.Id,
+                        sp.Name,
+                        sp.Description,
+                        sp.Type,
+                        sp.Price,
+                        sp.Currency,
+                        sp.TestPapersCount,
+                        sp.Discount,
+                        sp.Duration,
+                        sp.DurationType,
+                        sp.ValidityDays,
+                        sp.ExamId,
+                        sp.ExamCategory,
+                        sp.Features,
+                        sp.ImageUrl,
+                        sp.IsPopular,
+                        sp.IsRecommended,
+                        sp.CardColorTheme,
+                        sp.SortOrder,
+                        sp.CreatedAt,
+                        sp.UpdatedAt,
+                        sp.IsActive,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Name
+                            ELSE sp.Name
+                        END AS LocalizedName,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Description
+                            ELSE sp.Description
+                        END AS LocalizedDescription,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Features
+                            ELSE sp.Features
+                        END AS LocalizedFeatures
+                    FROM SubscriptionPlans sp
+                    LEFT JOIN SubscriptionPlanTranslations spt ON sp.Id = spt.SubscriptionPlanId AND spt.LanguageCode = @LanguageCode
+                    WHERE sp.IsActive = 1 
+                    AND (@ExamId IS NULL OR sp.ExamId = @ExamId OR sp.ExamId IS NULL)
+                    ORDER BY sp.SortOrder, sp.Name";
+
+                var planRows = await connection.QueryAsync<SubscriptionPlanWithDurationsDbRow>(planSql, new { LanguageCode = languageCode, ExamId = examId });
+
+                // Get duration options for these plans
+                var durationSql = @"
+                    SELECT 
+                        pdo.Id,
+                        pdo.SubscriptionPlanId,
+                        pdo.DurationMonths,
+                        pdo.Price,
+                        pdo.DiscountPercentage,
+                        pdo.DisplayLabel,
+                        pdo.IsPopular,
+                        pdo.SortOrder,
+                        pdo.IsActive,
+                        pdo.CreatedAt,
+                        pdo.UpdatedAt
+                    FROM PlanDurationOptions pdo
+                    INNER JOIN SubscriptionPlans sp ON pdo.SubscriptionPlanId = sp.Id
+                    WHERE sp.IsActive = 1 
+                    AND pdo.IsActive = 1
+                    AND (@ExamId IS NULL OR sp.ExamId = @ExamId OR sp.ExamId IS NULL)
+                    ORDER BY pdo.SubscriptionPlanId, pdo.SortOrder";
+
+                var durationRows = await connection.QueryAsync<PlanDurationOptionDbRow>(durationSql, new { ExamId = examId });
+                
+                var plans = new List<SubscriptionPlan>();
+                foreach (var planRow in planRows)
+                {
+                    var planDurations = durationRows.Where(d => d.SubscriptionPlanId == planRow.Id).ToList();
+                    var plan = MapToEntityWithDurations(planRow, planDurations);
+                    plans.Add(plan);
+                }
+                
+                return plans;
+            });
+        }
+
+        public async Task<PlanDurationOption?> GetDurationOptionAsync(int durationOptionId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT Id, SubscriptionPlanId, DurationMonths, Price, DiscountPercentage, 
+                           DisplayLabel, IsPopular, SortOrder, IsActive, CreatedAt, UpdatedAt
+                    FROM PlanDurationOptions 
+                    WHERE Id = @Id AND IsActive = 1";
+                
+                var row = await connection.QueryFirstOrDefaultAsync<PlanDurationOptionDbRow>(sql, new { Id = durationOptionId });
+                return row == null ? null : MapToDurationOption(row);
+            });
+        }
+
+        public async Task AddDurationOptionAsync(PlanDurationOption durationOption)
+        {
+            await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    INSERT INTO PlanDurationOptions (
+                        SubscriptionPlanId, DurationMonths, Price, DiscountPercentage, 
+                        DisplayLabel, IsPopular, SortOrder, IsActive, CreatedAt
+                    ) VALUES (
+                        @SubscriptionPlanId, @DurationMonths, @Price, @DiscountPercentage,
+                        @DisplayLabel, @IsPopular, @SortOrder, @IsActive, @CreatedAt
+                    )";
+                
+                await connection.ExecuteAsync(sql, durationOption);
+            });
+        }
+
+        public async Task UpdateDurationOptionAsync(PlanDurationOption durationOption)
+        {
+            await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    UPDATE PlanDurationOptions 
+                    SET DurationMonths = @DurationMonths,
+                        Price = @Price,
+                        DiscountPercentage = @DiscountPercentage,
+                        DisplayLabel = @DisplayLabel,
+                        IsPopular = @IsPopular,
+                        SortOrder = @SortOrder,
+                        IsActive = @IsActive,
+                        UpdatedAt = @UpdatedAt
+                    WHERE Id = @Id";
+                
+                await connection.ExecuteAsync(sql, durationOption);
+            });
+        }
+
+        public async Task<UserSubscription?> GetUserActiveSubscriptionAsync(int userId, int planId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT TOP 1 Id, UserId, SubscriptionPlanId, PaymentId, PurchasedDate, ValidTill,
+                           TestsUsed, TestsTotal, AmountPaid, Currency, DiscountApplied, Status,
+                           AutoRenewal, RenewalDate, CreatedAt, UpdatedAt, IsActive
+                    FROM UserSubscriptions 
+                    WHERE UserId = @UserId AND SubscriptionPlanId = @PlanId 
+                    AND Status = 'Active' AND ValidTill > GETDATE() AND IsActive = 1";
+                
+                var row = await connection.QueryFirstOrDefaultAsync<UserSubscriptionDbRow>(sql, new { UserId = userId, PlanId = planId });
+                return row == null ? null : MapToUserSubscription(row);
+            });
+        }
+
+        public async Task<IEnumerable<UserSubscription>> GetUserActiveSubscriptionsAsync(int userId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT Id, UserId, SubscriptionPlanId, PaymentId, PurchasedDate, ValidTill,
+                           TestsUsed, TestsTotal, AmountPaid, Currency, DiscountApplied, Status,
+                           AutoRenewal, RenewalDate, CreatedAt, UpdatedAt, IsActive
+                    FROM UserSubscriptions 
+                    WHERE UserId = @UserId 
+                    AND Status = 'Active' AND ValidTill > GETDATE() AND IsActive = 1";
+                
+                var rows = await connection.QueryAsync<UserSubscriptionDbRow>(sql, new { UserId = userId });
+                return rows.Select(MapToUserSubscription);
+            });
+        }
+
+        public async Task AddTranslationAsync(SubscriptionPlanTranslation translation)
+        {
+            await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    INSERT INTO SubscriptionPlanTranslations (
+                        SubscriptionPlanId, LanguageCode, Name, Description, Features, CreatedAt
+                    ) VALUES (
+                        @SubscriptionPlanId, @LanguageCode, @Name, @Description, @Features, @CreatedAt
+                    )";
+                
+                await connection.ExecuteAsync(sql, translation);
+            });
+        }
+
+        public async Task<SubscriptionPlan> CreatePlanWithDurationsAsync(SubscriptionPlan plan, IEnumerable<PlanDurationOption> durationOptions, IEnumerable<SubscriptionPlanTranslation>? translations = null)
+        {
+            return await WithTransactionAsync(async (connection, transaction) =>
+            {
+                // Create the subscription plan
+                var planSql = @"
+                    INSERT INTO SubscriptionPlans (
+                        Name, Description, Price, Duration, ValidityDays, Type, ExamCategory, ExamId, Features,
+                        IsActive, SortOrder, CreatedAt, UpdatedAt
+                    ) VALUES (
+                        @Name, @Description, @Price, @Duration, @ValidityDays, @Type, @ExamCategory, @ExamId, @Features,
+                        @IsActive, @SortOrder, @CreatedAt, @UpdatedAt
+                    );
+                    
+                    SELECT CAST(SCOPE_IDENTITY() as int) as Id, 
+                           Name, Description, Price, Duration, ValidityDays, Type, ExamCategory, ExamId, Features,
+                           IsActive, SortOrder, CreatedAt, UpdatedAt, Currency, TestPapersCount, Discount,
+                           DurationType, ImageUrl, IsPopular, IsRecommended, CardColorTheme
+                    FROM SubscriptionPlans WHERE Id = CAST(SCOPE_IDENTITY() as int);";
+
+                var planParameters = new
+                {
+                    plan.Name,
+                    plan.Description,
+                    plan.Price,
+                    plan.Duration,
+                    plan.ValidityDays,
+                    plan.Type,
+                    plan.ExamCategory,
+                    plan.ExamId,
+                    Features = plan.Features != null ? string.Join(",", plan.Features) : null,
+                    plan.IsActive,
+                    plan.SortOrder,
+                    plan.CreatedAt,
+                    plan.UpdatedAt
+                };
+
+                var createdPlan = await connection.QueryFirstOrDefaultAsync<SubscriptionPlanDbRow>(planSql, planParameters, transaction);
+                if (createdPlan == null)
+                    throw new InvalidOperationException("Failed to create subscription plan");
+
+                var mappedPlan = MapToEntity(createdPlan);
+
+                // Add duration options
+                foreach (var option in durationOptions)
+                {
+                    var durationOption = new PlanDurationOption
+                    {
+                        SubscriptionPlanId = mappedPlan.Id,
+                        DurationMonths = option.DurationMonths,
+                        Price = option.Price,
+                        DiscountPercentage = option.DiscountPercentage,
+                        DisplayLabel = option.DisplayLabel,
+                        IsPopular = option.IsPopular,
+                        SortOrder = option.SortOrder,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    var durationSql = @"
+                        INSERT INTO PlanDurationOptions (
+                            SubscriptionPlanId, DurationMonths, Price, DiscountPercentage, 
+                            DisplayLabel, IsPopular, SortOrder, IsActive, CreatedAt
+                        ) VALUES (
+                            @SubscriptionPlanId, @DurationMonths, @Price, @DiscountPercentage,
+                            @DisplayLabel, @IsPopular, @SortOrder, @IsActive, @CreatedAt
+                        )";
+                    
+                    await connection.ExecuteAsync(durationSql, durationOption, transaction);
+                }
+
+                // Add translations if provided
+                if (translations != null)
+                {
+                    foreach (var translation in translations)
+                    {
+                        var translationEntity = new SubscriptionPlanTranslation
+                        {
+                            SubscriptionPlanId = mappedPlan.Id,
+                            LanguageCode = translation.LanguageCode,
+                            Name = translation.Name,
+                            Description = translation.Description,
+                            Features = translation.Features
+                        };
+
+                        var translationSql = @"
+                            INSERT INTO SubscriptionPlanTranslations (
+                                SubscriptionPlanId, LanguageCode, Name, Description, Features, CreatedAt
+                            ) VALUES (
+                                @SubscriptionPlanId, @LanguageCode, @Name, @Description, @Features, @CreatedAt
+                            )";
+                        
+                        await connection.ExecuteAsync(translationSql, translationEntity, transaction);
+                    }
+                }
+
+                return mappedPlan;
+            });
+        }
+
+        private static SubscriptionPlan MapToEntityWithDurations(SubscriptionPlanWithDurationsDbRow row, IEnumerable<PlanDurationOptionDbRow> durationRows)
+        {
+            var plan = new SubscriptionPlan
+            {
+                Id = row.Id,
+                Name = row.Name,
+                Description = row.Description,
+                Type = row.Type,
+                Price = row.Price,
+                Currency = row.Currency,
+                TestPapersCount = row.TestPapersCount,
+                Discount = row.Discount,
+                Duration = row.Duration,
+                DurationType = row.DurationType,
+                ValidityDays = row.ValidityDays,
+                ExamId = row.ExamId,
+                ExamCategory = row.ExamCategory,
+                Features = ParseFeatures(row.Features),
+                ImageUrl = row.ImageUrl,
+                IsPopular = row.IsPopular,
+                IsRecommended = row.IsRecommended,
+                CardColorTheme = row.CardColorTheme,
+                SortOrder = row.SortOrder,
+                IsActive = row.IsActive,
+                CreatedAt = row.CreatedAt,
+                UpdatedAt = row.UpdatedAt,
+                DurationOptions = durationRows.Select(MapToDurationOption).ToList()
+            };
+
+            return plan;
+        }
+
+        private static PlanDurationOption MapToDurationOption(PlanDurationOptionDbRow row)
+        {
+            return new PlanDurationOption
+            {
+                Id = row.Id,
+                SubscriptionPlanId = row.SubscriptionPlanId,
+                DurationMonths = row.DurationMonths,
+                Price = row.Price,
+                DiscountPercentage = row.DiscountPercentage,
+                DisplayLabel = row.DisplayLabel,
+                IsPopular = row.IsPopular,
+                SortOrder = row.SortOrder,
+                IsActive = row.IsActive,
+                CreatedAt = row.CreatedAt,
+                UpdatedAt = row.UpdatedAt
+            };
+        }
+
+        private static UserSubscription MapToUserSubscription(UserSubscriptionDbRow row)
+        {
+            return new UserSubscription
+            {
+                Id = row.Id,
+                UserId = row.UserId,
+                SubscriptionPlanId = row.SubscriptionPlanId,
+                PaymentId = row.PaymentId,
+                PurchasedDate = row.PurchasedDate,
+                ValidTill = row.ValidTill,
+                TestsUsed = row.TestsUsed,
+                TestsTotal = row.TestsTotal,
+                AmountPaid = row.AmountPaid,
+                Currency = row.Currency,
+                DiscountApplied = row.DiscountApplied,
+                Status = row.Status,
+                AutoRenewal = row.AutoRenewal,
+                RenewalDate = row.RenewalDate,
+                CreatedAt = row.CreatedAt,
+                UpdatedAt = row.UpdatedAt,
+                IsActive = row.IsActive
+            };
+        }
+
+        private sealed class SubscriptionPlanWithDurationsDbRow : SubscriptionPlanDbRow
+        {
+            public string? LocalizedName { get; set; }
+            public string? LocalizedDescription { get; set; }
+            public string? LocalizedFeatures { get; set; }
+        }
+
+        private sealed class PlanDurationOptionDbRow
+        {
+            public int Id { get; set; }
+            public int SubscriptionPlanId { get; set; }
+            public int DurationMonths { get; set; }
+            public decimal Price { get; set; }
+            public decimal DiscountPercentage { get; set; }
+            public string DisplayLabel { get; set; } = string.Empty;
+            public bool IsPopular { get; set; }
+            public int SortOrder { get; set; }
+            public bool IsActive { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime? UpdatedAt { get; set; }
+        }
+
+        private sealed class UserSubscriptionDbRow
+        {
+            public int Id { get; set; }
+            public int UserId { get; set; }
+            public int SubscriptionPlanId { get; set; }
+            public int? PaymentId { get; set; }
+            public DateTime PurchasedDate { get; set; }
+            public DateTime ValidTill { get; set; }
+            public int TestsUsed { get; set; }
+            public int TestsTotal { get; set; }
+            public decimal AmountPaid { get; set; }
+            public string Currency { get; set; } = "INR";
+            public decimal DiscountApplied { get; set; }
+            public string Status { get; set; } = string.Empty;
+            public bool AutoRenewal { get; set; }
+            public DateTime? RenewalDate { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime? UpdatedAt { get; set; }
+            public bool IsActive { get; set; }
+        }
+
+        private class SubscriptionPlanDbRow
         {
             public int Id { get; set; }
             public string Name { get; set; } = string.Empty;

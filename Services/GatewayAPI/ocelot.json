@@ -52,22 +52,23 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 56924
+          "Port": 5000
         },
         {
           "Host": "192.168.1.14",
-          "Port": 56923
+          "Port": 5000
         },
         {
           "Host": "192.168.1.23",
-          "Port": 56923
+          "Port": 5000
         }
       ],
       "UpstreamPathTemplate": "/api/admin/exams/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
       "UpstreamHeaderTransform": {
         "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
-      }
+      },
+      "Priority": 100
     },
     {
       "DownstreamPathTemplate": "/api/users/{everything}",
@@ -751,6 +752,63 @@
         "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
       }
     },
+    {
+      "DownstreamPathTemplate": "/api/questions/quiz/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 56922
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 56922
+        }
+      ],
+      "UpstreamPathTemplate": "/api/questions/quiz/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "UpstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/questions/subjects",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 56922
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 56922
+        }
+      ],
+      "UpstreamPathTemplate": "/api/questions/subjects",
+      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/questions/exams",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 56922
+        },
+        {
+          "Host": "192.168.1.14",
+          "Port": 56922
+        }
+      ],
+      "UpstreamPathTemplate": "/api/questions/exams",
+      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHeaderTransform": {
+        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
+      }
+    },
         {
       "DownstreamPathTemplate": "/api/public/subscription-plans/{everything}",
       "DownstreamScheme": "http",
@@ -835,6 +893,20 @@
         { "Host": "192.168.1.23", "Port": 56925 }
       ],
       "UpstreamPathTemplate": "/api/user/subscriptions/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/plans/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 56925 },
+        { "Host": "192.168.1.14", "Port": 56925 },
+        { "Host": "192.168.1.21", "Port": 56925 },
+        { "Host": "192.168.1.23", "Port": 56925 }
+      ],
+      "UpstreamPathTemplate": "/api/user/plans/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
       "Priority": 100

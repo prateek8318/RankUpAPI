@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      Some local SDK installs are missing workload locator SDK folders, which causes
+      plain ASP.NET Core projects to fail during target framework discovery.
+      This solution does not require mobile/desktop workloads for QuestionService builds,
+      so we disable workload resolution at the repo level for stable local builds.
+    -->
+    <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
+  </PropertyGroup>
+</Project>

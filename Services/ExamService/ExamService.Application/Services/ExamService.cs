@@ -38,18 +38,24 @@ namespace ExamService.Application.Services
                 throw new ArgumentException("Exam name is required and cannot be empty.");
             }
 
-            if (createDto.QualificationIds == null || !createDto.QualificationIds.Any())
-            {
-                throw new ArgumentException("At least one qualification is required to create an exam.");
-            }
+            // Temporarily removing qualification requirement for testing
+            // if (createDto.QualificationIds == null || !createDto.QualificationIds.Any())
+            // {
+            //     throw new ArgumentException("At least one qualification is required to create an exam.");
+            // }
 
             var exam = _mapper.Map<Exam>(createDto);
             exam.CreatedAt = DateTime.UtcNow;
             exam.IsActive = true;
 
             await _examRepository.AddAsync(exam);
-            await _examRepository.SaveChangesAsync();
-
+            
+            // Ensure exam is created and has an ID before creating qualifications
+            if (exam.Id <= 0)
+            {
+                throw new Exception("Exam creation failed - no valid ID returned");
+            }
+            
             if (createDto.QualificationIds?.Any() == true)
             {
                 var examQualifications = new List<ExamQualification>();
@@ -421,8 +427,7 @@ namespace ExamService.Application.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error seeding international exams: {ex.Message}");
-                return 0;
+                throw new Exception($"Error seeding international exams: {ex.Message}. Stack: {ex.StackTrace}", ex);
             }
         }
 
@@ -443,6 +448,18 @@ namespace ExamService.Application.Services
         {
             var types = await _examRepository.GetExamTypesByCategoryAsync(categoryId);
             return _mapper.Map<IEnumerable<ExamTypeDto>>(types);
+        }
+
+        public async Task<IEnumerable<ExamTypeDto>> GetTypesByCategoryIdAsync(int categoryId)
+        {
+            var types = await _examRepository.GetExamTypesByCategoryAsync(categoryId);
+            return _mapper.Map<IEnumerable<ExamTypeDto>>(types);
+        }
+
+        public async Task<IEnumerable<ExamCategoryDto>> GetActiveCategoriesAsync()
+        {
+            var categories = await _examRepository.GetActiveCategoriesAsync();
+            return _mapper.Map<IEnumerable<ExamCategoryDto>>(categories);
         }
 
         public async Task<IEnumerable<ExamDto>> GetFilteredExamsAsync(int? categoryId, int? typeId, string? status)

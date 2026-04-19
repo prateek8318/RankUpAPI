@@ -10,6 +10,7 @@ namespace SubscriptionService.Application.Interfaces
         Task<bool> CancelSubscriptionAsync(CancelSubscriptionDto cancelSubscriptionDto);
         Task<UserSubscriptionDto?> GetSubscriptionByIdAsync(int id);
         Task<UserSubscriptionDto?> GetMySubscriptionAsync(int userId);
+        Task<UserSubscriptionDto?> GetActiveSubscriptionForUserAsync(int userId);
         Task<SubscriptionHistoryDto> GetUserSubscriptionHistoryAsync(int userId);
         Task<IEnumerable<UserSubscriptionDto>> GetAllUserSubscriptionsAsync();
         Task<IEnumerable<UserSubscriptionDto>> GetActiveSubscriptionsAsync();

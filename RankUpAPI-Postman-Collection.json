@@ -1,1012 +1,2367 @@
 {
-	"info": {
-		"_postman_id": "rankup-api-collection",
-		"name": "RankUpAPI - Complete Microservices Collection",
-		"description": "Comprehensive Postman collection for RankUpAPI microservices with all CRUD operations, admin and user endpoints",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "🔐 Authentication",
-			"itemcls": [
-				{
-					"name": "Admin Login",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"admin@rankup.com\",\n  \"password\": \"Admin@123\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/admin/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "admin", "auth", "login"]
-						}
-					},
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    const response = pm.response.json();",
-									"    if (response.data && response.data.token) {",
-									"        pm.collectionVariables.set('adminToken', response.data.token);",
-									"        pm.collectionVariables.set('adminId', response.data.adminId);",
-									"    }",
-									"}"
-								]
-							}
-						}
-					]
-				},
-				{
-					"name": "Verify OTP",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"admin@rankup.com\",\n  \"otp\": \"123456\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/admin/auth/verify-otp",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "admin", "auth", "verify-otp"]
-						}
-					}
-				},
-				{
-					"name": "Logout",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/admin/auth/logout",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "admin", "auth", "logout"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "👥 Admin Service",
-			"item": [
-				{
-					"name": "User Management",
-					"item": [
-						{
-							"name": "Get All Users",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/admin/users?page=1&pageSize=50",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "admin", "users"],
-									"query": [
-										{
-											"key": "page",
-											"value": "1"
-										},
-										{
-											"key": "pageSize",
-											"value": "50"
-										}
-									]
-								}
-							}
-						},
-						{
-							"name": "Get User by ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "admin", "users", "{{userId}}"]
-								}
-							}
-						},
-						{
-							"name": "Update User",
-							"request": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\",\n  \"email\": \"updated@example.com\",\n  \"phoneNumber\": \"+1234567890\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "admin", "users", "{{userId}}"]
-								}
-							}
-						},
-						{
-							"name": "Delete User",
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "admin", "users", "{{userId}}"]
-								}
-							}
-						},
-						{
-							"name": "Enable/Disable User",
-							"request": {
-								"method": "PATCH",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "true"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/admin/users/{{userId}}/enable-disable",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "admin", "users", "{{userId}}", "enable-disable"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Admin Profile",
-					"item": [
-						{
-							"name": "Get All Admins",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/admin/auth",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "admin", "auth"]
-								}
-							}
-						},
-						{
-							"name": "Get Admin Profile",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/admin/auth/profile/{{adminId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "admin", "auth", "profile", "{{adminId}}"]
-								}
-							}
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "📚 Master Service",
-			"item": [
-				{
-					"name": "Categories",
-					"item": [
-						{
-							"name": "Get All Categories",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/categories?language=en&includeInactive=false",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories"],
-									"query": [
-										{
-											"key": "language",
-											"value": "en"
-										},
-										{
-											"key": "includeInactive",
-											"value": "false"
-										}
-									]
-								}
-							}
-						},
-						{
-							"name": "Get Category by ID",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/{{categoryId}}?language=en",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "{{categoryId}}"],
-									"query": [
-										{
-											"key": "language",
-											"value": "en"
-										}
-									]
-								}
-							}
-						},
-						{
-							"name": "Create Category",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"nameEn\": \"Science\",\n  \"nameHi\": \"विज्ञान\",\n  \"descriptionEn\": \"Science category\",\n  \"descriptionHi\": \"विज्ञान श्रेणी\",\n  \"categoryId\": 1,\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/categories",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories"]
-								}
-							}
-						},
-						{
-							"name": "Update Category",
-							"request": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"id\": {{categoryId}},\n  \"nameEn\": \"Updated Science\",\n  \"nameHi\": \"अपडेटेड विज्ञान\",\n  \"descriptionEn\": \"Updated science category\",\n  \"descriptionHi\": \"अपडेटेड विज्ञान श्रेणी\",\n  \"categoryId\": 1,\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "{{categoryId}}"]
-								}
-							}
-						},
-						{
-							"name": "Delete Category",
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "{{categoryId}}"]
-								}
-							}
-						},
-						{
-							"name": "Update Category Status",
-							"request": {
-								"method": "PATCH",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "false"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/{{categoryId}}/status",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "{{categoryId}}", "status"]
-								}
-							}
-						},
-						{
-							"name": "Get All Categories (Admin)",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/admin?language=en",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "admin"],
-									"query": [
-										{
-											"key": "language",
-											"value": "en"
-										}
-									]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Qualifications",
-					"item": [
-						{
-							"name": "Get Qualifications",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/qualifications?language=en",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "qualifications"],
-									"query": [
-										{
-											"key": "language",
-											"value": "en"
-										}
-									]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Exam Categories",
-					"item": [
-						{
-							"name": "Get Exam Categories",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/exam-categories?language=en",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "exam-categories"],
-									"query": [
-										{
-											"key": "language",
-											"value": "en"
-										}
-									]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Streams",
-					"item": [
-						{
-							"name": "Get Streams",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/streams?language=en",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "streams"],
-									"query": [
-										{
-											"key": "language",
-											"value": "en"
-										}
-									]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "All Categories Data",
-					"item": [
-						{
-							"name": "Get All Categories (Optimized)",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/all-optimized?language=en",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "all-optimized"],
-									"query": [
-										{
-											"key": "language",
-											"value": "en"
-										}
-									]
-								}
-							}
-						},
-						{
-							"name": "Get All Categories",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/categories/all?language=en",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "categories", "all"],
-									"query": [
-										{
-											"key": "language",
-											"value": "en"
-										}
-									]
-								}
-							}
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "❓ Question Service",
-			"item": [
-				{
-					"name": "Question CRUD",
-					"item": [
-						{
-							"name": "Create Question",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"questionTextEn\": \"What is the capital of France?\",\n  \"questionTextHi\": \"फ्रांस की राजधानी क्या है?\",\n  \"option1En\": \"London\",\n  \"option1Hi\": \"लंदन\",\n  \"option2En\": \"Berlin\",\n  \"option2Hi\": \"बर्लिन\",\n  \"option3En\": \"Paris\",\n  \"option3Hi\": \"पेरिस\",\n  \"option4En\": \"Madrid\",\n  \"option4Hi\": \"मैड्रिड\",\n  \"correctOption\": 3,\n  \"explanationEn\": \"Paris is the capital of France\",\n  \"explanationHi\": \"पेरिस फ्रांस की राजधानी है\",\n  \"difficulty\": \"Medium\",\n  \"marks\": 1,\n  \"examId\": 1,\n  \"subjectId\": 1,\n  \"topicId\": 1,\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/questions",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions"]
-								}
-							}
-						},
-						{
-							"name": "Get All Questions",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions"]
-								}
-							}
-						},
-						{
-							"name": "Get Question by ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/{{questionId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "{{questionId}}"]
-								}
-							}
-						},
-						{
-							"name": "Get Paginated Questions",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/paged?page=1&pageSize=10&examId=1&subjectId=1&difficulty=Medium",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "paged"],
-									"query": [
-										{
-											"key": "page",
-											"value": "1"
-										},
-										{
-											"key": "pageSize",
-											"value": "10"
-										},
-										{
-											"key": "examId",
-											"value": "1"
-										},
-										{
-											"key": "subjectId",
-											"value": "1"
-										},
-										{
-											"key": "difficulty",
-											"value": "Medium"
-										}
-									]
-								}
-							}
-						},
-						{
-							"name": "Update Question",
-							"request": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"questionTextEn\": \"What is the capital of France? (Updated)\",\n  \"questionTextHi\": \"फ्रांस की राजधानी क्या है? (अपडेटेड)\",\n  \"option1En\": \"London\",\n  \"option1Hi\": \"लंदन\",\n  \"option2En\": \"Berlin\",\n  \"option2Hi\": \"बर्लिन\",\n  \"option3En\": \"Paris\",\n  \"option3Hi\": \"पेरिस\",\n  \"option4En\": \"Madrid\",\n  \"option4Hi\": \"मैड्रिड\",\n  \"correctOption\": 3,\n  \"explanationEn\": \"Paris is the capital of France (Updated)\",\n  \"explanationHi\": \"पेरिस फ्रांस की राजधानी है (अपडेटेड)\",\n  \"difficulty\": \"Medium\",\n  \"marks\": 1,\n  \"examId\": 1,\n  \"subjectId\": 1,\n  \"topicId\": 1,\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/{{questionId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "{{questionId}}"]
-								}
-							}
-						},
-						{
-							"name": "Delete Question",
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/{{questionId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "{{questionId}}"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Question Filters",
-					"item": [
-						{
-							"name": "Get Questions by Exam ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/exam/{{examId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "exam", "{{examId}}"]
-								}
-							}
-						},
-						{
-							"name": "Get Questions by Subject ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/subject/{{subjectId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "subject", "{{subjectId}}"]
-								}
-							}
-						},
-						{
-							"name": "Get Questions by Topic ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/topic/{{topicId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "topic", "{{topicId}}"]
-								}
-							}
-						},
-						{
-							"name": "Get Question by Transaction ID",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/transaction/{{transactionId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "transaction", "{{transactionId}}"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Question Publishing",
-					"item": [
-						{
-							"name": "Publish Question",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"questionId\": {{questionId}},\n  \"reviewedBy\": {{adminId}}\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/publish",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "publish"]
-								}
-							}
-						},
-						{
-							"name": "Unpublish Question",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"questionId\": {{questionId}},\n  \"reviewedBy\": {{adminId}}\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/unpublish",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "unpublish"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Statistics",
-					"item": [
-						{
-							"name": "Get Question Statistics",
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{adminToken}}"
-									}
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/questions/statistics",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "questions", "statistics"]
-								}
-							}
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "📝 Exam Service",
-			"item": [
-				{
-					"name": "Exam Management",
-					"item": [
-						{
-							"name": "Get All Exams",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/exam",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "exam"]
-								}
-							}
-						},
-						{
-							"name": "Get Exam by ID",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/exam/{{examId}}",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "exam", "{{examId}}"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Seed Data",
-					"item": [
-						{
-							"name": "Seed Exam Data",
-							"request": {
-								"method": "POST",
-								"url": {
-									"raw": "{{baseUrl}}/api/seed/exams",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "seed", "exams"]
-								}
-							}
-						}
-					]
-				}
-			]
-		},
-		{
-			"name": "🏠 Home Dashboard Service",
-			"item": [
-				{
-					"name": "Dashboard",
-					"item": [
-						{
-							"name": "Get Dashboard Data",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/dashboard",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "dashboard"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Home",
-					"item": [
-						{
-							"name": "Get Home Data",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/home",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "home"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Subjects",
-					"item": [
-						{
-							"name": "Get Subjects",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/subject",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "subject"]
-								}
-							}
-						}
-					]
-				},
-				{
-					"name": "Chapters",
-					"item": [
-						{
-							"name": "Get Chapters",
-							"request": {
-								"method": "GET",
-								"url": {
-									"raw": "{{baseUrl}}/api/chapter",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "chapter"]
-								}
-							}
-						}
-					]
-				}
-			]
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					"// Auto-refresh token if expired",
-					"if (pm.collectionVariables.get('adminToken')) {",
-					"    try {",
-					"        const token = pm.collectionVariables.get('adminToken');",
-					"        const payload = JSON.parse(atob(token.split('.')[1]));",
-					"        const now = Math.floor(Date.now() / 1000);",
-					"        ",
-					"        if (payload.exp < now) {",
-					"            console.log('Token expired, please login again');",
-					"            pm.collectionVariables.unset('adminToken');",
-					"        }",
-					"    } catch (e) {",
-					"        console.log('Invalid token format');",
-					"    }",
-					"}"
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:5087",
-			"type": "string"
-		},
-		{
-			"key": "adminToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "adminId",
-			"value": "1",
-			"type": "string"
-		},
-		{
-			"key": "userId",
-			"value": "1",
-			"type": "string"
-		},
-		{
-			"key": "categoryId",
-			"value": "1",
-			"type": "string"
-		},
-		{
-			"key": "questionId",
-			"value": "1",
-			"type": "string"
-		},
-		{
-			"key": "examId",
-			"value": "1",
-			"type": "string"
-		},
-		{
-			"key": "subjectId",
-			"value": "1",
-			"type": "string"
-		},
-		{
-			"key": "topicId",
-			"value": "1",
-			"type": "string"
-		},
-		{
-			"key": "transactionId",
-			"value": "TXN123456",
-			"type": "string"
-		}
-	]
+  "info": {
+    "name": "RankUpAPI SubscriptionService",
+    "_postman_id": "97b7dada-0e22-489f-a038-474168293299",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "/api/admin/AdminPayments/statistics",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/statistics"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/{id}",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/user/{userId}",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/user/{userId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/user/{userId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/refund",
+      "item": [
+        {
+          "name": "POST /api/admin/AdminPayments/refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/refund"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/update-status",
+      "item": [
+        {
+          "name": "PUT /api/admin/AdminPayments/update-status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/update-status"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/failed",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/failed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/failed"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/pending",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/pending",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/pending"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/successful",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/successful",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/successful"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/refunded",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/refunded",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/refunded"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/date-range",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/date-range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/date-range"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/export",
+      "item": [
+        {
+          "name": "POST /api/admin/AdminPayments/export",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/export"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminPayments/analytics",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminPayments/analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminPayments/analytics"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/statistics",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminSubscription/statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/statistics"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/payments",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminSubscription/payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/payments"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/user-subscriptions",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminSubscription/user-subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/user-subscriptions"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/plans",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminSubscription/plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/admin/AdminSubscription/plans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/plans/{id}",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminSubscription/plans/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/admin/AdminSubscription/plans/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/admin/AdminSubscription/plans/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/plans/toggle-status",
+      "item": [
+        {
+          "name": "PUT /api/admin/AdminSubscription/plans/toggle-status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans/toggle-status"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/plans/update-popularity",
+      "item": [
+        {
+          "name": "PUT /api/admin/AdminSubscription/plans/update-popularity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans/update-popularity"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/plans/bulk-update",
+      "item": [
+        {
+          "name": "PUT /api/admin/AdminSubscription/plans/bulk-update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans/bulk-update"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/user-subscriptions/{id}",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminSubscription/user-subscriptions/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/user-subscriptions/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/user-subscriptions/cancel",
+      "item": [
+        {
+          "name": "POST /api/admin/AdminSubscription/user-subscriptions/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/user-subscriptions/cancel"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/user-subscriptions/extend",
+      "item": [
+        {
+          "name": "POST /api/admin/AdminSubscription/user-subscriptions/extend",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/user-subscriptions/extend"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminWallet/statistics",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminWallet/statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminWallet/statistics"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminWallet/users/{userId}",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminWallet/users/{userId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminWallet/users/{userId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminWallet/users/{userId}/transactions",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminWallet/users/{userId}/transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminWallet/users/{userId}/transactions"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminWallet/block",
+      "item": [
+        {
+          "name": "POST /api/admin/AdminWallet/block",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminWallet/block"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminWallet/users/{userId}/unblock",
+      "item": [
+        {
+          "name": "POST /api/admin/AdminWallet/users/{userId}/unblock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminWallet/users/{userId}/unblock"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminWallet/transactions/{transactionId}",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminWallet/transactions/{transactionId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminWallet/transactions/{transactionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminWallet/transactions/by-provider/{providerTransactionId}",
+      "item": [
+        {
+          "name": "GET /api/admin/AdminWallet/transactions/by-provider/{providerTransactionId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminWallet/transactions/by-provider/{providerTransactionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/Health",
+      "item": [
+        {
+          "name": "GET /api/Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Health"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Invoices/download/{subscriptionId}",
+      "item": [
+        {
+          "name": "GET /api/user/Invoices/download/{subscriptionId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Invoices/download/{subscriptionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Invoices/history",
+      "item": [
+        {
+          "name": "GET /api/user/Invoices/history",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Invoices/history"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Payments/create-order",
+      "item": [
+        {
+          "name": "POST /api/user/Payments/create-order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Payments/create-order"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/Payments/create-order",
+      "item": [
+        {
+          "name": "POST /api/Payments/create-order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payments/create-order"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Payments/initiate",
+      "item": [
+        {
+          "name": "POST /api/user/Payments/initiate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Payments/initiate"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/Payments/initiate",
+      "item": [
+        {
+          "name": "POST /api/Payments/initiate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payments/initiate"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Payments/verify",
+      "item": [
+        {
+          "name": "POST /api/user/Payments/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Payments/verify"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/Payments/verify",
+      "item": [
+        {
+          "name": "POST /api/Payments/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payments/verify"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Payments/refund",
+      "item": [
+        {
+          "name": "POST /api/user/Payments/refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Payments/refund"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/Payments/refund",
+      "item": [
+        {
+          "name": "POST /api/Payments/refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payments/refund"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Payments/history",
+      "item": [
+        {
+          "name": "GET /api/user/Payments/history",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Payments/history"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/Payments/history",
+      "item": [
+        {
+          "name": "GET /api/Payments/history",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/Payments/history"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/public/subscription-plans/active",
+      "item": [
+        {
+          "name": "GET /api/public/subscription-plans/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/subscription-plans/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/public/subscription-plans/by-exam/{examCategory}",
+      "item": [
+        {
+          "name": "GET /api/public/subscription-plans/by-exam/{examCategory}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/subscription-plans/by-exam/{examCategory}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/public/subscription-plans/{id}",
+      "item": [
+        {
+          "name": "GET /api/public/subscription-plans/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/subscription-plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/admin/subscription-plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/{id}",
+      "item": [
+        {
+          "name": "PUT /api/admin/subscription-plans/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/admin/subscription-plans/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/admin/subscription-plans/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/{id}/with-durations",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/{id}/with-durations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}/with-durations"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/paged",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/paged",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/paged"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/by-exam-id/{examId}",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/by-exam-id/{examId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/by-exam-id/{examId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/by-exam/{examCategory}",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/by-exam/{examCategory}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/by-exam/{examCategory}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/active",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/stats",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/stats"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/with-durations",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans/with-durations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/with-durations"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/admin/subscription-plans/with-durations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/with-durations"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/create-with-durations",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans/create-with-durations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/create-with-durations"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/{planId}/duration-options",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans/{planId}/duration-options",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{planId}/duration-options"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/duration-options/{durationOptionId}",
+      "item": [
+        {
+          "name": "PUT /api/admin/subscription-plans/duration-options/{durationOptionId}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/duration-options/{durationOptionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/admin/subscription-plans/duration-options/{durationOptionId}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/duration-options/{durationOptionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/all-plans-with-durations",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/all-plans-with-durations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/all-plans-with-durations"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/upload-image",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans/upload-image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/upload-image"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Subscriptions/my-subscription",
+      "item": [
+        {
+          "name": "GET /api/user/Subscriptions/my-subscription",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Subscriptions/my-subscription"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Subscriptions/history",
+      "item": [
+        {
+          "name": "GET /api/user/Subscriptions/history",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Subscriptions/history"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Subscriptions",
+      "item": [
+        {
+          "name": "POST /api/user/Subscriptions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Subscriptions"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Subscriptions/activate",
+      "item": [
+        {
+          "name": "POST /api/user/Subscriptions/activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Subscriptions/activate"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Subscriptions/cancel",
+      "item": [
+        {
+          "name": "POST /api/user/Subscriptions/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Subscriptions/cancel"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Subscriptions/plans/active",
+      "item": [
+        {
+          "name": "GET /api/user/Subscriptions/plans/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Subscriptions/plans/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/system/SubscriptionValidation/validate",
+      "item": [
+        {
+          "name": "POST /api/system/SubscriptionValidation/validate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/system/SubscriptionValidation/validate"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/system/SubscriptionValidation/check-active/{userId}",
+      "item": [
+        {
+          "name": "GET /api/system/SubscriptionValidation/check-active/{userId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/system/SubscriptionValidation/check-active/{userId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/system/SubscriptionValidation/validate-for-service",
+      "item": [
+        {
+          "name": "GET /api/system/SubscriptionValidation/validate-for-service",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/system/SubscriptionValidation/validate-for-service"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/system/SubscriptionValidation/check-demo-eligibility",
+      "item": [
+        {
+          "name": "POST /api/system/SubscriptionValidation/check-demo-eligibility",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/system/SubscriptionValidation/check-demo-eligibility"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/system/SubscriptionValidation/log-demo-access",
+      "item": [
+        {
+          "name": "POST /api/system/SubscriptionValidation/log-demo-access",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/system/SubscriptionValidation/log-demo-access"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/plans/by-exam/{examCategory}",
+      "item": [
+        {
+          "name": "GET /api/user/plans/by-exam/{examCategory}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/plans/by-exam/{examCategory}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/plans/active",
+      "item": [
+        {
+          "name": "GET /api/user/plans/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/plans/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/plans/active/available",
+      "item": [
+        {
+          "name": "GET /api/user/plans/active/available",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/plans/active/available"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/plans/{id}",
+      "item": [
+        {
+          "name": "GET /api/user/plans/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/plans/{id}/with-durations",
+      "item": [
+        {
+          "name": "GET /api/user/plans/{id}/with-durations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/plans/{id}/with-durations"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/plans/with-durations",
+      "item": [
+        {
+          "name": "GET /api/user/plans/with-durations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/plans/with-durations"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/plans/purchase",
+      "item": [
+        {
+          "name": "POST /api/user/plans/purchase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/plans/purchase"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/UserSubscriptions",
+      "item": [
+        {
+          "name": "GET /api/admin/UserSubscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/UserSubscriptions"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/UserSubscriptions/user/{userId}",
+      "item": [
+        {
+          "name": "GET /api/admin/UserSubscriptions/user/{userId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/user/{userId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/UserSubscriptions/user/{userId}/active",
+      "item": [
+        {
+          "name": "GET /api/admin/UserSubscriptions/user/{userId}/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/user/{userId}/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/UserSubscriptions/renew",
+      "item": [
+        {
+          "name": "POST /api/admin/UserSubscriptions/renew",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/renew"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/UserSubscriptions/cancel",
+      "item": [
+        {
+          "name": "POST /api/admin/UserSubscriptions/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/cancel"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/UserSubscriptions/active",
+      "item": [
+        {
+          "name": "GET /api/admin/UserSubscriptions/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/UserSubscriptions/expiring",
+      "item": [
+        {
+          "name": "GET /api/admin/UserSubscriptions/expiring",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/expiring"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Wallet",
+      "item": [
+        {
+          "name": "GET /api/user/Wallet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Wallet"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Wallet/transactions",
+      "item": [
+        {
+          "name": "GET /api/user/Wallet/transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Wallet/transactions"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Wallet/statistics",
+      "item": [
+        {
+          "name": "GET /api/user/Wallet/statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Wallet/statistics"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Wallet/recharge/initiate",
+      "item": [
+        {
+          "name": "POST /api/user/Wallet/recharge/initiate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Wallet/recharge/initiate"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Wallet/recharge/verify",
+      "item": [
+        {
+          "name": "POST /api/user/Wallet/recharge/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Wallet/recharge/verify"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Wallet/pay",
+      "item": [
+        {
+          "name": "POST /api/user/Wallet/pay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Wallet/pay"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Wallet/check-balance",
+      "item": [
+        {
+          "name": "GET /api/user/Wallet/check-balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Wallet/check-balance"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/Wallet/transactions/{transactionId}",
+      "item": [
+        {
+          "name": "GET /api/user/Wallet/transactions/{transactionId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/Wallet/transactions/{transactionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/webhooks/razorpay",
+      "item": [
+        {
+          "name": "POST /api/webhooks/razorpay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/webhooks/razorpay"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/webhooks/wallet",
+      "item": [
+        {
+          "name": "POST /api/webhooks/wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/webhooks/wallet"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5004"
+    }
+  ]
 }

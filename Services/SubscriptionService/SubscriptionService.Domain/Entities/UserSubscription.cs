@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SubscriptionService.Domain.Entities
 {
@@ -55,5 +56,15 @@ namespace SubscriptionService.Domain.Entities
         // Navigation properties
         public virtual SubscriptionPlan SubscriptionPlan { get; set; } = null!;
         public virtual Payment? Payment { get; set; }
+
+        // Additional properties for computed values
+        [NotMapped]
+        public int DaysLeft { get; set; }
+
+        [NotMapped]
+        public string CurrentStatus { get; set; } = "Active";
+
+        [NotMapped]
+        public bool IsExpired { get; set; }
     }
 }

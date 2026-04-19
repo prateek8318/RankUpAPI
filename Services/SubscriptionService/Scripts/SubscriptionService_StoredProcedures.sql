@@ -696,7 +696,7 @@ GO
 
 CREATE PROCEDURE [dbo].[UserSubscription_Cancel]
     @Id INT,
-    @CancelledAt DATETIME,
+    @CancelledDate DATETIME,
     @UpdatedAt DATETIME
 AS
 BEGIN
@@ -705,7 +705,8 @@ BEGIN
     UPDATE UserSubscriptions
     SET 
         IsActive = 0,
-        CancelledAt = @CancelledAt,
+        CancelledDate = @CancelledDate,
+        Status = 'Cancelled',
         UpdatedAt = @UpdatedAt
     WHERE Id = @Id;
 END
@@ -935,8 +936,8 @@ BEGIN
     SELECT
         Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
         PaymentMethod, PaymentProvider,
-        ProviderOrderId AS RazorpayOrderId,
-        TransactionId AS RazorpayPaymentId,
+        RazorpayOrderId,
+        RazorpayPaymentId,
         RazorpaySignature,
         Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
         RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
@@ -955,8 +956,8 @@ BEGIN
     SELECT
         Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
         PaymentMethod, PaymentProvider,
-        ProviderOrderId AS RazorpayOrderId,
-        TransactionId AS RazorpayPaymentId,
+        RazorpayOrderId,
+        RazorpayPaymentId,
         RazorpaySignature,
         Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
         RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
@@ -996,7 +997,7 @@ BEGIN
     INSERT INTO Payments
     (
         UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
-        PaymentMethod, PaymentProvider, ProviderOrderId, TransactionId, RazorpaySignature, Status,
+        PaymentMethod, PaymentProvider, RazorpayOrderId, RazorpayPaymentId, RazorpaySignature, Status,
         PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason, RazorpayRefundId, Metadata,
         IsActive, CreatedAt
     )
@@ -1051,8 +1052,8 @@ BEGIN
         FinalAmount = @FinalAmount,
         PaymentMethod = @PaymentMethod,
         PaymentProvider = @PaymentProvider,
-        ProviderOrderId = @RazorpayOrderId,
-        TransactionId = @RazorpayPaymentId,
+        RazorpayOrderId = @RazorpayOrderId,
+        RazorpayPaymentId = @RazorpayPaymentId,
         RazorpaySignature = @RazorpaySignature,
         Status = @Status,
         PaymentDate = @PaymentDate,
@@ -1091,13 +1092,13 @@ BEGIN
     SELECT
         Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
         PaymentMethod, PaymentProvider,
-        ProviderOrderId AS RazorpayOrderId,
-        TransactionId AS RazorpayPaymentId,
+        RazorpayOrderId,
+        RazorpayPaymentId,
         RazorpaySignature,
         Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
         RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
     FROM Payments
-    WHERE TransactionId = @TransactionId AND IsActive = 1;
+    WHERE RazorpayPaymentId = @TransactionId AND IsActive = 1;
 END
 GO
 
@@ -1112,13 +1113,13 @@ BEGIN
     SELECT
         Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
         PaymentMethod, PaymentProvider,
-        ProviderOrderId AS RazorpayOrderId,
-        TransactionId AS RazorpayPaymentId,
+        RazorpayOrderId,
+        RazorpayPaymentId,
         RazorpaySignature,
         Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
         RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
     FROM Payments
-    WHERE ProviderOrderId = @ProviderOrderId AND IsActive = 1;
+    WHERE RazorpayOrderId = @ProviderOrderId AND IsActive = 1;
 END
 GO
 
@@ -1133,8 +1134,8 @@ BEGIN
     SELECT
         Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
         PaymentMethod, PaymentProvider,
-        ProviderOrderId AS RazorpayOrderId,
-        TransactionId AS RazorpayPaymentId,
+        RazorpayOrderId,
+        RazorpayPaymentId,
         RazorpaySignature,
         Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
         RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
@@ -1155,8 +1156,8 @@ BEGIN
     SELECT
         Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
         PaymentMethod, PaymentProvider,
-        ProviderOrderId AS RazorpayOrderId,
-        TransactionId AS RazorpayPaymentId,
+        RazorpayOrderId,
+        RazorpayPaymentId,
         RazorpaySignature,
         Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
         RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
@@ -1192,8 +1193,8 @@ BEGIN
         SELECT
             Id, UserId, SubscriptionPlanId, UserSubscriptionId, Amount, Currency, DiscountAmount, FinalAmount,
             PaymentMethod, PaymentProvider,
-            ProviderOrderId AS RazorpayOrderId,
-            TransactionId AS RazorpayPaymentId,
+            RazorpayOrderId,
+            RazorpayPaymentId,
             RazorpaySignature,
             Status, PaymentDate, FailureReason, RefundAmount, RefundDate, RefundReason,
             RazorpayRefundId, Metadata, IsActive, CreatedAt, UpdatedAt
@@ -1208,13 +1209,13 @@ BEGIN
           AND (@DateTo IS NULL OR CreatedAt <= @DateTo)
           AND (
                 @SearchTerm IS NULL
-                OR ProviderOrderId LIKE '%' + @SearchTerm + '%'
-                OR TransactionId LIKE '%' + @SearchTerm + '%'
+                OR RazorpayOrderId LIKE '%' + @SearchTerm + '%'
+                OR RazorpayPaymentId LIKE '%' + @SearchTerm + '%'
               )
           AND (
                 @Reference IS NULL
-                OR ProviderOrderId = @Reference
-                OR TransactionId = @Reference
+                OR RazorpayOrderId = @Reference
+                OR RazorpayPaymentId = @Reference
               )
     )
     SELECT *

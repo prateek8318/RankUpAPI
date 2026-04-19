@@ -84,9 +84,8 @@ namespace SubscriptionService.API.Controllers
 
         private int GetUserIdFromToken()
         {
-            // This is a simplified version. In production, you should properly validate the JWT token
-            // and extract the user ID from claims
-            var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("sub");
+            // Extract user ID from JWT token claims
+            var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("sub") ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
             {
                 return userId;

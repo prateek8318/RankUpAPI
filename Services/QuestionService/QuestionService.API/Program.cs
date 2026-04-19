@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using QuestionService.Application.Interfaces;
@@ -6,7 +7,9 @@ using QuestionService.Application.Mappings;
 using QuestionApplicationService = QuestionService.Application.Services.QuestionService;
 using QuestionService.Infrastructure.Data;
 using QuestionService.Infrastructure.Repositories;
+using System.Data;
 using System.Text;
+using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,10 +33,13 @@ builder.Services.AddDbContext<QuestionDbContext>(options =>
     });
 });
 
-var connectionString = builder.Configuration.GetConnectionString("QuestionServiceConnection");
+var connectionString = builder.Configuration.GetConnectionString("QuestionServiceConnection")
+    ?? throw new InvalidOperationException("QuestionServiceConnection is not configured.");
 builder.Services.AddSingleton(connectionString);
 
 builder.Services.AddScoped<IQuestionRepository, QuestionDapperRepository>();
+builder.Services.AddScoped<QuestionService.Domain.Interfaces.IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<IQuestionFeatureRepository, QuestionRepository>();
 builder.Services.AddScoped<QuestionApplicationService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -157,8 +163,7 @@ try
     if (await context.Database.CanConnectAsync())
     {
         logger.LogInformation("Database connection verified.");
-        // No automatic migrations - using stored procedures
-        
+        await ExecuteStoredProcedureScriptsAsync(app, logger);
         logger.LogInformation("Database initialization completed.");
     }
 }
@@ -169,3 +174,53 @@ catch (Exception ex)
 }
 
 app.Run();
+
+static async Task ExecuteStoredProcedureScriptsAsync(WebApplication app, ILogger logger)
+{
+    var scriptPaths = new[]
+    {
+        Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "Scripts", "QuestionService_StoredProcedures.sql")),
+        Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "..", "..", "database", "Create_QuestionService_Enhanced_SPs.sql"))
+    };
+
+    var connectionString = app.Configuration.GetConnectionString("QuestionServiceConnection");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        logger.LogWarning("Connection string is missing; skipping stored procedure script execution.");
+        return;
+    }
+
+    await using var connection = new SqlConnection(connectionString);
+    await connection.OpenAsync();
+
+    foreach (var scriptPath in scriptPaths.Distinct())
+    {
+        if (!File.Exists(scriptPath))
+        {
+            logger.LogWarning("Stored procedure script not found at {ScriptPath}", scriptPath);
+            continue;
+        }
+
+        var scriptText = await File.ReadAllTextAsync(scriptPath);
+        var batches = Regex.Split(scriptText, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+        foreach (var batch in batches)
+        {
+            var sql = batch.Trim();
+            if (string.IsNullOrWhiteSpace(sql))
+            {
+                continue;
+            }
+
+            await using var command = new SqlCommand(sql, connection)
+            {
+                CommandType = CommandType.Text,
+                CommandTimeout = 180
+            };
+
+            await command.ExecuteNonQueryAsync();
+        }
+
+        logger.LogInformation("Stored procedures synced successfully from {ScriptPath}", scriptPath);
+    }
+}

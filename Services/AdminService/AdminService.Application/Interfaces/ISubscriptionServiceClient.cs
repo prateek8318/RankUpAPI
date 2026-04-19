@@ -13,6 +13,7 @@ namespace AdminService.Application.Interfaces
         Task<List<Dictionary<string, object>>?> GetAllUserSubscriptionsAsync();
         Task<List<Dictionary<string, object>>?> GetExpiringUserSubscriptionsAsync(int daysBeforeExpiry = 30);
         Task<object?> GetUserSubscriptionHistoryAsync(int userId);
+        Task<object?> GetUserSubscriptionDetailsAsync(int userId);
         Task<object?> GetStatsAsync();
     }
 }

@@ -3,28 +3,29 @@ using Microsoft.Extensions.Logging;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Interfaces;
 using QuestionService.Domain.Entities;
-using QuestionService.Domain.Interfaces;
+using System.Text.Json;
+using DomainQuestionRepository = QuestionService.Domain.Interfaces.IQuestionRepository;
 
 namespace QuestionService.Application.Services
 {
     public class QuestionService : IQuestionService
     {
-        private readonly Domain.Interfaces.IQuestionRepository _questionRepository;
-        private readonly Domain.Interfaces.ITopicRepository _topicRepository;
-        private readonly Domain.Interfaces.IQuestionTranslationRepository _translationRepository;
+        private readonly DomainQuestionRepository _questionRepository;
+        private readonly IQuestionRepository _adminRepository;
+        private readonly IQuestionFeatureRepository _featureRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<QuestionService> _logger;
 
         public QuestionService(
-            Domain.Interfaces.IQuestionRepository questionRepository,
-            Domain.Interfaces.ITopicRepository topicRepository,
-            Domain.Interfaces.IQuestionTranslationRepository translationRepository,
+            DomainQuestionRepository questionRepository,
+            IQuestionRepository adminRepository,
+            IQuestionFeatureRepository featureRepository,
             IMapper mapper,
             ILogger<QuestionService> logger)
         {
             _questionRepository = questionRepository;
-            _topicRepository = topicRepository;
-            _translationRepository = translationRepository;
+            _adminRepository = adminRepository;
+            _featureRepository = featureRepository;
             _mapper = mapper;
             _logger = logger;
         }
@@ -272,62 +273,81 @@ namespace QuestionService.Application.Services
         // Admin-specific method implementations
         public async Task<TopicDto> CreateTopicAsync(CreateTopicDto dto)
         {
-            var createdTopic = await _topicRepository.CreateTopicAsync(dto.Name, dto.SubjectId, dto.Description, dto.ParentTopicId, dto.SortOrder);
-            return _mapper.Map<TopicDto>(createdTopic);
+            var createdTopicId = await _adminRepository.CreateTopicAsync(dto);
+            return new TopicDto
+            {
+                Id = createdTopicId,
+                Name = dto.Name,
+                SubjectId = dto.SubjectId,
+                Description = dto.Description,
+                ParentTopicId = dto.ParentTopicId,
+                SortOrder = dto.SortOrder,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
         }
 
         public async Task<IEnumerable<TopicDto>> GetTopicsAsync(int subjectId)
         {
-            var topics = await _topicRepository.GetTopicsBySubjectAsync(subjectId);
-            return _mapper.Map<IEnumerable<TopicDto>>(topics);
+            return await _adminRepository.GetTopicsAsync(subjectId, null, true);
         }
 
         public async Task<QuestionAdminDetailDto> CreateAdminQuestionAsync(CreateQuestionAdminDto dto)
         {
-            var createdQuestion = await _questionRepository.CreateQuestionAsync(
-                dto.Translations?.FirstOrDefault()?.QuestionText ?? string.Empty,
-                dto.Translations?.FirstOrDefault()?.OptionA,
-                dto.Translations?.FirstOrDefault()?.OptionB,
-                dto.Translations?.FirstOrDefault()?.OptionC,
-                dto.Translations?.FirstOrDefault()?.OptionD,
-                dto.CorrectAnswer,
-                dto.Marks,
-                dto.ExamId,
-                dto.SubjectId,
-                dto.TopicId,
-                dto.DifficultyLevel,
-                dto.CreatedBy);
-            return _mapper.Map<QuestionAdminDetailDto>(createdQuestion);
+            var createdQuestionId = await _adminRepository.CreateAdminQuestionAsync(dto);
+            var createdQuestion = await _adminRepository.GetAdminQuestionByIdAsync(createdQuestionId);
+            if (createdQuestion == null)
+            {
+                throw new Exception($"Question with ID {createdQuestionId} was created but could not be reloaded");
+            }
+
+            return createdQuestion;
         }
 
         public async Task<QuestionAdminDetailDto> UpdateAdminQuestionAsync(UpdateQuestionAdminDto dto)
         {
-            var existingQuestion = await _questionRepository.GetByIdAsync(dto.Id);
+            var existingQuestion = await _adminRepository.GetAdminQuestionByIdAsync(dto.Id);
             if (existingQuestion == null)
                 throw new Exception($"Question with ID {dto.Id} not found");
 
-            var updated = await _questionRepository.UpdateQuestionAsync(dto.Id, null, null, null, null, null, null, dto.Marks, dto.DifficultyLevel);
+            var updated = await _adminRepository.UpdateAdminQuestionAsync(dto);
             if (!updated)
                 throw new Exception($"Failed to update question with ID {dto.Id}");
 
-            var updatedQuestion = await _questionRepository.GetByIdAsync(dto.Id);
-            return _mapper.Map<QuestionAdminDetailDto>(updatedQuestion);
+            var updatedQuestion = await _adminRepository.GetAdminQuestionByIdAsync(dto.Id);
+            if (updatedQuestion == null)
+            {
+                throw new Exception($"Updated question with ID {dto.Id} could not be reloaded");
+            }
+
+            return updatedQuestion;
         }
 
         public async Task<QuestionAdminDetailDto?> GetAdminQuestionByIdAsync(int id)
         {
-            var question = await _questionRepository.GetByIdAsync(id);
-            return question == null ? null : _mapper.Map<QuestionAdminDetailDto>(question);
+            return await _adminRepository.GetAdminQuestionByIdAsync(id);
         }
 
         public async Task<QuestionPagedResponseDto> GetAdminQuestionsPagedAsync(QuestionFilterRequestDto filter)
         {
-            var (questions, totalCount) = await _questionRepository.GetQuestionsPagedAsync(
-                filter.PageNumber, filter.PageSize, filter.ExamId, filter.SubjectId, filter.TopicId, 
-                filter.DifficultyLevel, filter.IsPublished, filter.LanguageCode);
+            var (questions, totalCount) = await _adminRepository.GetAdminQuestionsPagedAsync(filter);
             return new QuestionPagedResponseDto
             {
-                Items = _mapper.Map<IReadOnlyList<QuestionDto>>(questions),
+                Items = questions.Select(question => new QuestionDto
+                {
+                    Id = question.Id,
+                    ModuleId = question.ModuleId,
+                    ExamId = question.ExamId,
+                    SubjectId = question.SubjectId,
+                    TopicId = question.TopicId,
+                    DifficultyLevel = question.DifficultyLevel,
+                    Marks = question.Marks,
+                    NegativeMarks = question.NegativeMarks,
+                    IsPublished = question.IsPublished,
+                    IsActive = question.IsActive,
+                    CreatedAt = question.CreatedAt,
+                    QuestionText = question.DisplayQuestionText ?? string.Empty
+                }).ToList(),
                 PageNumber = filter.PageNumber,
                 PageSize = filter.PageSize,
                 TotalCount = totalCount,
@@ -337,27 +357,198 @@ namespace QuestionService.Application.Services
 
         public async Task<bool> SetPublishStatusAsync(PublishQuestionRequestDto dto)
         {
-            var result = await _questionRepository.TogglePublishStatusAsync(dto.QuestionId, dto.IsPublished, dto.ReviewedBy);
-            return result;
+            return await _adminRepository.SetPublishStatusAsync(dto.QuestionId, dto.IsPublished);
         }
 
         public async Task<QuestionDashboardStatsDto> GetDashboardStatsAsync()
         {
-            var (totalQuestions, addedToday, negativeMarksCount, unpublishedCount) = await _questionRepository.GetStatisticsAsync();
-            return new QuestionDashboardStatsDto
-            {
-                TotalQuestions = totalQuestions,
-                AddedToday = addedToday,
-                NegativeMarksCount = negativeMarksCount,
-                UnpublishedCount = unpublishedCount
-            };
+            return await _adminRepository.GetDashboardStatsAsync();
         }
 
         public async Task<object> BulkCreateQuestionsAsync(BulkQuestionUploadRequestDto dto)
         {
-            // Implementation for bulk upload would go here
-            // For now, return a placeholder response
-            return new { success = true, message = "Bulk upload feature not yet implemented" };
+            try
+            {
+                _logger.LogInformation("Starting bulk upload for file: {FileName}", dto.FileName);
+                
+                var result = await _featureRepository.BulkCreateQuestionsAsync(dto);
+                return new { success = true, insertedCount = result.SuccessCount, failedCount = result.FailedCount, batchId = result.BatchId };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk upload");
+                throw;
+            }
+        }
+
+        // Image upload methods
+        public async Task<ImageUploadResponseDto> UploadQuestionImageAsync(QuestionImageUploadDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Uploading image for question: {QuestionId}, type: {ImageType}", dto.QuestionId, dto.ImageType);
+                
+                var imageUrl = await _featureRepository.UploadQuestionImageAsync(dto.Image, dto.ImageType, dto.QuestionId, dto.LanguageCode);
+                
+                return new ImageUploadResponseDto
+                {
+                    ImageUrl = imageUrl,
+                    ImageType = dto.ImageType,
+                    Success = true
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading image");
+                return new ImageUploadResponseDto
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        // Quiz functionality methods
+        public async Task<QuizSessionDto> StartQuizAsync(QuizStartRequestDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Starting quiz for exam: {ExamId}, user: {UserId}", dto.ExamId, dto.UserId);
+                
+                var quizSession = await _featureRepository.StartQuizAsync(dto);
+                return ConvertTo<QuizSessionDto>(quizSession);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting quiz");
+                throw;
+            }
+        }
+
+        public async Task<QuizSessionDto?> GetQuizSessionAsync(int sessionId, int userId)
+        {
+            try
+            {
+                var session = await _featureRepository.GetQuizSessionAsync(sessionId, userId);
+                return session != null ? ConvertTo<QuizSessionDto>(session) : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving quiz session: {SessionId}", sessionId);
+                throw;
+            }
+        }
+
+        public async Task<bool> SaveQuizAnswerAsync(QuizAnswerRequestDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Saving answer for quiz session: {SessionId}, question: {QuestionId}", dto.QuizSessionId, dto.QuestionId);
+                
+                return await _featureRepository.SaveQuizAnswerAsync(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving quiz answer");
+                throw;
+            }
+        }
+
+        public async Task<QuizResultDto> SubmitQuizAsync(QuizSubmitRequestDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Submitting quiz session: {SessionId}", dto.QuizSessionId);
+                
+                var result = await _featureRepository.SubmitQuizAsync(dto);
+                return ConvertTo<QuizResultDto>(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error submitting quiz");
+                throw;
+            }
+        }
+
+        // Subject and Exam listing methods
+        public async Task<IEnumerable<SubjectListDto>> GetSubjectsAsync()
+        {
+            try
+            {
+                var subjects = await _featureRepository.GetSubjectsAsync();
+                return ConvertTo<List<SubjectListDto>>(subjects);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving subjects");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<ExamListDto>> GetExamsAsync(int? subjectId = null)
+        {
+            try
+            {
+                var exams = await _featureRepository.GetExamsAsync(subjectId);
+                return ConvertTo<List<ExamListDto>>(exams);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving exams");
+                throw;
+            }
+        }
+
+        // Bulk upload processing methods
+        public async Task<BulkUploadProcessDto> GetBulkUploadStatusAsync(int batchId)
+        {
+            try
+            {
+                var status = await _featureRepository.GetBulkUploadStatusAsync(batchId);
+                return ConvertTo<BulkUploadProcessDto>(status);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving bulk upload status: {BatchId}", batchId);
+                throw;
+            }
+        }
+
+        public async Task<List<ExcelQuestionRowDto>> ParseBulkUploadFileAsync(string filePath)
+        {
+            try
+            {
+                _logger.LogInformation("Parsing bulk upload file: {FilePath}", filePath);
+                
+                var questions = await _featureRepository.ParseBulkUploadFileAsync(filePath);
+                return ConvertTo<List<ExcelQuestionRowDto>>(questions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing bulk upload file");
+                throw;
+            }
+        }
+
+        private static T ConvertTo<T>(object source)
+        {
+            if (source is T typed)
+            {
+                return typed;
+            }
+
+            var json = JsonSerializer.Serialize(source);
+            var result = JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result == null)
+            {
+                throw new InvalidOperationException($"Unable to convert value to {typeof(T).Name}.");
+            }
+
+            return result;
         }
     }
 
@@ -387,5 +578,23 @@ namespace QuestionService.Application.Services
         Task<bool> SetPublishStatusAsync(PublishQuestionRequestDto dto);
         Task<QuestionDashboardStatsDto> GetDashboardStatsAsync();
         Task<object> BulkCreateQuestionsAsync(BulkQuestionUploadRequestDto dto);
+        
+        // Image upload methods
+        Task<ImageUploadResponseDto> UploadQuestionImageAsync(QuestionImageUploadDto dto);
+        
+        // Quiz functionality methods
+        Task<QuizSessionDto> StartQuizAsync(QuizStartRequestDto dto);
+        Task<QuizSessionDto?> GetQuizSessionAsync(int sessionId, int userId);
+        Task<bool> SaveQuizAnswerAsync(QuizAnswerRequestDto dto);
+        Task<QuizResultDto> SubmitQuizAsync(QuizSubmitRequestDto dto);
+        
+        // Subject and Exam listing methods
+        Task<IEnumerable<SubjectListDto>> GetSubjectsAsync();
+        Task<IEnumerable<ExamListDto>> GetExamsAsync(int? subjectId = null);
+        
+        // Bulk upload processing methods
+        Task<BulkUploadProcessDto> GetBulkUploadStatusAsync(int batchId);
+        Task<List<ExcelQuestionRowDto>> ParseBulkUploadFileAsync(string filePath);
     }
+
 }

@@ -1,4 +1,5 @@
 using Dapper;
+using System.Data;
 using SubscriptionService.Domain.Entities;
 using SubscriptionService.Domain.Interfaces;
 using SubscriptionService.Application.DTOs;
@@ -39,33 +40,33 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"EXEC [dbo].[Payment_Create]
-                            @UserId, @SubscriptionPlanId, @UserSubscriptionId, @Amount, @Currency, @DiscountAmount, @FinalAmount,
+                            @UserId, @SubscriptionPlanId, @Amount, @DiscountAmount, @FinalAmount,
                             @PaymentMethod, @PaymentProvider, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
-                            @Status, @PaymentDate, @FailureReason, @RefundAmount, @RefundDate, @RefundReason, @RazorpayRefundId, @Metadata";
+                            @Status, @PaymentDate, @FailureReason, @RefundAmount, @RefundDate, @RefundReason, @RazorpayRefundId, @Metadata, @CreatedId OUTPUT";
 
-                var createdId = await connection.QuerySingleAsync<int>(sql, new
-                {
-                    UserId = entity.UserId,
-                    SubscriptionPlanId = entity.SubscriptionPlanId,
-                    UserSubscriptionId = entity.UserSubscriptionId,
-                    Amount = entity.Amount,
-                    Currency = entity.Currency,
-                    DiscountAmount = entity.DiscountAmount,
-                    FinalAmount = entity.FinalAmount,
-                    PaymentMethod = entity.PaymentMethod,
-                    PaymentProvider = entity.PaymentProvider,
-                    RazorpayOrderId = entity.RazorpayOrderId,
-                    RazorpayPaymentId = entity.RazorpayPaymentId,
-                    RazorpaySignature = entity.RazorpaySignature,
-                    Status = entity.Status,
-                    PaymentDate = entity.PaymentDate,
-                    FailureReason = entity.FailureReason,
-                    RefundAmount = entity.RefundAmount,
-                    RefundDate = entity.RefundDate,
-                    RefundReason = entity.RefundReason,
-                    RazorpayRefundId = entity.RazorpayRefundId,
-                    Metadata = entity.Metadata
-                });
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", entity.UserId);
+                parameters.Add("@SubscriptionPlanId", entity.SubscriptionPlanId);
+                parameters.Add("@Amount", entity.Amount);
+                parameters.Add("@DiscountAmount", entity.DiscountAmount);
+                parameters.Add("@FinalAmount", entity.FinalAmount);
+                parameters.Add("@PaymentMethod", entity.PaymentMethod);
+                parameters.Add("@PaymentProvider", entity.PaymentProvider);
+                parameters.Add("@RazorpayOrderId", entity.RazorpayOrderId);
+                parameters.Add("@RazorpayPaymentId", entity.RazorpayPaymentId);
+                parameters.Add("@RazorpaySignature", entity.RazorpaySignature);
+                parameters.Add("@Status", entity.Status);
+                parameters.Add("@PaymentDate", entity.PaymentDate);
+                parameters.Add("@FailureReason", entity.FailureReason);
+                parameters.Add("@RefundAmount", entity.RefundAmount);
+                parameters.Add("@RefundDate", entity.RefundDate);
+                parameters.Add("@RefundReason", entity.RefundReason);
+                parameters.Add("@RazorpayRefundId", entity.RazorpayRefundId);
+                parameters.Add("@Metadata", entity.Metadata);
+                parameters.Add("@CreatedId", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await connection.ExecuteAsync(sql, parameters);
+                var createdId = parameters.Get<int>("@CreatedId");
 
                 entity.Id = createdId;
                 entity.IsActive = true;
@@ -83,7 +84,7 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"EXEC [dbo].[Payment_Update]
-                            @Id, @UserId, @SubscriptionPlanId, @UserSubscriptionId, @Amount, @Currency, @DiscountAmount, @FinalAmount,
+                            @Id, @UserId, @SubscriptionPlanId, @Amount, @DiscountAmount, @FinalAmount,
                             @PaymentMethod, @PaymentProvider, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
                             @Status, @PaymentDate, @FailureReason, @RefundAmount, @RefundDate, @RefundReason, @RazorpayRefundId, @Metadata";
 
@@ -92,9 +93,7 @@ namespace SubscriptionService.Infrastructure.Repositories
                     Id = entity.Id,
                     UserId = entity.UserId,
                     SubscriptionPlanId = entity.SubscriptionPlanId,
-                    UserSubscriptionId = entity.UserSubscriptionId,
                     Amount = entity.Amount,
-                    Currency = entity.Currency,
                     DiscountAmount = entity.DiscountAmount,
                     FinalAmount = entity.FinalAmount,
                     PaymentMethod = entity.PaymentMethod,

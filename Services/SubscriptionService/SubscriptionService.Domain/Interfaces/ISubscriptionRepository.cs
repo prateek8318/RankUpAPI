@@ -25,6 +25,17 @@ namespace SubscriptionService.Domain.Interfaces
         /// Prevent duplicate plan creation by name within same exam (ExamId or ExamCategory) + type.
         /// </summary>
         Task<bool> ExistsByNameAsync(string name, string? examCategory, PlanType type, int? excludeId = null, int? examId = null);
+        
+        // New methods for duration options support
+        Task<SubscriptionPlan?> GetPlanWithDurationsAsync(int id, string languageCode = "en");
+        Task<IEnumerable<SubscriptionPlan>> GetActivePlansWithDurationsAsync(string languageCode = "en", int? examId = null);
+        Task<PlanDurationOption?> GetDurationOptionAsync(int durationOptionId);
+        Task AddDurationOptionAsync(PlanDurationOption durationOption);
+        Task UpdateDurationOptionAsync(PlanDurationOption durationOption);
+        Task<UserSubscription?> GetUserActiveSubscriptionAsync(int userId, int planId);
+        Task<IEnumerable<UserSubscription>> GetUserActiveSubscriptionsAsync(int userId);
+        Task AddTranslationAsync(SubscriptionPlanTranslation translation);
+        Task<SubscriptionPlan> CreatePlanWithDurationsAsync(SubscriptionPlan plan, IEnumerable<PlanDurationOption> durationOptions, IEnumerable<SubscriptionPlanTranslation>? translations = null);
     }
 
     public interface IUserSubscriptionRepository : ISubscriptionRepository<UserSubscription>

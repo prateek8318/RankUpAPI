@@ -81,5 +81,6 @@ namespace SubscriptionService.Domain.Entities
 
         // Navigation properties
         public virtual ICollection<UserSubscription> UserSubscriptions { get; set; } = new List<UserSubscription>();
+        public virtual ICollection<PlanDurationOption> DurationOptions { get; set; } = new List<PlanDurationOption>();
     }
 }

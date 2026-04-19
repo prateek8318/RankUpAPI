@@ -275,6 +275,33 @@ namespace SubscriptionService.Application.Services
             }
         }
 
+        public async Task<UserSubscriptionDto?> GetActiveSubscriptionForUserAsync(int userId)
+        {
+            try
+            {
+                var subscription = await _userSubscriptionRepository.GetActiveSubscriptionByUserIdAsync(userId);
+                if (subscription == null)
+                    return null;
+
+                // Map the subscription with all computed fields from database
+                var subscriptionDto = _mapper.Map<UserSubscriptionDto>(subscription);
+                
+                // The database query already includes SubscriptionPlan details, so no need for separate call
+                // Just ensure the navigation property is properly mapped
+                if (subscription.SubscriptionPlan != null)
+                {
+                    subscriptionDto.SubscriptionPlan = _mapper.Map<SubscriptionPlanDto>(subscription.SubscriptionPlan);
+                }
+
+                return subscriptionDto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active subscription for user: {UserId}", userId);
+                throw;
+            }
+        }
+
         public async Task<SubscriptionHistoryDto> GetUserSubscriptionHistoryAsync(int userId)
         {
             try

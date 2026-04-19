@@ -267,6 +267,29 @@ namespace AdminService.Application.Clients
             }
         }
 
+        public async Task<object?> GetUserSubscriptionDetailsAsync(int userId)
+        {
+            try
+            {
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                    await _httpClient.GetAsync($"/api/admin/usersubscriptions/user/{userId}/active"));
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return JsonSerializer.Deserialize<object>(content);
+                }
+
+                _logger.LogWarning("Failed to get subscription details for user {UserId}: {StatusCode}", userId, response.StatusCode);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling SubscriptionService for user subscription details {UserId}", userId);
+                return null;
+            }
+        }
+
         public async Task<object?> GetStatsAsync()
         {
             try

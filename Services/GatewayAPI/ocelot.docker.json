@@ -19,7 +19,7 @@
     {
       "DownstreamPathTemplate": "/api/admin/exams/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
+      "DownstreamHostAndPorts": [{ "Host": "examservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/exams/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }

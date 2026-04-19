@@ -363,3 +363,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Ignore all markdown files
+*.md
+
+# Ignore all JSON files
+*.json

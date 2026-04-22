@@ -39,6 +39,11 @@ namespace SubscriptionService.Application.Services
         {
             try
             {
+                if (createSubscriptionDto.SubscriptionPlanId <= 0)
+                {
+                    throw new ArgumentException("Valid SubscriptionPlanId is required");
+                }
+
                 _logger.LogInformation("Creating subscription for user: {UserId}, plan: {PlanId}", 
                     createSubscriptionDto.UserId, createSubscriptionDto.SubscriptionPlanId);
 
@@ -49,20 +54,37 @@ namespace SubscriptionService.Application.Services
                     throw new KeyNotFoundException($"Subscription plan with ID {createSubscriptionDto.SubscriptionPlanId} not found");
                 }
 
-                // Calculate amounts (no coupons)
-                decimal originalAmount = plan.Price;
-                decimal finalAmount = originalAmount;
+                // Get duration option if provided
+                int validityDays = plan.ValidityDays;
+                decimal finalAmount = plan.Price;
+                
+                if (createSubscriptionDto.DurationOptionId > 0)
+                {
+                    var durationOption = await _subscriptionPlanRepository.GetDurationOptionAsync(createSubscriptionDto.DurationOptionId);
+                    if (durationOption != null)
+                    {
+                        validityDays = durationOption.DurationMonths * 30;
+                        finalAmount = durationOption.Price;
+                    }
+                }
 
-                // Create subscription
                 var subscription = new UserSubscription
                 {
                     UserId = createSubscriptionDto.UserId,
                     SubscriptionPlanId = createSubscriptionDto.SubscriptionPlanId,
-                    RazorpayOrderId = "", // Not available in CreateUserSubscriptionDto
+                    DurationOptionId = createSubscriptionDto.DurationOptionId,
+                    RazorpayOrderId = $"order_{DateTime.UtcNow:yyyyMMddHHmmss}_{createSubscriptionDto.UserId}",
+                    PurchasedDate = DateTime.UtcNow,
+                    ValidTill = DateTime.UtcNow.AddDays(validityDays),
+                    TestsUsed = 0,
+                    TestsTotal = plan.TestPapersCount,
                     AmountPaid = finalAmount,
-                    DiscountApplied = originalAmount - finalAmount,
+                    Currency = "INR",
+                    DiscountApplied = plan.Price > finalAmount ? plan.Price - finalAmount : 0,
                     Status = "Pending",
-                    AutoRenewal = createSubscriptionDto.AutoRenewal
+                    AutoRenewal = createSubscriptionDto.AutoRenewal,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 var createdSubscription = await _userSubscriptionRepository.AddAsync(subscription);
@@ -86,10 +108,20 @@ namespace SubscriptionService.Application.Services
                 _logger.LogInformation("Activating subscription for order: {OrderId}", activateSubscriptionDto.RazorpayOrderId);
 
                 // Verify payment with Razorpay
+                if (string.IsNullOrEmpty(activateSubscriptionDto.RazorpayPaymentId) || 
+                    string.IsNullOrEmpty(activateSubscriptionDto.RazorpaySignature))
+                {
+                    return new PaymentVerificationResultDto
+                    {
+                        IsSuccess = false,
+                        Message = "Payment ID and signature are required for payment verification"
+                    };
+                }
+
                 var isPaymentValid = await _razorpayService.VerifyPaymentAsync(
                     activateSubscriptionDto.RazorpayOrderId,
-                    activateSubscriptionDto.RazorpayPaymentId,
-                    activateSubscriptionDto.RazorpaySignature);
+                    activateSubscriptionDto.RazorpayPaymentId!,
+                    activateSubscriptionDto.RazorpaySignature!);
 
                 if (!isPaymentValid)
                 {
@@ -266,7 +298,28 @@ namespace SubscriptionService.Application.Services
             try
             {
                 var subscription = await _userSubscriptionRepository.GetActiveSubscriptionByUserIdAsync(userId);
-                return subscription != null ? _mapper.Map<UserSubscriptionDto>(subscription) : null;
+                if (subscription == null)
+                    return null;
+
+                var subscriptionDto = _mapper.Map<UserSubscriptionDto>(subscription);
+                
+                // Ensure SubscriptionPlan details are properly mapped
+                if (subscription.SubscriptionPlan != null)
+                {
+                    subscriptionDto.SubscriptionPlan = _mapper.Map<SubscriptionPlanDto>(subscription.SubscriptionPlan);
+                }
+
+                // Format dates properly for API response
+                subscriptionDto.PurchasedDate = DateTime.SpecifyKind(subscription.PurchasedDate, DateTimeKind.Utc);
+                subscriptionDto.ValidTill = DateTime.SpecifyKind(subscription.ValidTill, DateTimeKind.Utc);
+                
+                // Ensure duration information is accurate
+                if (subscriptionDto.SubscriptionPlan != null)
+                {
+                    subscriptionDto.SubscriptionPlan.DurationType = subscriptionDto.SubscriptionPlan.DurationType ?? "Monthly";
+                }
+
+                return subscriptionDto;
             }
             catch (Exception ex)
             {
@@ -419,7 +472,7 @@ namespace SubscriptionService.Application.Services
                 _logger.LogInformation("Getting active subscription plans for language: {Language}", language);
                 
                 var currentLanguage = language ?? "en";
-                var plans = await _subscriptionPlanRepository.GetActivePlansAsync();
+                var plans = await _subscriptionPlanRepository.GetActivePlansWithDurationsAsync(currentLanguage);
                 var planDtos = _mapper.Map<List<SubscriptionPlanListDto>>(plans);
                 
                 // Apply localization if needed
@@ -458,6 +511,160 @@ namespace SubscriptionService.Application.Services
         {
             if (string.IsNullOrWhiteSpace(language)) return "en";
             return language.Trim().ToLowerInvariant();
+        }
+
+        public async Task<UserManagementStatsDto> GetUserManagementStatsAsync()
+        {
+            try
+            {
+                var stats = new UserManagementStatsDto
+                {
+                    LastUpdated = DateTime.UtcNow
+                };
+
+                // Get all users (this would typically come from UserService)
+                // For now, we'll use subscription data to estimate
+                var allSubscriptions = await _userSubscriptionRepository.GetAllAsync();
+                var uniqueUserIds = allSubscriptions.Select(s => s.UserId).Distinct().ToList();
+                
+                stats.TotalUsers = uniqueUserIds.Count;
+                
+                // Get active subscribers
+                var activeSubscriptions = allSubscriptions.Where(s => s.Status == "Active").ToList();
+                stats.ActiveSubscribers = activeSubscriptions.Select(s => s.UserId).Distinct().Count();
+                
+                // Free users = Total users - Active subscribers
+                stats.FreeUsers = stats.TotalUsers - stats.ActiveSubscribers;
+                
+                // New users in last 7 days (based on subscription creation)
+                var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+                var newUsers = allSubscriptions.Where(s => s.CreatedAt >= sevenDaysAgo)
+                                            .Select(s => s.UserId)
+                                            .Distinct()
+                                            .Count();
+                stats.NewUsersLast7Days = newUsers;
+                
+                // Blocked users (this would need integration with UserService)
+                // For now, returning 0 as placeholder
+                stats.BlockedUsers = 0;
+
+                _logger.LogInformation("User management stats calculated: Total={Total}, Active={Active}, Free={Free}, New={New}",
+                    stats.TotalUsers, stats.ActiveSubscribers, stats.FreeUsers, stats.NewUsersLast7Days);
+
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating user management stats");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<UserManagementDto>> GetAllUsersWithSubscriptionDetailsAsync()
+        {
+            try
+            {
+                var allSubscriptions = await _userSubscriptionRepository.GetAllAsync();
+                var userManagementList = new List<UserManagementDto>();
+
+                // Group subscriptions by user
+                var userGroups = allSubscriptions.GroupBy(s => s.UserId);
+
+                foreach (var userGroup in userGroups)
+                {
+                    var latestSubscription = userGroup.OrderByDescending(s => s.CreatedAt).First();
+                    var activeSubscription = userGroup.FirstOrDefault(s => s.Status == "Active");
+
+                    var userManagement = new UserManagementDto
+                    {
+                        Id = userGroup.Key,
+                        CreatedAt = latestSubscription.CreatedAt,
+                        Status = "Active", // Default status - would come from UserService
+                        HasActiveSubscription = activeSubscription != null,
+                        SubscriptionId = activeSubscription?.Id,
+                        DaysRemaining = activeSubscription != null ? 
+                            (int)(activeSubscription.ValidTill - DateTime.UtcNow).TotalDays : 0
+                    };
+
+                    // Add subscription details if active
+                    if (activeSubscription != null)
+                    {
+                        userManagement.SubscriptionExpiryDate = activeSubscription.ValidTill;
+                        userManagement.SubscriptionAmount = activeSubscription.AmountPaid;
+                        
+                        // Get plan details
+                        var plan = await _subscriptionPlanRepository.GetByIdAsync(activeSubscription.SubscriptionPlanId);
+                        if (plan != null)
+                        {
+                            userManagement.PlanName = plan.Name;
+                        }
+                    }
+
+                    userManagementList.Add(userManagement);
+                }
+
+                _logger.LogInformation("Retrieved {Count} users with subscription details", userManagementList.Count);
+                return userManagementList;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving users with subscription details");
+                throw;
+            }
+        }
+
+        public async Task<BlockUserResponseDto> BlockUserAsync(BlockUserDto blockUserDto)
+        {
+            try
+            {
+                // This would integrate with UserService to actually block/unblock the user
+                // For now, we'll simulate the blocking by updating subscription status
+                
+                var userSubscriptions = await _userSubscriptionRepository.GetAllAsync();
+                var userSubs = userSubscriptions.Where(s => s.UserId == blockUserDto.UserId).ToList();
+
+                if (!userSubs.Any())
+                {
+                    return new BlockUserResponseDto
+                    {
+                        Success = false,
+                        Message = "User not found or has no subscriptions",
+                        UserId = blockUserDto.UserId,
+                        NewStatus = "Unknown"
+                    };
+                }
+
+                // If blocking, cancel all active subscriptions
+                if (blockUserDto.Block)
+                {
+                    foreach (var subscription in userSubs.Where(s => s.Status == "Active"))
+                    {
+                        subscription.Status = "Cancelled";
+                        subscription.UpdatedAt = DateTime.UtcNow;
+                        await _userSubscriptionRepository.UpdateAsync(subscription);
+                    }
+                }
+
+                var response = new BlockUserResponseDto
+                {
+                    Success = true,
+                    Message = blockUserDto.Block ? 
+                        $"User {blockUserDto.UserId} blocked successfully. Reason: {blockUserDto.Reason}" :
+                        $"User {blockUserDto.UserId} unblocked successfully",
+                    UserId = blockUserDto.UserId,
+                    NewStatus = blockUserDto.Block ? "Blocked" : "Active"
+                };
+
+                _logger.LogInformation("User {UserId} status changed to {Status}", 
+                    blockUserDto.UserId, response.NewStatus);
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error blocking/unblocking user {UserId}", blockUserDto.UserId);
+                throw;
+            }
         }
     }
 }

@@ -13,6 +13,8 @@ namespace SubscriptionService.Domain.Entities
 
         public int? PaymentId { get; set; }
 
+        public int? DurationOptionId { get; set; }
+
         [Required]
         [MaxLength(100)]
         public string RazorpayOrderId { get; set; } = string.Empty;
@@ -66,5 +68,15 @@ namespace SubscriptionService.Domain.Entities
 
         [NotMapped]
         public bool IsExpired { get; set; }
+
+        // Exam details from stored procedure join
+        [NotMapped]
+        public string? ExamName { get; set; }
+
+        [NotMapped]
+        public string? ExamDescription { get; set; }
+
+        [NotMapped]
+        public string? ExamImageUrl { get; set; }
     }
 }

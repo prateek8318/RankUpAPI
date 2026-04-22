@@ -4,7 +4,7 @@ namespace SubscriptionService.Domain.Interfaces
 {
     public interface ISubscriptionValidationService
     {
-        Task<SubscriptionValidationResult> ValidateSubscriptionAsync(int userId, string examCategory = null);
+        Task<SubscriptionValidationResult> ValidateSubscriptionAsync(int userId, string? examCategory = null);
         Task<DemoAccessResult> CheckDemoEligibilityAsync(int userId, string examCategory);
         Task<bool> IsSubscriptionActiveAsync(int userId);
         Task<UserSubscription?> GetActiveSubscriptionAsync(int userId);

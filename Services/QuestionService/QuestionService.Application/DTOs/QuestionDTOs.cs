@@ -707,4 +707,47 @@ namespace QuestionService.Application.DTOs
         public bool SameExplanationForAllLanguages { get; set; } = false;
         public List<QuestionTranslationCreateDto>? Translations { get; set; }
     }
+
+    // Simple Question Creation DTO with Exam Integration
+    public class SimpleQuestionCreateDto
+    {
+        [Required]
+        public int ExamId { get; set; }
+        
+        [Required]
+        public string QuestionText { get; set; } = string.Empty;
+        
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        
+        [Required]
+        [StringLength(1)]
+        public string CorrectAnswer { get; set; } = string.Empty;
+        
+        public string? Explanation { get; set; }
+        
+        [Required]
+        public int CreatedBy { get; set; }
+    }
+
+    public class ExamTypeDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string ExamType { get; set; } = string.Empty;
+    }
+
+    public class ExamNameDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string ExamType { get; set; } = string.Empty;
+        public int SubjectId { get; set; }
+        public string? SubjectName { get; set; }
+        public bool HasNegativeMarking { get; set; }
+        public decimal? NegativeMarkingValue { get; set; }
+        public decimal MarksPerQuestion { get; set; }
+    }
 }

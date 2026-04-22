@@ -61,6 +61,7 @@ builder.Services.AddScoped<IAdminService, AdminService.Application.Services.Admi
 builder.Services.AddScoped<IDashboardAggregationService, DashboardAggregationService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IExportService, ExportService>();
+builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 
 // HTTP Client for UserService
 builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>

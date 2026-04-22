@@ -13,7 +13,8 @@ namespace SubscriptionService.Application.Mappings
             CreateMap<SubscriptionPlan, SubscriptionPlanDto>()
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive));
 
-            CreateMap<SubscriptionPlan, SubscriptionPlanListDto>();
+            CreateMap<SubscriptionPlan, SubscriptionPlanListDto>()
+                .ForMember(dest => dest.DurationOptions, opt => opt.MapFrom(src => src.DurationOptions));
 
             CreateMap<CreateSubscriptionPlanDto, SubscriptionPlan>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -34,7 +35,10 @@ namespace SubscriptionService.Application.Mappings
                 .ForMember(dest => dest.DaysUntilExpiry, opt => opt.MapFrom(src => 
                     src.ValidTill > DateTime.UtcNow ? (int)(src.ValidTill - DateTime.UtcNow).TotalDays : 0))
                 .ForMember(dest => dest.IsExpired, opt => opt.MapFrom(src => 
-                    src.ValidTill <= DateTime.UtcNow && src.Status != "Cancelled"));
+                    src.ValidTill <= DateTime.UtcNow && src.Status != "Cancelled"))
+                .ForMember(dest => dest.ExamName, opt => opt.MapFrom(src => src.ExamName))
+                .ForMember(dest => dest.ExamDescription, opt => opt.MapFrom(src => src.ExamDescription))
+                .ForMember(dest => dest.ExamImageUrl, opt => opt.MapFrom(src => src.ExamImageUrl));
 
             CreateMap<CreateUserSubscriptionDto, UserSubscription>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())

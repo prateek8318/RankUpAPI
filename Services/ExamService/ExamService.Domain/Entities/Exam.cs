@@ -23,6 +23,7 @@ namespace ExamService.Domain.Entities
         // New mapped properties
         public int? ExamCategoryId { get; set; }
         public int? ExamTypeId { get; set; }
+        public string ExamType { get; set; } = "MockTest";
         public int? SubjectId { get; set; }
 
         public int TotalQuestions { get; set; }
@@ -49,7 +50,7 @@ namespace ExamService.Domain.Entities
         
         // Navigation properties
         public ExamCategory? ExamCategory { get; set; }
-        public ExamType? ExamType { get; set; }
+        public ExamType? ExamTypeNavigation { get; set; }
         public ICollection<ExamQualification> ExamQualifications { get; set; } = new List<ExamQualification>();
     }
 }

@@ -514,6 +514,92 @@ namespace QuestionService.Application.Services
             }
         }
 
+        // Simple Question Creation with Exam Integration
+        public async Task<QuestionDto> CreateSimpleQuestionAsync(SimpleQuestionCreateDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Creating simple question for exam: {ExamId}", dto.ExamId);
+
+                // Get exam details to fetch subject and negative marking info
+                var examDetails = await _featureRepository.GetExamDetailsAsync(dto.ExamId);
+                if (examDetails == null)
+                {
+                    throw new ArgumentException($"Exam with ID {dto.ExamId} not found");
+                }
+
+                var createDto = new CreateQuestionDto
+                {
+                    ExamId = dto.ExamId,
+                    SubjectId = examDetails.SubjectId,
+                    QuestionText = dto.QuestionText,
+                    OptionA = dto.OptionA,
+                    OptionB = dto.OptionB,
+                    OptionC = dto.OptionC,
+                    OptionD = dto.OptionD,
+                    CorrectAnswer = dto.CorrectAnswer,
+                    Explanation = dto.Explanation,
+                    Marks = examDetails.MarksPerQuestion,
+                    NegativeMarks = examDetails.HasNegativeMarking ? examDetails.NegativeMarkingValue ?? 0 : 0,
+                    DifficultyLevel = "Medium",
+                    QuestionType = "MCQ",
+                    CreatedBy = dto.CreatedBy
+                };
+
+                return await CreateAsync(createDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating simple question for exam: {ExamId}", dto.ExamId);
+                throw;
+            }
+        }
+
+        // Get Exam Types from ExamService
+        public async Task<IEnumerable<ExamTypeDto>> GetExamTypesAsync()
+        {
+            try
+            {
+                var examTypes = await _featureRepository.GetExamTypesAsync();
+                return ConvertTo<List<ExamTypeDto>>(examTypes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving exam types");
+                throw;
+            }
+        }
+
+        // Get Exam Names by ExamType from ExamService
+        public async Task<IEnumerable<ExamNameDto>> GetExamNamesByTypeAsync(string examType)
+        {
+            try
+            {
+                var examNames = await _featureRepository.GetExamNamesByTypeAsync(examType);
+                return ConvertTo<List<ExamNameDto>>(examNames);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving exam names for type: {ExamType}", examType);
+                throw;
+            }
+        }
+
+        // Get All Exam Names
+        public async Task<IEnumerable<ExamNameDto>> GetAllExamNamesAsync()
+        {
+            try
+            {
+                var examNames = await _featureRepository.GetAllExamNamesAsync();
+                return ConvertTo<List<ExamNameDto>>(examNames);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all exam names");
+                throw;
+            }
+        }
+
         public async Task<List<ExcelQuestionRowDto>> ParseBulkUploadFileAsync(string filePath)
         {
             try
@@ -595,6 +681,12 @@ namespace QuestionService.Application.Services
         // Bulk upload processing methods
         Task<BulkUploadProcessDto> GetBulkUploadStatusAsync(int batchId);
         Task<List<ExcelQuestionRowDto>> ParseBulkUploadFileAsync(string filePath);
+        
+        // Simple Question Creation with Exam Integration
+        Task<QuestionDto> CreateSimpleQuestionAsync(SimpleQuestionCreateDto dto);
+        Task<IEnumerable<ExamTypeDto>> GetExamTypesAsync();
+        Task<IEnumerable<ExamNameDto>> GetExamNamesByTypeAsync(string examType);
+        Task<IEnumerable<ExamNameDto>> GetAllExamNamesAsync();
     }
 
 }

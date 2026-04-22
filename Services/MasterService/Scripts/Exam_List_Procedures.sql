@@ -54,6 +54,14 @@ BEGIN
     INNER JOIN dbo.Exams e ON el.ExamId = e.Id
     WHERE el.IsActive = 1 AND e.IsActive = 1
     ORDER BY el.ExamId, el.LanguageId;
+    
+    -- Get all exam qualifications for active exams
+    SELECT eq.Id, eq.ExamId, eq.QualificationId, eq.StreamId, 
+           eq.IsActive, eq.CreatedAt, eq.UpdatedAt
+    FROM dbo.ExamQualifications eq
+    INNER JOIN dbo.Exams e ON eq.ExamId = e.Id
+    WHERE e.IsActive = 1 AND eq.IsActive = 1
+    ORDER BY eq.ExamId, eq.QualificationId;
 END
 GO
 
@@ -92,6 +100,14 @@ BEGIN
     INNER JOIN dbo.Exams e ON el.ExamId = e.Id
     WHERE el.IsActive = 1 AND e.IsActive = 1
     ORDER BY el.ExamId, el.LanguageId;
+    
+    -- Get all exam qualifications for active exams
+    SELECT eq.Id, eq.ExamId, eq.QualificationId, eq.StreamId, 
+           eq.IsActive, eq.CreatedAt, eq.UpdatedAt
+    FROM dbo.ExamQualifications eq
+    INNER JOIN dbo.Exams e ON eq.ExamId = e.Id
+    WHERE e.IsActive = 1 AND eq.IsActive = 1
+    ORDER BY eq.ExamId, eq.QualificationId;
 END
 GO
 
@@ -143,6 +159,19 @@ BEGIN
         WHERE eq2.ExamId = e.Id AND eq2.StreamId = @StreamId
     ))
     ORDER BY el.ExamId, el.LanguageId;
+    
+    -- Get exam qualifications for filtered exams
+    SELECT eq.Id, eq.ExamId, eq.QualificationId, eq.StreamId, 
+           eq.IsActive, eq.CreatedAt, eq.UpdatedAt
+    FROM dbo.ExamQualifications eq
+    INNER JOIN dbo.Exams e ON eq.ExamId = e.Id
+    WHERE e.IsActive = 1 AND eq.IsActive = 1
+    AND (@CountryCode IS NULL OR e.CountryCode = @CountryCode)
+    AND (@MinAge IS NULL OR e.MinAge IS NULL OR e.MinAge <= @MinAge)
+    AND (@MaxAge IS NULL OR e.MaxAge IS NULL OR e.MaxAge >= @MaxAge)
+    AND (@QualificationId IS NULL OR eq.QualificationId = @QualificationId)
+    AND (@StreamId IS NULL OR eq.StreamId = @StreamId)
+    ORDER BY eq.ExamId, eq.QualificationId;
 END
 GO
 
@@ -205,6 +234,19 @@ BEGIN
         WHERE eq2.ExamId = e.Id AND eq2.StreamId = @StreamId
     ))
     ORDER BY el.ExamId, el.LanguageId;
+    
+    -- Get exam qualifications for filtered exams
+    SELECT eq.Id, eq.ExamId, eq.QualificationId, eq.StreamId, 
+           eq.IsActive, eq.CreatedAt, eq.UpdatedAt
+    FROM dbo.ExamQualifications eq
+    INNER JOIN dbo.Exams e ON eq.ExamId = e.Id
+    WHERE e.IsActive = 1 AND eq.IsActive = 1
+    AND (@CountryCode IS NULL OR e.CountryCode = @CountryCode)
+    AND (@MinAge IS NULL OR e.MinAge IS NULL OR e.MinAge <= @MinAge)
+    AND (@MaxAge IS NULL OR e.MaxAge IS NULL OR e.MaxAge >= @MaxAge)
+    AND (@QualificationId IS NULL OR eq.QualificationId = @QualificationId)
+    AND (@StreamId IS NULL OR eq.StreamId = @StreamId)
+    ORDER BY eq.ExamId, eq.QualificationId;
 END
 GO
 

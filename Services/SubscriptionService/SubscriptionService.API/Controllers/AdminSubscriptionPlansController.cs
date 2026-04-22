@@ -7,29 +7,21 @@ using Common.Services;
 namespace SubscriptionService.API.Controllers
 {
     /// <summary>
-    /// Admin Controller for Subscription Plans
+    /// Admin Subscription Plans Management Controller
     /// Handles plan management within SubscriptionService.
     /// </summary>
-    // NOTE:
-    // Route is aligned with AdminService's SubscriptionServiceClient:
-    //  - GET    /api/admin/subscription-plans
-    //  - GET    /api/admin/subscription-plans/{id}
-    //  - GET    /api/admin/subscription-plans/active
-    //  - POST   /api/admin/subscription-plans
-    //  - PUT    /api/admin/subscription-plans/{id}
-    //  - DELETE /api/admin/subscription-plans/{id}
     [Route("api/admin/subscription-plans")]
     [ApiController]
     [Authorize(Roles = "Admin")]
-    public class SubscriptionPlansController : ControllerBase
+    public class AdminSubscriptionPlansController : ControllerBase
     {
         private readonly ISubscriptionPlanService _subscriptionPlanService;
-        private readonly ILogger<SubscriptionPlansController> _logger;
+        private readonly ILogger<AdminSubscriptionPlansController> _logger;
         private readonly ILanguageService _languageService;
 
-        public SubscriptionPlansController(
+        public AdminSubscriptionPlansController(
             ISubscriptionPlanService subscriptionPlanService,
-            ILogger<SubscriptionPlansController> logger,
+            ILogger<AdminSubscriptionPlansController> logger,
             ILanguageService languageService)
         {
             _subscriptionPlanService = subscriptionPlanService;
@@ -43,7 +35,8 @@ namespace SubscriptionService.API.Controllers
         /// <param name="createPlanDto">Plan creation details</param>
         /// <returns>Created plan details</returns>
         [HttpPost]
-        public async Task<ActionResult<SubscriptionPlanDto>> CreatePlan([FromBody] CreateSubscriptionPlanDto? createPlanDto)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<SubscriptionPlanDto>> CreatePlan([FromForm] CreateSubscriptionPlanDto? createPlanDto)
         {
             if (createPlanDto == null)
                 return BadRequest(new { success = false, message = "Request body is required." });
@@ -74,7 +67,8 @@ namespace SubscriptionService.API.Controllers
         /// <param name="updatePlanDto">Plan update details</param>
         /// <returns>Updated plan details</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<SubscriptionPlanDto>> UpdatePlan(int id, [FromBody] UpdateSubscriptionPlanDto updatePlanDto)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<SubscriptionPlanDto>> UpdatePlan(int id, [FromForm] UpdateSubscriptionPlanDto updatePlanDto)
         {
             try
             {
@@ -106,6 +100,7 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <param name="id">Plan ID</param>
         /// <returns>Success status</returns>
+        
         [HttpDelete("{id}")]
         public async Task<ActionResult<bool>> DeletePlan(int id)
         {
@@ -124,6 +119,63 @@ namespace SubscriptionService.API.Controllers
                     ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
                     : "Internal server error";
                 return StatusCode(500, new { success = false, message });
+            }
+        }
+
+        /// <summary>
+        /// Toggle (or explicitly set) plan active status.
+        /// Backward-compatible endpoint for clients calling /{id}/toggle-status.
+        /// </summary>
+        /// <param name="id">Plan ID</param>
+        /// <param name="request">Optional explicit status; if omitted, status is toggled</param>
+        /// <returns>Updated status payload</returns>
+        [HttpPut("{id}/toggle-status")]
+        public async Task<ActionResult<object>> TogglePlanStatusById(int id, [FromBody] TogglePlanStatusByIdRequestDto? request = null)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanService.GetPlanByIdAsync(id);
+                if (plan == null)
+                    return NotFound(new { success = false, message = $"Subscription plan with ID {id} not found" });
+
+                var newIsActive = request?.IsActive ?? !plan.IsActive;
+                var updateDto = new UpdateSubscriptionPlanDto
+                {
+                    Name = plan.Name,
+                    Description = plan.Description,
+                    Type = plan.Type,
+                    Price = plan.Price,
+                    Currency = plan.Currency,
+                    TestPapersCount = plan.TestPapersCount,
+                    Discount = plan.Discount,
+                    Duration = plan.Duration,
+                    DurationType = plan.DurationType,
+                    ValidityDays = plan.ValidityDays,
+                    ExamId = plan.ExamId,
+                    ExamCategory = plan.ExamCategory,
+                    Features = plan.Features,
+                    ImageUrl = plan.ImageUrl,
+                    IsPopular = plan.IsPopular,
+                    IsRecommended = plan.IsRecommended,
+                    CardColorTheme = plan.CardColorTheme,
+                    SortOrder = plan.SortOrder,
+                    IsActive = newIsActive,
+                    Translations = plan.Translations?.ToList()
+                };
+
+                await _subscriptionPlanService.UpdatePlanAsync(id, updateDto);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = new { planId = id, isActive = newIsActive },
+                    message = "Plan status updated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling subscription plan status: {PlanId}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
 
@@ -158,36 +210,6 @@ namespace SubscriptionService.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Get subscription plan by ID with duration options (Alternative endpoint for consistency)
-        /// </summary>
-        /// <param name="id">Plan ID</param>
-        /// <param name="language">Optional language code</param>
-        /// <returns>Plan details with duration options</returns>
-        [HttpGet("{id}/with-durations")]
-        public async Task<ActionResult<PlanWithDurationOptionsDto>> GetPlanByIdWithDurations(int id, [FromQuery] string? language = null)
-        {
-            try
-            {
-                var currentLanguage = language ?? _languageService.GetCurrentLanguage();
-                var result = await _subscriptionPlanService.GetPlanWithDurationsAsync(id, currentLanguage);
-                if (result == null)
-                    return NotFound(new { success = false, message = "Subscription plan not found" });
-
-                return Ok(new
-                {
-                    success = true,
-                    data = result,
-                    language = currentLanguage,
-                    message = "Subscription plan with duration options retrieved successfully"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving subscription plan: {PlanId}", id);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
 
         /// <summary>
         /// Get all subscription plans with duration options. Optionally filter by Master Service ExamId.
@@ -369,7 +391,7 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <param name="createPlanDto">Plan creation details with duration options</param>
         /// <returns>Created plan details with duration options</returns>
-        [HttpPost("with-durations")]
+        [HttpPost("durations")]
         public async Task<ActionResult<PlanWithDurationOptionsDto>> CreatePlanWithDurations([FromBody] CreateSubscriptionPlanWithDurationDto createPlanDto)
         {
             if (createPlanDto == null)
@@ -400,41 +422,6 @@ namespace SubscriptionService.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new subscription plan with duration options (Alternative endpoint)
-        /// </summary>
-        /// <param name="createPlanDto">Plan creation details with duration options</param>
-        /// <returns>Created plan details with duration options</returns>
-        [HttpPost("create-with-durations")]
-        public async Task<ActionResult<PlanWithDurationOptionsDto>> CreatePlanWithDurationsAlternative([FromBody] CreateSubscriptionPlanWithDurationDto createPlanDto)
-        {
-            if (createPlanDto == null)
-                return BadRequest(new { success = false, message = "Request body is required." });
-            
-            try
-            {
-                var result = await _subscriptionPlanService.CreatePlanWithDurationsAsync(createPlanDto);
-                return CreatedAtAction(nameof(GetPlanById), new { id = result.Id }, new
-                {
-                    success = true,
-                    data = result,
-                    message = "Subscription plan with duration options created successfully"
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning(ex, "Duplicate subscription plan create blocked");
-                return Conflict(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating subscription plan with durations");
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
-            }
-        }
 
         
         /// <summary>
@@ -528,7 +515,7 @@ namespace SubscriptionService.API.Controllers
         /// Get all subscription plans with duration options (Admin View)
         /// </summary>
         /// <returns>List of plans with duration options</returns>
-        [HttpGet("with-durations")]
+        [HttpGet("durations")]
         public async Task<ActionResult<IEnumerable<PlanWithDurationOptionsDto>>> GetAllPlansWithDurations([FromQuery] string? language = null)
         {
             try
@@ -550,31 +537,6 @@ namespace SubscriptionService.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Get all subscription plans with duration options (Admin View) - Alternative endpoint
-        /// </summary>
-        /// <returns>List of plans with duration options</returns>
-        [HttpGet("all-plans-with-durations")]
-        public async Task<ActionResult<IEnumerable<PlanWithDurationOptionsDto>>> GetAllPlansWithDurationsAlternative([FromQuery] string? language = null)
-        {
-            try
-            {
-                var currentLanguage = language ?? _languageService.GetCurrentLanguage();
-                var result = await _subscriptionPlanService.GetAllPlansWithDurationsAsync(currentLanguage, includeInactive: true);
-                return Ok(new
-                {
-                    success = true,
-                    data = result,
-                    language = currentLanguage,
-                    message = "Subscription plans with duration options fetched successfully"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving subscription plans with durations");
-                return StatusCode(500, new { success = false, message = "Error fetching subscription plans" });
-            }
-        }
 
         /// <summary>
         /// Upload plan image
@@ -636,5 +598,10 @@ namespace SubscriptionService.API.Controllers
                 return StatusCode(500, new { success = false, message });
             }
         }
+    }
+
+    public class TogglePlanStatusByIdRequestDto
+    {
+        public bool? IsActive { get; set; }
     }
 }

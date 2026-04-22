@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RankUpAPI SubscriptionService",
-    "_postman_id": "97b7dada-0e22-489f-a038-474168293299",
+    "_postman_id": "49b26efc-123a-40fc-af9f-8dd6f0a9f4cf",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -520,6 +520,52 @@
       ]
     },
     {
+      "name": "/api/admin/AdminSubscription/plans/{planId}/toggle-popular",
+      "item": [
+        {
+          "name": "PUT /api/admin/AdminSubscription/plans/{planId}/toggle-popular",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans/{planId}/toggle-popular"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/AdminSubscription/plans/{planId}/toggle-recommended",
+      "item": [
+        {
+          "name": "PUT /api/admin/AdminSubscription/plans/{planId}/toggle-recommended",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/AdminSubscription/plans/{planId}/toggle-recommended"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "/api/admin/AdminSubscription/plans/bulk-update",
       "item": [
         {
@@ -604,6 +650,643 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/admin/AdminSubscription/user-subscriptions/extend"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/admin/subscription-plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/{id}",
+      "item": [
+        {
+          "name": "PUT /api/admin/subscription-plans/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/admin/subscription-plans/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/admin/subscription-plans/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/paged",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/paged",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/paged"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/by-exam-id/{examId}",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/by-exam-id/{examId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/by-exam-id/{examId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/by-exam/{examCategory}",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/by-exam/{examCategory}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/by-exam/{examCategory}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/active",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/stats",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/stats"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/durations",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans/durations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/durations"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/admin/subscription-plans/durations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/durations"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/{planId}/duration-options",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans/{planId}/duration-options",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{planId}/duration-options"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/duration-options/{durationOptionId}",
+      "item": [
+        {
+          "name": "PUT /api/admin/subscription-plans/duration-options/{durationOptionId}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/duration-options/{durationOptionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/admin/subscription-plans/duration-options/{durationOptionId}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/duration-options/{durationOptionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/upload-image",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans/upload-image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/upload-image"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions",
+      "item": [
+        {
+          "name": "POST /api/admin/user-subscriptions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/admin/user-subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/user/{userId}",
+      "item": [
+        {
+          "name": "GET /api/admin/user-subscriptions/user/{userId}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/user/{userId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/user/{userId}/active",
+      "item": [
+        {
+          "name": "GET /api/admin/user-subscriptions/user/{userId}/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/user/{userId}/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/{id}",
+      "item": [
+        {
+          "name": "PUT /api/admin/user-subscriptions/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/{id}/cancel",
+      "item": [
+        {
+          "name": "PUT /api/admin/user-subscriptions/{id}/cancel",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/{id}/cancel"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/renew",
+      "item": [
+        {
+          "name": "POST /api/admin/user-subscriptions/renew",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/renew"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/cancel",
+      "item": [
+        {
+          "name": "POST /api/admin/user-subscriptions/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/cancel"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/active",
+      "item": [
+        {
+          "name": "GET /api/admin/user-subscriptions/active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/active"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/expiring",
+      "item": [
+        {
+          "name": "GET /api/admin/user-subscriptions/expiring",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/expiring"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/user-management/stats",
+      "item": [
+        {
+          "name": "GET /api/admin/user-subscriptions/user-management/stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/user-management/stats"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/user-management/users",
+      "item": [
+        {
+          "name": "GET /api/admin/user-subscriptions/user-management/users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/user-management/users"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/user-subscriptions/user-management/block",
+      "item": [
+        {
+          "name": "POST /api/admin/user-subscriptions/user-management/block",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/user-subscriptions/user-management/block"
             },
             "description": ""
           },
@@ -842,855 +1525,6 @@
       ]
     },
     {
-      "name": "/api/user/Payments/create-order",
-      "item": [
-        {
-          "name": "POST /api/user/Payments/create-order",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Payments/create-order"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/Payments/create-order",
-      "item": [
-        {
-          "name": "POST /api/Payments/create-order",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/Payments/create-order"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Payments/initiate",
-      "item": [
-        {
-          "name": "POST /api/user/Payments/initiate",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Payments/initiate"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/Payments/initiate",
-      "item": [
-        {
-          "name": "POST /api/Payments/initiate",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/Payments/initiate"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Payments/verify",
-      "item": [
-        {
-          "name": "POST /api/user/Payments/verify",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Payments/verify"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/Payments/verify",
-      "item": [
-        {
-          "name": "POST /api/Payments/verify",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/Payments/verify"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Payments/refund",
-      "item": [
-        {
-          "name": "POST /api/user/Payments/refund",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Payments/refund"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/Payments/refund",
-      "item": [
-        {
-          "name": "POST /api/Payments/refund",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/Payments/refund"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Payments/history",
-      "item": [
-        {
-          "name": "GET /api/user/Payments/history",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Payments/history"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/Payments/history",
-      "item": [
-        {
-          "name": "GET /api/Payments/history",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/Payments/history"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/public/subscription-plans/active",
-      "item": [
-        {
-          "name": "GET /api/public/subscription-plans/active",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/public/subscription-plans/active"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/public/subscription-plans/by-exam/{examCategory}",
-      "item": [
-        {
-          "name": "GET /api/public/subscription-plans/by-exam/{examCategory}",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/public/subscription-plans/by-exam/{examCategory}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/public/subscription-plans/{id}",
-      "item": [
-        {
-          "name": "GET /api/public/subscription-plans/{id}",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/public/subscription-plans/{id}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans",
-      "item": [
-        {
-          "name": "POST /api/admin/subscription-plans",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans"
-            },
-            "description": ""
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/admin/subscription-plans",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/{id}",
-      "item": [
-        {
-          "name": "PUT /api/admin/subscription-plans/{id}",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
-            },
-            "description": ""
-          },
-          "response": []
-        },
-        {
-          "name": "DELETE /api/admin/subscription-plans/{id}",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
-            },
-            "description": ""
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/admin/subscription-plans/{id}",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/{id}/with-durations",
-      "item": [
-        {
-          "name": "GET /api/admin/subscription-plans/{id}/with-durations",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}/with-durations"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/paged",
-      "item": [
-        {
-          "name": "GET /api/admin/subscription-plans/paged",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/paged"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/by-exam-id/{examId}",
-      "item": [
-        {
-          "name": "GET /api/admin/subscription-plans/by-exam-id/{examId}",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/by-exam-id/{examId}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/by-exam/{examCategory}",
-      "item": [
-        {
-          "name": "GET /api/admin/subscription-plans/by-exam/{examCategory}",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/by-exam/{examCategory}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/active",
-      "item": [
-        {
-          "name": "GET /api/admin/subscription-plans/active",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/active"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/stats",
-      "item": [
-        {
-          "name": "GET /api/admin/subscription-plans/stats",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/stats"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/with-durations",
-      "item": [
-        {
-          "name": "POST /api/admin/subscription-plans/with-durations",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/with-durations"
-            },
-            "description": ""
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/admin/subscription-plans/with-durations",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/with-durations"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/create-with-durations",
-      "item": [
-        {
-          "name": "POST /api/admin/subscription-plans/create-with-durations",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/create-with-durations"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/{planId}/duration-options",
-      "item": [
-        {
-          "name": "POST /api/admin/subscription-plans/{planId}/duration-options",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/{planId}/duration-options"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/duration-options/{durationOptionId}",
-      "item": [
-        {
-          "name": "PUT /api/admin/subscription-plans/duration-options/{durationOptionId}",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/duration-options/{durationOptionId}"
-            },
-            "description": ""
-          },
-          "response": []
-        },
-        {
-          "name": "DELETE /api/admin/subscription-plans/duration-options/{durationOptionId}",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/duration-options/{durationOptionId}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/all-plans-with-durations",
-      "item": [
-        {
-          "name": "GET /api/admin/subscription-plans/all-plans-with-durations",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/all-plans-with-durations"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/subscription-plans/upload-image",
-      "item": [
-        {
-          "name": "POST /api/admin/subscription-plans/upload-image",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/upload-image"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Subscriptions/my-subscription",
-      "item": [
-        {
-          "name": "GET /api/user/Subscriptions/my-subscription",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Subscriptions/my-subscription"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Subscriptions/history",
-      "item": [
-        {
-          "name": "GET /api/user/Subscriptions/history",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Subscriptions/history"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Subscriptions",
-      "item": [
-        {
-          "name": "POST /api/user/Subscriptions",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Subscriptions"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Subscriptions/activate",
-      "item": [
-        {
-          "name": "POST /api/user/Subscriptions/activate",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Subscriptions/activate"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Subscriptions/cancel",
-      "item": [
-        {
-          "name": "POST /api/user/Subscriptions/cancel",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Subscriptions/cancel"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/Subscriptions/plans/active",
-      "item": [
-        {
-          "name": "GET /api/user/Subscriptions/plans/active",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/Subscriptions/plans/active"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
       "name": "/api/system/SubscriptionValidation/validate",
       "item": [
         {
@@ -1806,148 +1640,10 @@
       ]
     },
     {
-      "name": "/api/user/plans/by-exam/{examCategory}",
+      "name": "/api/user/payments/initiate",
       "item": [
         {
-          "name": "GET /api/user/plans/by-exam/{examCategory}",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/plans/by-exam/{examCategory}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/plans/active",
-      "item": [
-        {
-          "name": "GET /api/user/plans/active",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/plans/active"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/plans/active/available",
-      "item": [
-        {
-          "name": "GET /api/user/plans/active/available",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/plans/active/available"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/plans/{id}",
-      "item": [
-        {
-          "name": "GET /api/user/plans/{id}",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/plans/{id}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/plans/{id}/with-durations",
-      "item": [
-        {
-          "name": "GET /api/user/plans/{id}/with-durations",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/plans/{id}/with-durations"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/plans/with-durations",
-      "item": [
-        {
-          "name": "GET /api/user/plans/with-durations",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/user/plans/with-durations"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/user/plans/purchase",
-      "item": [
-        {
-          "name": "POST /api/user/plans/purchase",
+          "name": "POST /api/user/payments/initiate",
           "request": {
             "method": "POST",
             "header": [
@@ -1958,7 +1654,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/user/plans/purchase"
+              "raw": "{{baseUrl}}/api/user/payments/initiate"
             },
             "description": ""
           },
@@ -1967,79 +1663,10 @@
       ]
     },
     {
-      "name": "/api/admin/UserSubscriptions",
+      "name": "/api/user/payments/verify",
       "item": [
         {
-          "name": "GET /api/admin/UserSubscriptions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/UserSubscriptions"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/UserSubscriptions/user/{userId}",
-      "item": [
-        {
-          "name": "GET /api/admin/UserSubscriptions/user/{userId}",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/user/{userId}"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/UserSubscriptions/user/{userId}/active",
-      "item": [
-        {
-          "name": "GET /api/admin/UserSubscriptions/user/{userId}/active",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/user/{userId}/active"
-            },
-            "description": ""
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "/api/admin/UserSubscriptions/renew",
-      "item": [
-        {
-          "name": "POST /api/admin/UserSubscriptions/renew",
+          "name": "POST /api/user/payments/verify",
           "request": {
             "method": "POST",
             "header": [
@@ -2050,7 +1677,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/renew"
+              "raw": "{{baseUrl}}/api/user/payments/verify"
             },
             "description": ""
           },
@@ -2059,10 +1686,10 @@
       ]
     },
     {
-      "name": "/api/admin/UserSubscriptions/cancel",
+      "name": "/api/user/payments/refund",
       "item": [
         {
-          "name": "POST /api/admin/UserSubscriptions/cancel",
+          "name": "POST /api/user/payments/refund",
           "request": {
             "method": "POST",
             "header": [
@@ -2073,7 +1700,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/cancel"
+              "raw": "{{baseUrl}}/api/user/payments/refund"
             },
             "description": ""
           },
@@ -2082,10 +1709,10 @@
       ]
     },
     {
-      "name": "/api/admin/UserSubscriptions/active",
+      "name": "/api/user/payments",
       "item": [
         {
-          "name": "GET /api/admin/UserSubscriptions/active",
+          "name": "GET /api/user/payments",
           "request": {
             "method": "GET",
             "header": [
@@ -2096,7 +1723,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/active"
+              "raw": "{{baseUrl}}/api/user/payments"
             },
             "description": ""
           },
@@ -2105,10 +1732,10 @@
       ]
     },
     {
-      "name": "/api/admin/UserSubscriptions/expiring",
+      "name": "/api/v1/user/plans",
       "item": [
         {
-          "name": "GET /api/admin/UserSubscriptions/expiring",
+          "name": "GET /api/v1/user/plans",
           "request": {
             "method": "GET",
             "header": [
@@ -2119,7 +1746,186 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/admin/UserSubscriptions/expiring"
+              "raw": "{{baseUrl}}/api/v1/user/plans"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/v1/user/plans/by-exam/{examCategory}",
+      "item": [
+        {
+          "name": "GET /api/v1/user/plans/by-exam/{examCategory}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/plans/by-exam/{examCategory}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/v1/user/plans/durations/{id}",
+      "item": [
+        {
+          "name": "GET /api/v1/user/plans/durations/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/plans/durations/{id}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/subscriptions/current",
+      "item": [
+        {
+          "name": "GET /api/user/subscriptions/current",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions/current"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/subscriptions",
+      "item": [
+        {
+          "name": "GET /api/user/subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/user/subscriptions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/subscriptions/activate",
+      "item": [
+        {
+          "name": "POST /api/user/subscriptions/activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions/activate"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/subscriptions/cancel",
+      "item": [
+        {
+          "name": "POST /api/user/subscriptions/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions/cancel"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/user/subscriptions/plans/available",
+      "item": [
+        {
+          "name": "GET /api/user/subscriptions/plans/available",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/subscriptions/plans/available"
             },
             "description": ""
           },

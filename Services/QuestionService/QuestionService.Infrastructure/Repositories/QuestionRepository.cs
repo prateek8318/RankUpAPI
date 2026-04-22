@@ -1096,5 +1096,91 @@ namespace QuestionService.Infrastructure.Repositories
                   || string.Equals(input, "yes", StringComparison.OrdinalIgnoreCase)
                   || string.Equals(input, "y", StringComparison.OrdinalIgnoreCase);
         }
+
+        // Exam Integration Methods
+        public async Task<ExamNameDto> GetExamDetailsAsync(int examId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT 
+                        e.Id,
+                        e.Name,
+                        e.ExamType,
+                        e.SubjectId,
+                        s.Name AS SubjectName,
+                        e.HasNegativeMarking,
+                        e.NegativeMarkingValue,
+                        e.MarksPerQuestion
+                    FROM Exams e
+                    LEFT JOIN Subjects s ON e.SubjectId = s.Id
+                    WHERE e.Id = @ExamId AND e.IsActive = 1";
+
+                return await connection.QuerySingleOrDefaultAsync<ExamNameDto>(sql, new { ExamId = examId });
+            });
+        }
+
+        public async Task<IEnumerable<ExamTypeDto>> GetExamTypesAsync()
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT DISTINCT 
+                        et.Id,
+                        et.Name,
+                        et.ExamType
+                    FROM ExamTypes et
+                    WHERE et.IsActive = 1
+                    ORDER BY et.Name";
+
+                return await connection.QueryAsync<ExamTypeDto>(sql);
+            });
+        }
+
+        public async Task<IEnumerable<ExamNameDto>> GetExamNamesByTypeAsync(string examType)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT 
+                        e.Id,
+                        e.Name,
+                        e.ExamType,
+                        e.SubjectId,
+                        s.Name AS SubjectName,
+                        e.HasNegativeMarking,
+                        e.NegativeMarkingValue,
+                        e.MarksPerQuestion
+                    FROM Exams e
+                    LEFT JOIN Subjects s ON e.SubjectId = s.Id
+                    WHERE e.ExamType = @ExamType AND e.IsActive = 1
+                    ORDER BY e.Name";
+
+                return await connection.QueryAsync<ExamNameDto>(sql, new { ExamType = examType });
+            });
+        }
+
+        public async Task<IEnumerable<ExamNameDto>> GetAllExamNamesAsync()
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT 
+                        e.Id,
+                        e.Name,
+                        e.ExamType,
+                        e.SubjectId,
+                        s.Name AS SubjectName,
+                        e.HasNegativeMarking,
+                        e.NegativeMarkingValue,
+                        e.MarksPerQuestion
+                    FROM Exams e
+                    LEFT JOIN Subjects s ON e.SubjectId = s.Id
+                    WHERE e.IsActive = 1
+                    ORDER BY e.ExamType, e.Name";
+
+                return await connection.QueryAsync<ExamNameDto>(sql);
+            });
+        }
     }
 }

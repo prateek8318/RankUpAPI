@@ -20,7 +20,7 @@ namespace SubscriptionService.Domain.Services
             _logger = logger;
         }
 
-        public async Task<SubscriptionValidationResult> ValidateSubscriptionAsync(int userId, string examCategory = null)
+        public async Task<SubscriptionValidationResult> ValidateSubscriptionAsync(int userId, string? examCategory = null)
         {
             try
             {

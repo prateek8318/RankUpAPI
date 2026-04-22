@@ -15,15 +15,18 @@ namespace SubscriptionService.Application.Services
         private readonly ISubscriptionPlanRepository _subscriptionPlanRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<SubscriptionPlanService> _logger;
+        private readonly IImageUploadService _imageUploadService;
 
         public SubscriptionPlanService(
             ISubscriptionPlanRepository subscriptionPlanRepository,
             IMapper mapper,
-            ILogger<SubscriptionPlanService> logger)
+            ILogger<SubscriptionPlanService> logger,
+            IImageUploadService imageUploadService)
         {
             _subscriptionPlanRepository = subscriptionPlanRepository;
             _mapper = mapper;
             _logger = logger;
+            _imageUploadService = imageUploadService;
         }
 
         public async Task<SubscriptionPlanDto> CreatePlanAsync(CreateSubscriptionPlanDto createPlanDto)
@@ -36,7 +39,15 @@ namespace SubscriptionService.Application.Services
                 if (duplicate)
                     throw new InvalidOperationException($"Subscription plan '{createPlanDto.Name}' already exists for this exam type and duration type.");
 
+                // Handle image upload
+                string? imageUrl = createPlanDto.ImageUrl;
+                if (createPlanDto.ImageFile != null)
+                {
+                    imageUrl = await _imageUploadService.UploadImageAsync(createPlanDto.ImageFile);
+                }
+
                 var plan = _mapper.Map<SubscriptionPlan>(createPlanDto);
+                plan.ImageUrl = imageUrl;
                 plan.CreatedAt = DateTime.UtcNow;
                 plan.IsActive = true;
                 if (plan.ValidityDays <= 0)
@@ -99,7 +110,22 @@ namespace SubscriptionService.Application.Services
                 if (duplicate)
                     throw new InvalidOperationException($"Subscription plan '{updatePlanDto.Name}' already exists for this exam type and duration type.");
 
+                // Handle image upload
+                string? imageUrl = updatePlanDto.ImageUrl;
+                if (updatePlanDto.ImageFile != null)
+                {
+                    // Delete old image if exists
+                    if (!string.IsNullOrEmpty(existingPlan.ImageUrl))
+                    {
+                        _imageUploadService.DeleteImage(existingPlan.ImageUrl);
+                    }
+                    
+                    // Upload new image
+                    imageUrl = await _imageUploadService.UploadImageAsync(updatePlanDto.ImageFile);
+                }
+
                 _mapper.Map(updatePlanDto, existingPlan);
+                existingPlan.ImageUrl = imageUrl;
                 existingPlan.UpdatedAt = DateTime.UtcNow;
                 if (existingPlan.ValidityDays <= 0)
                     existingPlan.ValidityDays = ComputeValidityDays(existingPlan.Duration, existingPlan.DurationType);
@@ -343,6 +369,44 @@ namespace SubscriptionService.Application.Services
             }
         }
 
+        public async Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansByExamIdsAsync(string? language, List<int> examIds)
+        {
+            try
+            {
+                if (examIds == null || !examIds.Any())
+                {
+                    _logger.LogWarning("No exam IDs provided for filtering plans");
+                    return new List<SubscriptionPlanListDto>();
+                }
+
+                // Get all active plans first
+                var allPlans = await _subscriptionPlanRepository.GetActivePlansAsync();
+                
+                // Filter plans by user's selected exam IDs
+                // Check if ExamCategory matches any of the user's selected exam IDs
+                var filteredPlans = allPlans.Where(plan => 
+                {
+                    // Try to parse ExamCategory as integer to match with exam IDs
+                    if (int.TryParse(plan.ExamCategory, out int planExamId))
+                    {
+                        return examIds.Contains(planExamId);
+                    }
+                    return false;
+                }).ToList();
+
+                _logger.LogInformation("Filtered {TotalCount} plans to {FilteredCount} plans based on exam IDs: {ExamIds}", 
+                    allPlans.Count(), filteredPlans.Count(), string.Join(", ", examIds));
+
+                var result = _mapper.Map<IEnumerable<SubscriptionPlanListDto>>(filteredPlans);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active subscription plans filtered by exam IDs: {ExamIds}", string.Join(", ", examIds));
+                throw;
+            }
+        }
+
         private static string NormalizeLanguage(string? language)
         {
             if (string.IsNullOrWhiteSpace(language)) return "en";
@@ -432,10 +496,20 @@ namespace SubscriptionService.Application.Services
         {
             try
             {
-                // For now, return 0 as we need to implement payment repository
-                // TODO: Implement payment repository to get actual revenue data
-                _logger.LogInformation("Monthly revenue calculation not yet implemented - returning 0");
-                return 0;
+                // Get current month start and end dates
+                var now = DateTime.UtcNow;
+                var monthStart = new DateTime(now.Year, now.Month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                // Get payments from current month
+                var payments = await _subscriptionPlanRepository.GetPaymentsByDateRangeAsync(monthStart, monthEnd);
+                var monthlyRevenue = payments.Where(p => p.Status == PaymentStatus.Success)
+                                            .Sum(p => p.FinalAmount);
+
+                _logger.LogInformation("Monthly revenue calculated: {Revenue} for {Month}-{Year}", 
+                    monthlyRevenue, now.Month, now.Year);
+                
+                return monthlyRevenue;
             }
             catch (Exception ex)
             {
@@ -448,10 +522,16 @@ namespace SubscriptionService.Application.Services
         {
             try
             {
-                // For now, return 0 as we need to implement user subscription repository
-                // TODO: Implement user subscription repository to get actual expiring data
-                _logger.LogInformation("Expiring soon calculation not yet implemented - returning 0");
-                return 0;
+                // Get subscriptions expiring in next 7 days
+                var now = DateTime.UtcNow;
+                var sevenDaysFromNow = now.AddDays(7);
+
+                var expiringSubscriptions = await _subscriptionPlanRepository.GetExpiringSubscriptionsAsync(now, sevenDaysFromNow);
+                var expiringSoonCount = expiringSubscriptions.Count(s => s.Status == "Active");
+
+                _logger.LogInformation("Expiring soon subscriptions count: {Count} for next 7 days", expiringSoonCount);
+                
+                return expiringSoonCount;
             }
             catch (Exception ex)
             {
@@ -464,10 +544,16 @@ namespace SubscriptionService.Application.Services
         {
             try
             {
-                // For now, return 0 as we need to implement user subscription repository
-                // TODO: Implement user subscription repository to get actual subscriber data
-                _logger.LogInformation("New subscribers calculation not yet implemented - returning 0");
-                return 0;
+                // Get new subscribers from last 30 days
+                var now = DateTime.UtcNow;
+                var thirtyDaysAgo = now.AddDays(-30);
+
+                var newSubscriptions = await _subscriptionPlanRepository.GetNewSubscriptionsAsync(thirtyDaysAgo, now);
+                var newSubscribersCount = newSubscriptions.Count(s => s.Status == "Active" || s.Status == "Pending");
+
+                _logger.LogInformation("New subscribers count: {Count} for last 30 days", newSubscribersCount);
+                
+                return newSubscribersCount;
             }
             catch (Exception ex)
             {
@@ -537,7 +623,12 @@ namespace SubscriptionService.Application.Services
                 // Create plan with durations and translations in a single transaction
                 var createdPlan = await _subscriptionPlanRepository.CreatePlanWithDurationsAsync(plan, durationOptions, translations);
 
-                return await GetPlanWithDurationsAsync(createdPlan.Id, "en");
+                var result = await GetPlanWithDurationsAsync(createdPlan.Id, "en");
+                if (result == null)
+                {
+                    throw new InvalidOperationException("Failed to retrieve created plan with durations");
+                }
+                return result;
             }
             catch (Exception ex)
             {
@@ -748,7 +839,7 @@ namespace SubscriptionService.Application.Services
             try
             {
                 var currentLanguage = language ?? "en";
-                var plans = await _subscriptionPlanRepository.GetActivePlansWithDurationsAsync(currentLanguage, null);
+                var plans = await _subscriptionPlanRepository.GetAllPlansWithDurationsAsync(currentLanguage, null);
                 var planDtos = _mapper.Map<IEnumerable<PlanWithDurationOptionsDto>>(plans).ToList();
 
                 // Filter out inactive plans if not requested
@@ -762,6 +853,138 @@ namespace SubscriptionService.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving all subscription plans with durations");
+                throw;
+            }
+        }
+
+        
+        public async Task<SubscriptionPlanDto> TogglePopularAsync(int id)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanRepository.GetByIdAsync(id);
+                if (plan == null)
+                {
+                    throw new KeyNotFoundException($"Subscription plan with ID {id} not found");
+                }
+
+                plan.IsPopular = !plan.IsPopular;
+                plan.UpdatedAt = DateTime.UtcNow;
+
+                var updatedPlan = await _subscriptionPlanRepository.UpdateAsync(plan);
+                var result = _mapper.Map<SubscriptionPlanDto>(updatedPlan);
+                
+                _logger.LogInformation("Successfully toggled popular status for plan: {PlanId}", id);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling popular status for plan: {PlanId}", id);
+                throw;
+            }
+        }
+
+        public async Task<SubscriptionPlanDto> ToggleRecommendedAsync(int id)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanRepository.GetByIdAsync(id);
+                if (plan == null)
+                {
+                    throw new KeyNotFoundException($"Subscription plan with ID {id} not found");
+                }
+
+                plan.IsRecommended = !plan.IsRecommended;
+                plan.UpdatedAt = DateTime.UtcNow;
+
+                var updatedPlan = await _subscriptionPlanRepository.UpdateAsync(plan);
+                var result = _mapper.Map<SubscriptionPlanDto>(updatedPlan);
+                
+                _logger.LogInformation("Successfully toggled recommended status for plan: {PlanId}", id);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling recommended status for plan: {PlanId}", id);
+                throw;
+            }
+        }
+
+        public async Task<SubscriptionPlanDto> ToggleStatusAsync(int id)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanRepository.GetByIdAsync(id);
+                if (plan == null)
+                {
+                    throw new KeyNotFoundException($"Subscription plan with ID {id} not found");
+                }
+
+                plan.IsActive = !plan.IsActive;
+                plan.UpdatedAt = DateTime.UtcNow;
+
+                var updatedPlan = await _subscriptionPlanRepository.UpdateAsync(plan);
+                var result = _mapper.Map<SubscriptionPlanDto>(updatedPlan);
+                
+                _logger.LogInformation("Successfully toggled status for plan: {PlanId}", id);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling status for plan: {PlanId}", id);
+                throw;
+            }
+        }
+
+        private decimal CalculateAutomaticPrice(decimal basePrice, int durationMonths)
+        {
+            try
+            {
+                // Automatic pricing logic based on duration
+                decimal discountPercentage = 0;
+
+                // Progressive discount for longer durations
+                switch (durationMonths)
+                {
+                    case 1:
+                        discountPercentage = 0; // No discount for 1 month
+                        break;
+                    case 3:
+                        discountPercentage = 10; // 10% discount for 3 months
+                        break;
+                    case 6:
+                        discountPercentage = 20; // 20% discount for 6 months
+                        break;
+                    case 12:
+                        discountPercentage = 33; // 33% discount for 12 months (1 year)
+                        break;
+                    default:
+                        // For custom durations, calculate discount progressively
+                        if (durationMonths >= 24)
+                            discountPercentage = 40; // 40% discount for 2+ years
+                        else if (durationMonths >= 18)
+                            discountPercentage = 30; // 30% discount for 18 months
+                        else if (durationMonths >= 12)
+                            discountPercentage = 25; // 25% discount for 12-17 months
+                        else if (durationMonths >= 6)
+                            discountPercentage = 15; // 15% discount for 6-11 months
+                        else if (durationMonths >= 3)
+                            discountPercentage = 5; // 5% discount for 3-5 months
+                        break;
+                }
+
+                // Calculate final price
+                var discountAmount = basePrice * (discountPercentage / 100);
+                var finalPrice = basePrice * durationMonths - discountAmount;
+
+                _logger.LogInformation("Calculated automatic price: BasePrice={BasePrice}, Duration={Duration} months, Discount={Discount}%, FinalPrice={FinalPrice}", 
+                    basePrice, durationMonths, discountPercentage, finalPrice);
+
+                return finalPrice;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating automatic price for base price {BasePrice} and duration {Duration}", basePrice, durationMonths);
                 throw;
             }
         }

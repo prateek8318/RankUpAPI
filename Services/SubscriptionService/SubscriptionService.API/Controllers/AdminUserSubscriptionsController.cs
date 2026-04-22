@@ -8,20 +8,45 @@ namespace SubscriptionService.API.Controllers
     /// <summary>
     /// User Subscription Management Controller for Admins
     /// </summary>
-    [Route("api/admin/[controller]")]
+    [Route("api/admin/user-subscriptions")]
     [ApiController]
     [Authorize(Roles = "Admin")]
-    public class UserSubscriptionsController : ControllerBase
+    public class AdminUserSubscriptionsController : ControllerBase
     {
         private readonly IUserSubscriptionService _userSubscriptionService;
-        private readonly ILogger<UserSubscriptionsController> _logger;
+        private readonly ILogger<AdminUserSubscriptionsController> _logger;
 
-        public UserSubscriptionsController(
+        public AdminUserSubscriptionsController(
             IUserSubscriptionService userSubscriptionService,
-            ILogger<UserSubscriptionsController> logger)
+            ILogger<AdminUserSubscriptionsController> logger)
         {
             _userSubscriptionService = userSubscriptionService;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Create a new user subscription (admin override)
+        /// </summary>
+        /// <param name="createUserSubscriptionDto">User subscription creation details</param>
+        /// <returns>Created user subscription details</returns>
+        [HttpPost]
+        public async Task<ActionResult<UserSubscriptionDto>> CreateUserSubscription([FromBody] CreateUserSubscriptionDto createUserSubscriptionDto)
+        {
+            try
+            {
+                var result = await _userSubscriptionService.CreateSubscriptionAsync(createUserSubscriptionDto);
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    message = "User subscription created successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating user subscription for user: {UserId}", createUserSubscriptionDto.UserId);
+                return StatusCode(500, new { success = false, message = "Error creating user subscription" });
+            }
         }
 
         /// <summary>
@@ -83,6 +108,72 @@ namespace SubscriptionService.API.Controllers
             {
                 _logger.LogError(ex, "Error retrieving active subscription for user: {UserId}", userId);
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Update a user subscription
+        /// </summary>
+        /// <param name="id">Subscription ID</param>
+        /// <param name="updateUserSubscriptionDto">Update details</param>
+        /// <returns>Updated subscription details</returns>
+        [HttpPut("{id}")]
+        public async Task<ActionResult<UserSubscriptionDto>> UpdateUserSubscription(int id)
+        {
+            try
+            {
+                // For now, just get the active subscription by user ID
+                var result = await _userSubscriptionService.GetMySubscriptionAsync(id);
+                if (result == null)
+                    return NotFound(new { success = false, message = "User subscription not found" });
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    message = "User subscription retrieved successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "User subscription not found: {SubscriptionId}", id);
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user subscription: {SubscriptionId}", id);
+                return StatusCode(500, new { success = false, message = "Error updating user subscription" });
+            }
+        }
+
+        /// <summary>
+        /// Cancel a user subscription by ID
+        /// </summary>
+        /// <param name="id">Subscription ID</param>
+        /// <returns>Cancelled subscription details</returns>
+        [HttpPut("{id}/cancel")]
+        public async Task<ActionResult<UserSubscriptionDto>> CancelSubscription(int id)
+        {
+            try
+            {
+                var cancelDto = new CancelSubscriptionDto { SubscriptionId = id };
+                var result = await _userSubscriptionService.CancelSubscriptionAsync(cancelDto);
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    message = "Subscription cancelled successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "User subscription not found for cancellation: {SubscriptionId}", id);
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling user subscription: {SubscriptionId}", id);
+                return StatusCode(500, new { success = false, message = "Error cancelling user subscription" });
             }
         }
 
@@ -172,6 +263,97 @@ namespace SubscriptionService.API.Controllers
             {
                 _logger.LogError(ex, "Error retrieving expiring subscriptions");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get user management statistics
+        /// </summary>
+        /// <returns>User management stats including total users, active subscribers, free users, new users</returns>
+        [HttpGet("user-management/stats")]
+        public async Task<ActionResult<UserManagementStatsDto>> GetUserManagementStats()
+        {
+            try
+            {
+                var result = await _userSubscriptionService.GetUserManagementStatsAsync();
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    message = "User management statistics retrieved successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving user management statistics");
+                return StatusCode(500, new { success = false, message = "Error retrieving user management statistics" });
+            }
+        }
+
+        /// <summary>
+        /// Get all users with their subscription details
+        /// </summary>
+        /// <returns>List of users with subscription information</returns>
+        [HttpGet("user-management/users")]
+        public async Task<ActionResult<IEnumerable<UserManagementDto>>> GetAllUsersWithSubscriptionDetails()
+        {
+            try
+            {
+                var result = await _userSubscriptionService.GetAllUsersWithSubscriptionDetailsAsync();
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    message = "Users with subscription details retrieved successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving users with subscription details");
+                return StatusCode(500, new { success = false, message = "Error retrieving users with subscription details" });
+            }
+        }
+
+        /// <summary>
+        /// Block or unblock a user
+        /// </summary>
+        /// <param name="blockUserDto">User blocking details</param>
+        /// <returns>Blocking operation result</returns>
+        [HttpPost("user-management/block")]
+        public async Task<ActionResult<BlockUserResponseDto>> BlockUser([FromBody] BlockUserDto blockUserDto)
+        {
+            try
+            {
+                if (blockUserDto.UserId <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Invalid user ID" });
+                }
+
+                var result = await _userSubscriptionService.BlockUserAsync(blockUserDto);
+                
+                if (result.Success)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        data = result,
+                        message = result.Message
+                    });
+                }
+                else
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        data = result,
+                        message = result.Message
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error blocking/unblocking user {UserId}", blockUserDto.UserId);
+                return StatusCode(500, new { success = false, message = "Error blocking/unblocking user" });
             }
         }
     }

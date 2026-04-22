@@ -335,6 +335,102 @@ namespace SubscriptionService.API.Controllers
         }
 
         /// <summary>
+        /// Toggle plan popular status
+        /// </summary>
+        /// <param name="planId">Plan ID</param>
+        /// <returns>No content</returns>
+        [HttpPut("plans/{planId}/toggle-popular")]
+        public async Task<ActionResult> TogglePlanPopular(int planId)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanService.GetPlanByIdAsync(planId);
+                if (plan == null)
+                    return NotFound($"Subscription plan with ID {planId} not found");
+
+                var updateDto = new UpdateSubscriptionPlanDto
+                {
+                    Name = plan.Name,
+                    Description = plan.Description,
+                    Type = plan.Type,
+                    Price = plan.Price,
+                    Currency = plan.Currency,
+                    TestPapersCount = plan.TestPapersCount,
+                    Discount = plan.Discount,
+                    Duration = plan.Duration,
+                    DurationType = plan.DurationType,
+                    ValidityDays = plan.ValidityDays,
+                    ExamId = plan.ExamId,
+                    ExamCategory = plan.ExamCategory,
+                    Features = plan.Features,
+                    ImageUrl = plan.ImageUrl,
+                    IsPopular = !plan.IsPopular,
+                    IsRecommended = plan.IsRecommended,
+                    CardColorTheme = plan.CardColorTheme,
+                    SortOrder = plan.SortOrder,
+                    IsActive = plan.IsActive,
+                    Translations = plan.Translations?.ToList()
+                };
+
+                await _subscriptionPlanService.UpdatePlanAsync(planId, updateDto);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling plan popularity: {PlanId}", planId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Toggle plan recommended status
+        /// </summary>
+        /// <param name="planId">Plan ID</param>
+        /// <returns>No content</returns>
+        [HttpPut("plans/{planId}/toggle-recommended")]
+        public async Task<ActionResult> TogglePlanRecommended(int planId)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanService.GetPlanByIdAsync(planId);
+                if (plan == null)
+                    return NotFound($"Subscription plan with ID {planId} not found");
+
+                var updateDto = new UpdateSubscriptionPlanDto
+                {
+                    Name = plan.Name,
+                    Description = plan.Description,
+                    Type = plan.Type,
+                    Price = plan.Price,
+                    Currency = plan.Currency,
+                    TestPapersCount = plan.TestPapersCount,
+                    Discount = plan.Discount,
+                    Duration = plan.Duration,
+                    DurationType = plan.DurationType,
+                    ValidityDays = plan.ValidityDays,
+                    ExamId = plan.ExamId,
+                    ExamCategory = plan.ExamCategory,
+                    Features = plan.Features,
+                    ImageUrl = plan.ImageUrl,
+                    IsPopular = plan.IsPopular,
+                    IsRecommended = !plan.IsRecommended,
+                    CardColorTheme = plan.CardColorTheme,
+                    SortOrder = plan.SortOrder,
+                    IsActive = plan.IsActive,
+                    Translations = plan.Translations?.ToList()
+                };
+
+                await _subscriptionPlanService.UpdatePlanAsync(planId, updateDto);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling plan recommendation: {PlanId}", planId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
         /// Bulk update multiple plans
         /// </summary>
         /// <param name="request">Bulk update request</param>

@@ -93,34 +93,7 @@
         "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
       }
     },
-        {
-      "DownstreamPathTemplate": "/api/admin/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 56925
-        },
-        {
-          "Host": "192.168.1.14",
-          "Port": 56925
-        },
-        {
-          "Host": "192.168.1.21",
-          "Port": 56925
-        },
-        {
-          "Host": "192.168.1.23",
-          "Port": 56925
-        }
-      ],
-      "UpstreamPathTemplate": "/api/admin/subscriptions/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
-      "UpstreamHeaderTransform": {
-        "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
-      }
-    },
-    {
+            {
       "DownstreamPathTemplate": "/api/admin/auth/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -810,7 +783,7 @@
       }
     },
         {
-      "DownstreamPathTemplate": "/api/public/subscription-plans/{everything}",
+      "DownstreamPathTemplate": "/api/v1/user/plans/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -830,7 +803,7 @@
           "Port": 56925
         }
       ],
-      "UpstreamPathTemplate": "/api/public/subscription-plans/{everything}",
+      "UpstreamPathTemplate": "/api/user/plans/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
       "UpstreamHeaderTransform": {
         "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
@@ -838,7 +811,7 @@
       "Priority": 100
     },
         {
-      "DownstreamPathTemplate": "/api/payments/{everything}",
+      "DownstreamPathTemplate": "/api/v1/payments/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -897,21 +870,7 @@
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
       "Priority": 100
     },
-    {
-      "DownstreamPathTemplate": "/api/user/plans/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 56925 },
-        { "Host": "192.168.1.14", "Port": 56925 },
-        { "Host": "192.168.1.21", "Port": 56925 },
-        { "Host": "192.168.1.23", "Port": 56925 }
-      ],
-      "UpstreamPathTemplate": "/api/user/plans/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
-      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
-      "Priority": 100
-    },
-    {
+        {
       "DownstreamPathTemplate": "/api/user/userplans/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -949,6 +908,20 @@
         { "Host": "192.168.1.23", "Port": 56925 }
       ],
       "UpstreamPathTemplate": "/api/user/invoices/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/users/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 5002 },
+        { "Host": "192.168.1.14", "Port": 5002 },
+        { "Host": "192.168.1.21", "Port": 5002 },
+        { "Host": "192.168.1.23", "Port": 5002 }
+      ],
+      "UpstreamPathTemplate": "/api/admin/users/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
       "Priority": 100

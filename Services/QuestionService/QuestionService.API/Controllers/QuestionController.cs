@@ -311,5 +311,66 @@ namespace QuestionService.API.Controllers
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+
+        // Simple Question Creation with Exam Integration
+        [HttpPost("simple")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> CreateSimpleQuestion([FromBody] SimpleQuestionCreateDto dto)
+        {
+            try
+            {
+                var question = await _service.CreateSimpleQuestionAsync(dto);
+                return Ok(new { success = true, questionId = question.Id, data = question });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        // Get Exam Types from ExamService
+        [HttpGet("exam-types")]
+        public async Task<ActionResult<object>> GetExamTypes()
+        {
+            try
+            {
+                var examTypes = await _service.GetExamTypesAsync();
+                return Ok(new { success = true, data = examTypes });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        // Get Exam Names by ExamType from ExamService
+        [HttpGet("exam-names/{examType}")]
+        public async Task<ActionResult<object>> GetExamNames(string examType)
+        {
+            try
+            {
+                var examNames = await _service.GetExamNamesByTypeAsync(examType);
+                return Ok(new { success = true, data = examNames });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        // Get All Exam Names
+        [HttpGet("exam-names")]
+        public async Task<ActionResult<object>> GetAllExamNames()
+        {
+            try
+            {
+                var examNames = await _service.GetAllExamNamesAsync();
+                return Ok(new { success = true, data = examNames });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
     }
 }

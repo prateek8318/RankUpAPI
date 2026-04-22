@@ -16,5 +16,11 @@ namespace QuestionService.Application.Interfaces
         Task<object> SubmitQuizAsync(QuizSubmitRequestDto dto);
         Task<IEnumerable<object>> GetSubjectsAsync();
         Task<IEnumerable<object>> GetExamsAsync(int? subjectId = null);
+        
+        // Exam Integration Methods
+        Task<ExamNameDto> GetExamDetailsAsync(int examId);
+        Task<IEnumerable<ExamTypeDto>> GetExamTypesAsync();
+        Task<IEnumerable<ExamNameDto>> GetExamNamesByTypeAsync(string examType);
+        Task<IEnumerable<ExamNameDto>> GetAllExamNamesAsync();
     }
 }

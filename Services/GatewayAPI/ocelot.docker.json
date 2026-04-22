@@ -258,7 +258,7 @@
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
-      "DownstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
+      "DownstreamPathTemplate": "/api/v1/admin/plans/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
@@ -267,16 +267,16 @@
       "Priority": 100
     },
     {
-      "DownstreamPathTemplate": "/api/public/subscription-plans/{everything}",
+      "DownstreamPathTemplate": "/api/v1/user/plans/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
-      "UpstreamPathTemplate": "/api/public/subscription-plans/{everything}",
+      "UpstreamPathTemplate": "/api/user/plans/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
       "Priority": 100
     },
     {
-      "DownstreamPathTemplate": "/api/user/subscriptions/{everything}",
+      "DownstreamPathTemplate": "/api/v1/subscriptions/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/user/subscriptions/{everything}",
@@ -285,7 +285,7 @@
       "Priority": 100
     },
     {
-      "DownstreamPathTemplate": "/api/payments/{everything}",
+      "DownstreamPathTemplate": "/api/v1/payments/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/payments/{everything}",
@@ -303,7 +303,7 @@
       "Priority": 100
     },
     {
-      "DownstreamPathTemplate": "/api/user/subscriptions/{everything}",
+      "DownstreamPathTemplate": "/api/v1/subscriptions/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/user/subscriptions/{everything}",
@@ -334,6 +334,15 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/user/invoices/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/users/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "userservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/users/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
       "Priority": 100

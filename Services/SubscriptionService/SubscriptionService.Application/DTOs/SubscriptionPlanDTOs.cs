@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using SubscriptionService.Domain.Entities;
 
 namespace SubscriptionService.Application.DTOs
@@ -87,6 +88,11 @@ namespace SubscriptionService.Application.DTOs
         [MaxLength(500)]
         public string? ImageUrl { get; set; }
 
+        /// <summary>
+        /// Image file upload for subscription plan (preferred over ImageUrl)
+        /// </summary>
+        public IFormFile? ImageFile { get; set; }
+
         public bool IsPopular { get; set; } = false;
 
         public bool IsRecommended { get; set; } = false;
@@ -148,6 +154,11 @@ namespace SubscriptionService.Application.DTOs
         [MaxLength(500)]
         public string? ImageUrl { get; set; }
 
+        /// <summary>
+        /// Image file upload for subscription plan (preferred over ImageUrl)
+        /// </summary>
+        public IFormFile? ImageFile { get; set; }
+
         public bool IsPopular { get; set; } = false;
 
         public bool IsRecommended { get; set; } = false;
@@ -185,6 +196,7 @@ namespace SubscriptionService.Application.DTOs
         public bool IsRecommended { get; set; }
         public string? CardColorTheme { get; set; }
         public bool IsActive { get; set; }
+        public List<PlanDurationOptionDto> DurationOptions { get; set; } = new();
     }
 
     public class SubscriptionPlanPagedRequestDto

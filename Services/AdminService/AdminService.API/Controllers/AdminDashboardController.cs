@@ -460,7 +460,7 @@ namespace AdminService.API.Controllers
 
                             Draft = examList.Count(e => !e.IsActive),
 
-                            Categories = examList.SelectMany(e => e.QualificationIds).Distinct().Count()
+                            Categories = examList.Select(e => e.ExamCategoryId).Distinct().Count()
 
                         };
 

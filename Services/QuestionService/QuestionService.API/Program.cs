@@ -42,6 +42,10 @@ builder.Services.AddScoped<QuestionService.Domain.Interfaces.IQuestionRepository
 builder.Services.AddScoped<IQuestionFeatureRepository, QuestionRepository>();
 builder.Services.AddScoped<QuestionApplicationService>();
 
+// Mock Test Services
+builder.Services.AddScoped<IMockTestRepository, MockTestRepository>();
+builder.Services.AddScoped<IMockTestService, QuestionService.Application.Services.MockTestService>();
+
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
 

@@ -87,22 +87,17 @@ namespace SubscriptionService.Application.Services
             }
         }
 
-        public async Task<WalletStatisticsDto> GetWalletStatisticsAsync(int userId)
+        public Task<WalletStatisticsDto> GetWalletStatisticsAsync(int userId)
         {
             try
             {
                 // Mock implementation since GetStatisticsAsync doesn't exist
-                var totalWallets = 1;
                 var totalBalance = 1000m;
-                var averageBalance = 1000m;
-                var activeWallets = 1;
-                var inactiveWallets = 0;
                 var totalDeposits = 500m;
                 var totalWithdrawals = 200m;
                 var walletTransactionsToday = 5;
-                var todayTransactionVolume = 100m;
                 
-                return new WalletStatisticsDto
+                return Task.FromResult(new WalletStatisticsDto
                 {
                     Balance = totalBalance,
                     TotalRecharged = totalDeposits,
@@ -112,7 +107,7 @@ namespace SubscriptionService.Application.Services
                     RechargeTransactions = 0, // Not available in current signature
                     PaymentTransactions = 0, // Not available in current signature
                     RefundTransactions = 0 // Not available in current signature
-                };
+                });
             }
             catch (Exception ex)
             {
@@ -121,40 +116,33 @@ namespace SubscriptionService.Application.Services
             }
         }
 
-        public async Task<AdminWalletStatisticsDto> GetAdminWalletStatisticsAsync()
+        public Task<AdminWalletStatisticsDto> GetAdminWalletStatisticsAsync()
         {
             try
             {
                 // Mock implementation since GetAdminStatisticsAsync doesn't exist
                 var totalWallets = 10;
                 var totalBalance = 10000m;
-                var averageBalance = 1000m;
                 var activeWallets = 8;
-                var inactiveWallets = 2;
                 var totalDeposits = 5000m;
                 var totalWithdrawals = 2000m;
                 var walletTransactionsToday = 50;
-                var todayTransactionVolume = 1000m;
-                var verifiedWallets = 8;
-                var unverifiedWallets = 2;
-                var pendingTransactions = 5;
-                var failedTransactions = 2;
                 
-                return new AdminWalletStatisticsDto
+                return Task.FromResult(new AdminWalletStatisticsDto
                 {
                     TotalWallets = totalWallets,
                     TotalBalance = totalBalance,
                     TotalRechargedAmount = totalDeposits,
                     TotalSpentAmount = totalWithdrawals,
                     ActiveWallets = activeWallets,
-                    AverageBalance = averageBalance,
+                    AverageBalance = totalBalance / totalWallets,
                     HighestBalance = 0, // Not available in current signature
                     TotalTransactions = walletTransactionsToday,
                     TotalRecharges = 0, // Not available in current signature
                     TotalRechargeAmount = totalDeposits,
                     TotalPayments = 0, // Not available in current signature
                     TotalPaymentAmount = totalWithdrawals
-                };
+                });
             }
             catch (Exception ex)
             {

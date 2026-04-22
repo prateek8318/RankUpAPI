@@ -1257,16 +1257,17 @@ BEGIN
 
     SELECT
         COUNT(1) AS TotalPayments,
-        ISNULL(SUM(CASE WHEN Status = 2 THEN FinalAmount ELSE 0 END), 0) AS TotalRevenue,
-        ISNULL(SUM(CASE WHEN Status = 2 AND CAST(CreatedAt AS DATE) = CAST(GETUTCDATE() AS DATE) THEN FinalAmount ELSE 0 END), 0) AS TodayRevenue,
-        ISNULL(SUM(CASE WHEN Status = 2 AND YEAR(CreatedAt) = YEAR(GETUTCDATE()) AND MONTH(CreatedAt) = MONTH(GETUTCDATE()) THEN FinalAmount ELSE 0 END), 0) AS ThisMonthRevenue,
-        ISNULL(SUM(CASE WHEN Status = 2 THEN 1 ELSE 0 END), 0) AS SuccessfulPayments,
-        ISNULL(SUM(CASE WHEN Status = 3 THEN 1 ELSE 0 END), 0) AS FailedPayments,
-        ISNULL(SUM(CASE WHEN Status = 1 THEN 1 ELSE 0 END), 0) AS PendingPayments,
-        ISNULL(AVG(CASE WHEN Status = 2 THEN FinalAmount END), 0) AS AverageTransactionAmount,
-        ISNULL(COUNT(DISTINCT CASE WHEN Status = 2 THEN UserId END), 0) AS UniquePayingUsers
-    FROM Payments
-    WHERE IsActive = 1;
+        ISNULL(SUM(CASE WHEN p.Status = 2 THEN p.FinalAmount ELSE 0 END), 0) AS TotalRevenue,
+        ISNULL(SUM(CASE WHEN p.Status = 2 AND CAST(p.CreatedAt AS DATE) = CAST(GETUTCDATE() AS DATE) THEN p.FinalAmount ELSE 0 END), 0) AS TodayRevenue,
+        ISNULL(SUM(CASE WHEN p.Status = 2 AND YEAR(p.CreatedAt) = YEAR(GETUTCDATE()) AND MONTH(p.CreatedAt) = MONTH(GETUTCDATE()) THEN p.FinalAmount ELSE 0 END), 0) AS ThisMonthRevenue,
+        ISNULL(SUM(CASE WHEN p.Status = 2 THEN 1 ELSE 0 END), 0) AS SuccessfulPayments,
+        ISNULL(SUM(CASE WHEN p.Status = 3 THEN 1 ELSE 0 END), 0) AS FailedPayments,
+        ISNULL(SUM(CASE WHEN p.Status = 1 THEN 1 ELSE 0 END), 0) AS PendingPayments,
+        ISNULL(AVG(CASE WHEN p.Status = 2 THEN p.FinalAmount END), 0) AS AverageTransactionAmount,
+        ISNULL(COUNT(DISTINCT CASE WHEN p.Status = 2 THEN p.UserId END), 0) AS UniquePayingUsers
+    FROM Payments p
+    INNER JOIN SubscriptionPlans sp ON p.SubscriptionPlanId = sp.Id
+    WHERE p.IsActive = 1 AND sp.IsActive = 1;
 END
 GO
 

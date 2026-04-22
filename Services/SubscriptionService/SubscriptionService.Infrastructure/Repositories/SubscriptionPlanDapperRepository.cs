@@ -270,6 +270,37 @@ namespace SubscriptionService.Infrastructure.Repositories
             return plans;
         }
 
+        private static List<SubscriptionPlan> MapToEntityListWithDurations(IEnumerable<SubscriptionPlanWithDurationsDbRow> planRows, IEnumerable<PlanDurationOptionDbRow> durationRows)
+        {
+            var plans = new List<SubscriptionPlan>();
+            var durationOptionsByPlanId = durationRows
+                .GroupBy(d => d.SubscriptionPlanId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var planRow in planRows)
+            {
+                var plan = MapToEntity(planRow);
+                
+                // Add duration options if available
+                if (durationOptionsByPlanId.TryGetValue(planRow.Id, out var durations))
+                {
+                    plan.DurationOptions = durations.Select(d => new PlanDurationOption
+                    {
+                        Id = d.Id,
+                        SubscriptionPlanId = d.SubscriptionPlanId,
+                        DurationMonths = d.DurationMonths,
+                        Price = d.Price,
+                        DiscountPercentage = d.DiscountPercentage,
+                        IsActive = d.IsActive,
+                        SortOrder = d.SortOrder
+                    }).ToList();
+                }
+                
+                plans.Add(plan);
+            }
+            return plans;
+        }
+
         // New methods for duration options support
         public async Task<SubscriptionPlan?> GetPlanWithDurationsAsync(int id, string languageCode = "en")
         {
@@ -770,6 +801,129 @@ namespace SubscriptionService.Infrastructure.Repositories
             public bool IsActive { get; set; }
             public DateTime CreatedAt { get; set; }
             public DateTime? UpdatedAt { get; set; }
+        }
+
+        public async Task<IEnumerable<Payment>> GetPaymentsByDateRangeAsync(DateTime startDate, DateTime endDate)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT * FROM Payments 
+                    WHERE CreatedAt >= @StartDate AND CreatedAt <= @EndDate
+                    ORDER BY CreatedAt DESC";
+                
+                var parameters = new DynamicParameters();
+                parameters.Add("@StartDate", startDate);
+                parameters.Add("@EndDate", endDate);
+                
+                return await connection.QueryAsync<Payment>(sql, parameters);
+            });
+        }
+
+        public async Task<IEnumerable<UserSubscription>> GetExpiringSubscriptionsAsync(DateTime startDate, DateTime endDate)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT * FROM UserSubscriptions 
+                    WHERE ValidTill >= @StartDate AND ValidTill <= @EndDate
+                    AND Status = 'Active'
+                    ORDER BY ValidTill ASC";
+                
+                var parameters = new DynamicParameters();
+                parameters.Add("@StartDate", startDate);
+                parameters.Add("@EndDate", endDate);
+                
+                return await connection.QueryAsync<UserSubscription>(sql, parameters);
+            });
+        }
+
+        public async Task<IEnumerable<UserSubscription>> GetNewSubscriptionsAsync(DateTime startDate, DateTime endDate)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT * FROM UserSubscriptions 
+                    WHERE CreatedAt >= @StartDate AND CreatedAt <= @EndDate
+                    ORDER BY CreatedAt DESC";
+                
+                var parameters = new DynamicParameters();
+                parameters.Add("@StartDate", startDate);
+                parameters.Add("@EndDate", endDate);
+                
+                return await connection.QueryAsync<UserSubscription>(sql, parameters);
+            });
+        }
+
+        public async Task<IEnumerable<SubscriptionPlan>> GetAllPlansWithDurationsAsync(string languageCode = "en", int? examId = null)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                // Get ALL subscription plans (active + inactive) with translations
+                var planSql = @"
+                    SELECT 
+                        sp.Id,
+                        sp.Name,
+                        sp.Description,
+                        sp.Type,
+                        sp.Price,
+                        sp.Currency,
+                        sp.TestPapersCount,
+                        sp.Discount,
+                        sp.Duration,
+                        sp.DurationType,
+                        sp.ValidityDays,
+                        sp.ExamId,
+                        sp.ExamCategory,
+                        sp.Features,
+                        sp.ImageUrl,
+                        sp.IsPopular,
+                        sp.IsRecommended,
+                        sp.CardColorTheme,
+                        sp.SortOrder,
+                        sp.CreatedAt,
+                        sp.UpdatedAt,
+                        sp.IsActive,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Name
+                            ELSE sp.Name
+                        END AS LocalizedName,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Description
+                            ELSE sp.Description
+                        END AS LocalizedDescription,
+                        CASE 
+                            WHEN spt.LanguageCode = @LanguageCode THEN spt.Features
+                            ELSE sp.Features
+                        END AS LocalizedFeatures
+                    FROM SubscriptionPlans sp
+                    LEFT JOIN SubscriptionPlanTranslations spt ON sp.Id = spt.SubscriptionPlanId AND spt.LanguageCode = @LanguageCode
+                    WHERE (@ExamId IS NULL OR sp.ExamId = @ExamId OR sp.ExamId IS NULL)
+                    ORDER BY sp.SortOrder, sp.Name";
+
+                var planRows = await connection.QueryAsync<SubscriptionPlanWithDurationsDbRow>(planSql, new { LanguageCode = languageCode, ExamId = examId });
+
+                // Get duration options for these plans
+                var durationSql = @"
+                    SELECT 
+                        pdo.Id,
+                        pdo.SubscriptionPlanId,
+                        pdo.DurationMonths,
+                        pdo.Price,
+                        pdo.DiscountPercentage,
+                        pdo.IsActive,
+                        pdo.SortOrder
+                    FROM PlanDurationOptions pdo
+                    WHERE pdo.SubscriptionPlanId IN @PlanIds
+                    ORDER BY pdo.SortOrder";
+
+                var planIds = planRows.Select(p => p.Id).ToList();
+                var durationRows = planIds.Any() 
+                    ? await connection.QueryAsync<PlanDurationOptionDbRow>(durationSql, new { PlanIds = planIds })
+                    : Enumerable.Empty<PlanDurationOptionDbRow>();
+
+                return MapToEntityListWithDurations(planRows, durationRows);
+            });
         }
     }
 }

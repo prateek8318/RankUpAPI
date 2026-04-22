@@ -147,20 +147,7 @@ namespace UserService.API.Controllers
                     ["token"] = token,
                     ["userId"] = userDto.Id,
                     ["isNewUser"] = isNewUser,
-                    ["isProfileComplete"] = !userDto.IsNewUser && 
-                                           !string.IsNullOrWhiteSpace(userDto.Name) && 
-                                           userDto.Name != "User" &&
-                                           !string.IsNullOrWhiteSpace(userDto.Email) &&
-                                           !string.IsNullOrWhiteSpace(userDto.Gender) &&
-                                           userDto.DateOfBirth.HasValue &&
-                                           userDto.StateId.HasValue &&
-                                           userDto.LanguageId.HasValue &&
-                                           userDto.QualificationId.HasValue &&
-                                           userDto.CategoryId.HasValue &&
-                                           userDto.StreamId.HasValue &&
-                                           !string.IsNullOrWhiteSpace(userDto.ProfilePhoto) &&
-                                           userDto.ExamId.HasValue &&
-                                           userDto.InterestedInIntlExam,
+                    ["isProfileComplete"] = userDto.IsProfileComplete,
                     ["phoneNumber"] = request.MobileNumber,
                     ["isPhoneVerified"] = true,  // OTP verification means phone is verified
                     ["user"] = userDto  // Include user data with last login time

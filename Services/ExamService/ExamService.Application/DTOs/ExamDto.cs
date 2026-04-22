@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace ExamService.Application.DTOs
 {
     public class ExamDto
@@ -7,8 +9,6 @@ namespace ExamService.Application.DTOs
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
         public bool IsInternational { get; set; }
-        public List<int> QualificationIds { get; set; } = new();
-        public List<int?> StreamIds { get; set; } = new();
 
         public int? ExamCategoryId { get; set; }
         public int? ExamTypeId { get; set; }
@@ -35,19 +35,20 @@ namespace ExamService.Application.DTOs
         public int PassingMarks { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string ExamType { get; set; } = string.Empty;
+        public string? SubjectName { get; set; }
     }
 
     public class CreateExamDto
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public string? ImageUrl { get; set; }
+        public IFormFile? ImageFile { get; set; }
         public bool IsInternational { get; set; } = false;
-        public List<int>? QualificationIds { get; set; }
-        public List<int?>? StreamIds { get; set; }
 
         public int? ExamCategoryId { get; set; }
         public int? ExamTypeId { get; set; }
+        public string ExamType { get; set; } = "MockTest";
         public int? SubjectId { get; set; }
 
         public int TotalQuestions { get; set; }
@@ -78,11 +79,10 @@ namespace ExamService.Application.DTOs
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
         public bool IsInternational { get; set; }
-        public List<int>? QualificationIds { get; set; }
-        public List<int?>? StreamIds { get; set; }
 
         public int? ExamCategoryId { get; set; }
         public int? ExamTypeId { get; set; }
+        public string ExamType { get; set; } = "MockTest";
         public int? SubjectId { get; set; }
 
         public int TotalQuestions { get; set; }

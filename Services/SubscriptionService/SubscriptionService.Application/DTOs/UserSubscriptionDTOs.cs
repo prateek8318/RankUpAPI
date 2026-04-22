@@ -9,6 +9,7 @@ namespace SubscriptionService.Application.DTOs
         public int UserId { get; set; }
         public int SubscriptionPlanId { get; set; }
         public int? PaymentId { get; set; }
+        public string RazorpayOrderId { get; set; } = string.Empty;
         public DateTime PurchasedDate { get; set; }
         public DateTime ValidTill { get; set; }
         public int TestsUsed { get; set; }
@@ -27,6 +28,11 @@ namespace SubscriptionService.Application.DTOs
         public bool IsExpired { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        
+        // Exam details
+        public string? ExamName { get; set; }
+        public string? ExamDescription { get; set; }
+        public string? ExamImageUrl { get; set; }
     }
 
     public class CreateUserSubscriptionDto
@@ -36,6 +42,11 @@ namespace SubscriptionService.Application.DTOs
 
         [Required]
         public int SubscriptionPlanId { get; set; }
+
+        [Required]
+        public int DurationOptionId { get; set; }
+
+        public string? RazorpayOrderId { get; set; }
 
         public bool AutoRenewal { get; set; } = false;
     }

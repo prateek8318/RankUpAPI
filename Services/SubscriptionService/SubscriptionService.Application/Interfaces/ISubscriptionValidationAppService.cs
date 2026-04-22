@@ -8,6 +8,6 @@ namespace SubscriptionService.Application.Interfaces
         Task<DemoEligibilityResponseDto> CheckDemoEligibilityAsync(DemoEligibilityRequestDto request);
         Task<bool> IsSubscriptionActiveAsync(int userId);
         Task<bool> LogDemoAccessAsync(LogDemoAccessDto logDemoAccessDto);
-        Task<bool> ValidateSubscriptionForServiceAsync(int userId, string examCategory = null);
+        Task<bool> ValidateSubscriptionForServiceAsync(int userId, string? examCategory = null);
     }
 }

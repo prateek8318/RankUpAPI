@@ -27,6 +27,10 @@ namespace SubscriptionService.Infrastructure.Services
             _keySecret = _configuration["Razorpay:KeySecret"] ?? throw new ArgumentNullException("Razorpay:KeySecret not configured");
             _baseUrl = _configuration["Razorpay:BaseUrl"] ?? "https://api.razorpay.com/v1";
 
+            // Debug logging
+            _logger.LogInformation("Razorpay KeyId: {KeyId}", _keyId?.Substring(0, Math.Min(8, _keyId?.Length ?? 0)));
+            _logger.LogInformation("Razorpay KeySecret is null: {IsNull}", string.IsNullOrEmpty(_keySecret));
+
             // Set up basic authentication
             var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_keyId}:{_keySecret}"));
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);

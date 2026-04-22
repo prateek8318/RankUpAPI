@@ -29,8 +29,14 @@ namespace SubscriptionService.Domain.Interfaces
         // New methods for duration options support
         Task<SubscriptionPlan?> GetPlanWithDurationsAsync(int id, string languageCode = "en");
         Task<IEnumerable<SubscriptionPlan>> GetActivePlansWithDurationsAsync(string languageCode = "en", int? examId = null);
+        Task<IEnumerable<SubscriptionPlan>> GetAllPlansWithDurationsAsync(string languageCode = "en", int? examId = null);
         Task<PlanDurationOption?> GetDurationOptionAsync(int durationOptionId);
         Task AddDurationOptionAsync(PlanDurationOption durationOption);
+        
+        // Stats calculation methods
+        Task<IEnumerable<Payment>> GetPaymentsByDateRangeAsync(DateTime startDate, DateTime endDate);
+        Task<IEnumerable<UserSubscription>> GetExpiringSubscriptionsAsync(DateTime startDate, DateTime endDate);
+        Task<IEnumerable<UserSubscription>> GetNewSubscriptionsAsync(DateTime startDate, DateTime endDate);
         Task UpdateDurationOptionAsync(PlanDurationOption durationOption);
         Task<UserSubscription?> GetUserActiveSubscriptionAsync(int userId, int planId);
         Task<IEnumerable<UserSubscription>> GetUserActiveSubscriptionsAsync(int userId);

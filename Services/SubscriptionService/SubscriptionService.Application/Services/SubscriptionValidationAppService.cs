@@ -151,7 +151,7 @@ namespace SubscriptionService.Application.Services
             }
         }
 
-        public async Task<bool> ValidateSubscriptionForServiceAsync(int userId, string examCategory = null)
+        public async Task<bool> ValidateSubscriptionForServiceAsync(int userId, string? examCategory = null)
         {
             try
             {

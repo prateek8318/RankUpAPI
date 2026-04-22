@@ -338,7 +338,13 @@ CREATE PROCEDURE [dbo].[Exam_GetActive]
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT * FROM [dbo].[Exams] WHERE IsActive = 1 AND IsDeleted = 0 AND Status = 'Active';
+    SELECT *
+    FROM [dbo].[Exams]
+    WHERE IsDeleted = 0
+      AND IsActive = 1
+      AND Status = 'Active'
+      AND (PublishDateTime IS NULL OR PublishDateTime <= GETUTCDATE())
+      AND (ValidTill IS NULL OR ValidTill > GETUTCDATE());
 END
 GO
 
@@ -579,6 +585,11 @@ BEGIN
     
     UPDATE [dbo].[Exams]
     SET Status = @Status,
+        IsActive = CASE
+            WHEN @Status = 'Active' THEN 1
+            WHEN @Status IN ('Draft', 'Inactive', 'Completed') THEN 0
+            ELSE IsActive
+        END,
         UpdatedAt = GETUTCDATE()
     WHERE Id = @Id
       AND IsDeleted = 0

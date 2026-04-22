@@ -33,32 +33,50 @@ namespace SubscriptionService.Infrastructure.Repositories
 
         public async Task<UserSubscription> AddAsync(UserSubscription entity)
         {
-            var sql = @"
-                EXEC [dbo].[UserSubscription_Create] 
-                    @UserId, @SubscriptionPlanId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
-                    @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenew,
-                    @RazorpaySubscriptionId, @CreatedAt, @UpdatedAt";
-
             var parameters = new
             {
                 UserId = entity.UserId,
                 SubscriptionPlanId = entity.SubscriptionPlanId,
+                DurationOptionId = entity.DurationOptionId ?? 0,
                 RazorpayOrderId = entity.RazorpayOrderId,
-                RazorpayPaymentId = entity.RazorpayPaymentId,
-                RazorpaySignature = entity.RazorpaySignature,
-                // OriginalAmount = entity.OriginalAmount, // Not available
-                // FinalAmount = entity.FinalAmount, // Not available
-                // StartDate = entity.StartDate, // Not available
-                // EndDate = entity.EndDate, // Not available
+                RazorpayPaymentId = entity.RazorpayPaymentId ?? (string?)null,
+                RazorpaySignature = entity.RazorpaySignature ?? (string?)null,
+                OriginalAmount = entity.AmountPaid + entity.DiscountApplied,
+                FinalAmount = entity.AmountPaid,
+                StartDate = entity.PurchasedDate,
+                EndDate = entity.ValidTill,
                 Status = entity.Status,
-                AutoRenew = entity.AutoRenewal,
-                // RazorpaySubscriptionId = entity.RazorpaySubscriptionId, // Not available
+                AutoRenewal = entity.AutoRenewal,
+                RazorpaySubscriptionId = (string?)null,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt
             };
 
-            await WithConnectionAsync(async connection => 
-                await connection.ExecuteAsync(sql, parameters));
+            var sqlWithDurationOption = @"
+                EXEC [dbo].[UserSubscription_Create] 
+                    @UserId, @SubscriptionPlanId, @DurationOptionId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
+                    @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenewal,
+                    @RazorpaySubscriptionId, @CreatedAt, @UpdatedAt";
+
+            var sqlLegacy = @"
+                EXEC [dbo].[UserSubscription_Create] 
+                    @UserId, @SubscriptionPlanId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
+                    @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenewal,
+                    @RazorpaySubscriptionId, @CreatedAt, @UpdatedAt";
+
+            await WithConnectionAsync(async connection =>
+            {
+                try
+                {
+                    await connection.ExecuteAsync(sqlWithDurationOption, parameters);
+                }
+                catch (SqlException ex) when (ex.Number == 8144)
+                {
+                    // Backward compatibility for environments where UserSubscription_Create
+                    // has not yet been updated with @DurationOptionId.
+                    await connection.ExecuteAsync(sqlLegacy, parameters);
+                }
+            });
             return entity;
         }
 
@@ -83,7 +101,7 @@ namespace SubscriptionService.Infrastructure.Repositories
                 // StartDate = entity.StartDate, // Not available
                 // EndDate = entity.EndDate, // Not available
                 Status = entity.Status.ToString(),
-                AutoRenewal = entity.AutoRenewal,
+                AutoRenew = entity.AutoRenewal,  // ✅ Fixed: was AutoRenewal
                 // RazorpaySubscriptionId = entity.RazorpaySubscriptionId, // Not available
                 // LastRenewalDate = entity.LastRenewalDate, // Not available
                 // CancelledDate = entity.CancelledDate, // Not available

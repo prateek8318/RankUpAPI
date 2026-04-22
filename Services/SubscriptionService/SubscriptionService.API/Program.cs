@@ -50,6 +50,7 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentTransactionRepository, PaymentTransactionRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IDemoAccessLogRepository, DemoAccessLogRepository>();
+builder.Services.AddScoped<IWalletRepository, WalletRepository>();
 
 // Add HttpContextAccessor for language service
 builder.Services.AddHttpContextAccessor();
@@ -63,11 +64,16 @@ builder.Services.AddScoped<ISubscriptionValidationService, SubscriptionService.D
 builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 builder.Services.AddScoped<IUserSubscriptionService, UserSubscriptionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<ISubscriptionValidationAppService, SubscriptionValidationAppService>();
+builder.Services.AddScoped<IImageUploadService, ImageUploadService>();
 
 // Register HttpClient for Razorpay
 builder.Services.AddHttpClient<IRazorpayService, RazorpayService>();
+
+// Register HttpClientFactory for inter-service communication
+builder.Services.AddHttpClient();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);

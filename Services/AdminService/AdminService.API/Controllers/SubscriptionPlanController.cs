@@ -170,7 +170,7 @@ namespace AdminService.API.Controllers
             }
         }
 
-        [HttpPatch("{id}/toggle-popular")]
+        [HttpPut("{id}/toggle-popular")]
         public async Task<ActionResult> TogglePopular(int id)
         {
             try
@@ -202,7 +202,7 @@ namespace AdminService.API.Controllers
             }
         }
 
-        [HttpPatch("{id}/toggle-recommended")]
+        [HttpPut("{id}/toggle-recommended")]
         public async Task<ActionResult> ToggleRecommended(int id)
         {
             try
@@ -234,7 +234,7 @@ namespace AdminService.API.Controllers
             }
         }
 
-        [HttpPatch("{id}/toggle-status")]
+        [HttpPut("{id}/toggle-status")]
         public async Task<ActionResult> ToggleStatus(int id)
         {
             try

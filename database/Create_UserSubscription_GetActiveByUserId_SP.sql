@@ -72,10 +72,16 @@ BEGIN
         sp.SortOrder AS SubscriptionPlan_SortOrder,
         sp.CreatedAt AS SubscriptionPlan_CreatedAt,
         sp.UpdatedAt AS SubscriptionPlan_UpdatedAt,
-        sp.IsActive AS SubscriptionPlan_IsActive
+        sp.IsActive AS SubscriptionPlan_IsActive,
+        
+        -- Exam details
+        e.Name AS ExamName,
+        e.Description AS ExamDescription,
+        e.ImageUrl AS ExamImageUrl
         
     FROM UserSubscriptions us
     INNER JOIN SubscriptionPlans sp ON us.SubscriptionPlanId = sp.Id
+    LEFT JOIN [RankUp_MasterDB].[dbo].Exams e ON sp.ExamId = e.Id
     WHERE us.UserId = @UserId 
     AND us.IsActive = 1 
     AND us.Status = 'Active'

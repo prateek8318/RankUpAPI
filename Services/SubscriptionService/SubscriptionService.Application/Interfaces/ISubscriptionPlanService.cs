@@ -13,6 +13,7 @@ namespace SubscriptionService.Application.Interfaces
         Task<IEnumerable<SubscriptionPlanListDto>> GetPlansByExamCategoryAsync(string examCategory, string? language = null);
         Task<IEnumerable<SubscriptionPlanListDto>> GetPlansByExamIdAsync(int examId, string? language = null);
         Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansAsync(string? language = null);
+        Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansByExamIdsAsync(string? language, List<int> examIds);
         Task<SubscriptionPlanStatsDto> GetStatsAsync();
         
         // New methods for duration options support

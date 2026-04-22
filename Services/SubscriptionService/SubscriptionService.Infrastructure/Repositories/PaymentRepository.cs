@@ -1,5 +1,4 @@
 using Dapper;
-using System.Data;
 using SubscriptionService.Domain.Entities;
 using SubscriptionService.Domain.Interfaces;
 using SubscriptionService.Application.DTOs;
@@ -30,7 +29,7 @@ namespace SubscriptionService.Infrastructure.Repositories
             });
         }
 
-        public async Task<IEnumerable<Payment>> FindAsync(System.Linq.Expressions.Expression<Func<Payment, bool>> predicate)
+        public Task<IEnumerable<Payment>> FindAsync(System.Linq.Expressions.Expression<Func<Payment, bool>> predicate)
         {
             throw new NotImplementedException("Use specific repository methods with stored procedures for complex queries");
         }
@@ -40,14 +39,16 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"EXEC [dbo].[Payment_Create]
-                            @UserId, @SubscriptionPlanId, @Amount, @DiscountAmount, @FinalAmount,
+                            @UserId, @SubscriptionPlanId, @UserSubscriptionId, @Amount, @Currency, @DiscountAmount, @FinalAmount,
                             @PaymentMethod, @PaymentProvider, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
-                            @Status, @PaymentDate, @FailureReason, @RefundAmount, @RefundDate, @RefundReason, @RazorpayRefundId, @Metadata, @CreatedId OUTPUT";
+                            @Status, @PaymentDate, @FailureReason, @RefundAmount, @RefundDate, @RefundReason, @RazorpayRefundId, @Metadata";
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", entity.UserId);
                 parameters.Add("@SubscriptionPlanId", entity.SubscriptionPlanId);
+                parameters.Add("@UserSubscriptionId", entity.UserSubscriptionId);
                 parameters.Add("@Amount", entity.Amount);
+                parameters.Add("@Currency", entity.Currency);
                 parameters.Add("@DiscountAmount", entity.DiscountAmount);
                 parameters.Add("@FinalAmount", entity.FinalAmount);
                 parameters.Add("@PaymentMethod", entity.PaymentMethod);
@@ -63,10 +64,8 @@ namespace SubscriptionService.Infrastructure.Repositories
                 parameters.Add("@RefundReason", entity.RefundReason);
                 parameters.Add("@RazorpayRefundId", entity.RazorpayRefundId);
                 parameters.Add("@Metadata", entity.Metadata);
-                parameters.Add("@CreatedId", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-                await connection.ExecuteAsync(sql, parameters);
-                var createdId = parameters.Get<int>("@CreatedId");
+                var createdId = await connection.QuerySingleAsync<int>(sql, parameters);
 
                 entity.Id = createdId;
                 entity.IsActive = true;
@@ -84,7 +83,7 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"EXEC [dbo].[Payment_Update]
-                            @Id, @UserId, @SubscriptionPlanId, @Amount, @DiscountAmount, @FinalAmount,
+                            @Id, @UserId, @SubscriptionPlanId, @UserSubscriptionId, @Amount, @Currency, @DiscountAmount, @FinalAmount,
                             @PaymentMethod, @PaymentProvider, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
                             @Status, @PaymentDate, @FailureReason, @RefundAmount, @RefundDate, @RefundReason, @RazorpayRefundId, @Metadata";
 
@@ -93,7 +92,9 @@ namespace SubscriptionService.Infrastructure.Repositories
                     Id = entity.Id,
                     UserId = entity.UserId,
                     SubscriptionPlanId = entity.SubscriptionPlanId,
+                    UserSubscriptionId = entity.UserSubscriptionId,
                     Amount = entity.Amount,
+                    Currency = entity.Currency,
                     DiscountAmount = entity.DiscountAmount,
                     FinalAmount = entity.FinalAmount,
                     PaymentMethod = entity.PaymentMethod,

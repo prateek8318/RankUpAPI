@@ -3,7 +3,6 @@ using ExamService.Application.DTOs;
 using ExamService.Application.Interfaces;
 using ExamService.Domain.Entities;
 using Microsoft.Extensions.Configuration;
-using System.Net.Http;
 using System.Text.Json;
 
 namespace ExamService.Application.Services
@@ -11,144 +10,81 @@ namespace ExamService.Application.Services
     public class ExamService : IExamService
     {
         private readonly IExamRepository _examRepository;
-        private readonly IExamQualificationRepository _examQualificationRepository;
         private readonly IMapper _mapper;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration? _configuration;
+        private static readonly HashSet<int> AllowedExamCategoryIds = new() { 1, 2, 3, 4 };
+        private const int MockTestCategoryId = 2;
+        private const int DeepPracticeCategoryId = 3;
 
         public ExamService(
             IExamRepository examRepository,
-            IExamQualificationRepository examQualificationRepository,
             IMapper mapper,
             IHttpClientFactory httpClientFactory,
             IConfiguration? configuration = null)
         {
             _examRepository = examRepository;
-            _examQualificationRepository = examQualificationRepository;
             _mapper = mapper;
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
         }
 
-        public async Task<ExamDto> CreateExamAsync(CreateExamDto createDto)
+        public async Task<ExamDto> CreateExamAsync(CreateExamDto createDto, string? imageUrl = null)
         {
-            // Validate required fields
-            if (string.IsNullOrWhiteSpace(createDto.Name))
-            {
-                throw new ArgumentException("Exam name is required and cannot be empty.");
-            }
-
-            // Temporarily removing qualification requirement for testing
-            // if (createDto.QualificationIds == null || !createDto.QualificationIds.Any())
-            // {
-            //     throw new ArgumentException("At least one qualification is required to create an exam.");
-            // }
+            ValidateExamPayload(createDto.Name, createDto.ExamCategoryId, createDto.SubjectId);
 
             var exam = _mapper.Map<Exam>(createDto);
             exam.CreatedAt = DateTime.UtcNow;
-            exam.IsActive = true;
+            exam.UpdatedAt = DateTime.UtcNow;
+            exam.ImageUrl = imageUrl;
+            ApplyScheduleState(exam);
 
             await _examRepository.AddAsync(exam);
-            
-            // Ensure exam is created and has an ID before creating qualifications
             if (exam.Id <= 0)
             {
                 throw new Exception("Exam creation failed - no valid ID returned");
             }
+
+            var examDto = _mapper.Map<ExamDto>(exam);
             
-            if (createDto.QualificationIds?.Any() == true)
+            // Add subject name if subjectId exists
+            if (exam.SubjectId.HasValue)
             {
-                var examQualifications = new List<ExamQualification>();
-                var streamIds = createDto.StreamIds ?? new List<int?>();
-                
-                for (int i = 0; i < createDto.QualificationIds.Count; i++)
-                {
-                    var qualificationId = createDto.QualificationIds[i];
-                    var streamId = i < streamIds.Count ? streamIds[i] : null;
-                    
-                    examQualifications.Add(new ExamQualification
-                    {
-                        ExamId = exam.Id,
-                        QualificationId = qualificationId,
-                        StreamId = streamId,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-
-                await _examQualificationRepository.AddRangeAsync(examQualifications);
-                await _examQualificationRepository.SaveChangesAsync();
+                examDto.SubjectName = await GetSubjectNameById(exam.SubjectId.Value);
             }
-
-            var result = _mapper.Map<ExamDto>(exam);
-            result.QualificationIds = createDto.QualificationIds ?? new List<int>();
-            var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
-            result.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-            return result;
+            
+            // Set exam type from createDto
+            examDto.ExamType = createDto.ExamType;
+            
+            return examDto;
         }
 
         public async Task<ExamDto?> UpdateExamAsync(int id, UpdateExamDto updateDto)
         {
             var exam = await _examRepository.GetByIdWithQualificationsAsync(id);
             if (exam == null)
+            {
                 return null;
-
-            // Validate required fields
-            if (string.IsNullOrWhiteSpace(updateDto.Name))
-            {
-                throw new ArgumentException("Exam name is required and cannot be empty.");
             }
 
-            if (updateDto.QualificationIds == null || !updateDto.QualificationIds.Any())
-            {
-                throw new ArgumentException("At least one qualification is required to update an exam.");
-            }
-
+            ValidateExamPayload(updateDto.Name, updateDto.ExamCategoryId, updateDto.SubjectId);
             _mapper.Map(updateDto, exam);
             exam.UpdatedAt = DateTime.UtcNow;
+            ApplyScheduleState(exam);
+
             await _examRepository.UpdateAsync(exam);
-
-            if (updateDto.QualificationIds != null)
-            {
-                var existingRelations = exam.ExamQualifications?.ToList() ?? new List<ExamQualification>();
-                foreach (var eq in existingRelations)
-                {
-                    await _examQualificationRepository.DeleteAsync(eq);
-                }
-
-                var streamIds = updateDto.StreamIds ?? new List<int?>();
-                for (int i = 0; i < updateDto.QualificationIds.Count; i++)
-                {
-                    var qualificationId = updateDto.QualificationIds[i];
-                    var streamId = i < streamIds.Count ? streamIds[i] : null;
-                    
-                    await _examQualificationRepository.AddAsync(new ExamQualification
-                    {
-                        ExamId = exam.Id,
-                        QualificationId = qualificationId,
-                        StreamId = streamId,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
-                }
-
-                await _examQualificationRepository.SaveChangesAsync();
-            }
-
-            await _examRepository.SaveChangesAsync();
             var updatedExam = await _examRepository.GetByIdWithQualificationsAsync(id);
-            var result = _mapper.Map<ExamDto>(updatedExam);
-            result.QualificationIds = updatedExam?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-            return result;
+            return updatedExam == null ? null : _mapper.Map<ExamDto>(updatedExam);
         }
 
         public async Task<bool> DeleteExamAsync(int id)
         {
             var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
+            {
                 return false;
+            }
 
-            await _examQualificationRepository.DeleteByExamIdAsync(id);
             return await _examRepository.HardDeleteByIdAsync(id);
         }
 
@@ -156,176 +92,66 @@ namespace ExamService.Application.Services
         {
             var exam = await _examRepository.GetByIdWithQualificationsAsync(id);
             if (exam == null)
+            {
                 return null;
+            }
 
-            var examDto = _mapper.Map<ExamDto>(exam);
-            examDto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-            examDto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-            return examDto;
+            ApplyScheduleState(exam);
+            return _mapper.Map<ExamDto>(exam);
         }
 
         public async Task<ExamDto?> GetExamByIdAsync(int id, string? language)
         {
-            var exam = await _examRepository.GetByIdWithQualificationsAsync(id);
-            if (exam == null)
-                return null;
-
-            var examDto = _mapper.Map<ExamDto>(exam);
-            examDto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-            examDto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-            return examDto;
+            return await GetExamByIdAsync(id);
         }
 
         public async Task<IEnumerable<ExamDto>> GetAllExamsAsync(bool? isInternational = null)
         {
             var exams = await _examRepository.GetActiveAsync();
-            var filteredExams = exams.Where(e => e.IsActive);
-            
-            if (isInternational.HasValue)
-            {
-                filteredExams = filteredExams.Where(e => e.IsInternational == isInternational.Value);
-            }
-            
-            var examDtos = new List<ExamDto>();
-
-            foreach (var exam in filteredExams.OrderBy(e => e.Name))
-            {
-                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
-                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
-                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-                examDtos.Add(examDto);
-            }
-
-            return examDtos;
+            return BuildExamDtos(exams, isInternational);
         }
 
         public async Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(bool? isInternational = null)
         {
             var exams = await _examRepository.GetAllIncludingInactiveAsync();
-            
-            if (isInternational.HasValue)
-            {
-                exams = exams.Where(e => e.IsInternational == isInternational.Value);
-            }
-            
-            var examDtos = new List<ExamDto>();
-
-            foreach (var exam in exams.OrderBy(e => e.Name))
-            {
-                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
-                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
-                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-                examDtos.Add(examDto);
-            }
-
-            return examDtos;
+            return BuildExamDtos(exams, isInternational);
         }
 
         public async Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(string? language, bool? isInternational = null)
         {
             var exams = await _examRepository.GetAllIncludingInactiveAsync();
-            
-            if (isInternational.HasValue)
-            {
-                exams = exams.Where(e => e.IsInternational == isInternational.Value);
-            }
-            
-            var examDtos = new List<ExamDto>();
-
-            foreach (var exam in exams.OrderBy(e => e.Name))
-            {
-                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
-                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
-                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-                examDtos.Add(examDto);
-            }
-
-            return examDtos;
+            return BuildExamDtos(exams, isInternational);
         }
 
-        public async Task<IEnumerable<ExamDto>> GetExamsByQualificationAsync(int qualificationId, int? streamId = null)
+        public async Task<IEnumerable<ExamDto>> GetAllExamsForAdminAsync(bool? isInternational = null)
         {
-            IEnumerable<Exam> exams;
-            
-            if (streamId.HasValue)
-            {
-                exams = await _examRepository.GetByQualificationAndStreamAsync(qualificationId, streamId);
-            }
-            else
-            {
-                exams = await _examRepository.GetByQualificationIdAsync(qualificationId);
-            }
-            
-            var examDtos = new List<ExamDto>();
-
-            foreach (var exam in exams.OrderBy(e => e.Name))
-            {
-                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
-                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
-                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-                examDtos.Add(examDto);
-            }
-
-            return examDtos;
-        }
-
-        public async Task<IEnumerable<ExamDto>> GetExamsByQualificationAsync(int qualificationId, string? language, int? streamId = null)
-        {
-            IEnumerable<Exam> exams;
-            
-            if (streamId.HasValue)
-            {
-                exams = await _examRepository.GetByQualificationAndStreamAsync(qualificationId, streamId);
-            }
-            else
-            {
-                exams = await _examRepository.GetByQualificationIdAsync(qualificationId);
-            }
-            
-            var examDtos = new List<ExamDto>();
-
-            foreach (var exam in exams.OrderBy(e => e.Name))
-            {
-                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
-                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
-                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-                examDtos.Add(examDto);
-            }
-
-            return examDtos;
+            var exams = await _examRepository.GetAllIncludingInactiveAsync();
+            return BuildExamDtos(exams, isInternational);
         }
 
         public async Task<bool> ToggleExamStatusAsync(int id, bool isActive)
         {
             var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
+            {
                 return false;
+            }
 
             exam.IsActive = isActive;
+            exam.Status = isActive ? "Active" : "Inactive";
             exam.UpdatedAt = DateTime.UtcNow;
             await _examRepository.UpdateAsync(exam);
-            await _examRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<IEnumerable<ExamDto>> GetExamsForUserAsync(int userId)
         {
             var httpClient = _httpClientFactory.CreateClient();
-            var userServiceUrl = "http://localhost:5002"; // UserService URL
-            
+            var userServiceUrl = "http://localhost:5002";
+
             try
             {
                 var response = await httpClient.GetAsync($"{userServiceUrl}/api/users/profile");
-                
-                httpClient.DefaultRequestHeaders.Authorization = 
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIzNiIsInN1YiI6IjM2IiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbW9iaWxlcGhvbmUiOiIrOTE4ODg4ODg4ODg4Iiwicm9sZSI6IlVzZXIiLCJqdGkiOiI3NDVhZGY5My01N2Y1LTRkOWMtYmQxNi03ZDgzMzE4ZDdmM2YiLCJuYmYiOjE3NjkwNzQ5NzAsImV4cCI6MTc2OTA3ODU3MCwiaWF0IjoxNzY5MDc0OTcwLCJpc3MiOiJSYW5rVXBBUEkiLCJhdWQiOiJSYW5rVXBBUEkifQ.wwjT28Y0TLlzT1Fhn4vMiJoQ8o3WBQQHCKKXjFO6zk8");
-                
-                response = await httpClient.GetAsync($"{userServiceUrl}/api/users/profile");
                 if (!response.IsSuccessStatusCode)
                 {
                     return await GetExamsByInternationalStatus(false);
@@ -334,61 +160,33 @@ namespace ExamService.Application.Services
                 var jsonContent = await response.Content.ReadAsStringAsync();
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var userResponse = JsonSerializer.Deserialize<UserServiceResponse>(jsonContent, options);
-                
-                if (userResponse?.Data == null)
-                {
-                    return await GetExamsByInternationalStatus(false);
-                }
-
-                var isInterestedInInternational = userResponse.Data.InterestedInIntlExam;
+                var isInterestedInInternational = userResponse?.Data?.InterestedInIntlExam ?? false;
                 return await GetExamsByInternationalStatus(isInterestedInInternational);
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Error calling UserService: {ex.Message}");
                 return await GetExamsByInternationalStatus(false);
             }
-        }
-
-        private async Task<IEnumerable<ExamDto>> GetExamsByInternationalStatus(bool showInternational)
-        {
-            var allExams = await _examRepository.GetAllAsync();
-            var filteredExams = allExams.Where(e => e.IsInternational == showInternational && e.IsActive);
-            
-            var examDtos = new List<ExamDto>();
-            foreach (var exam in filteredExams.OrderBy(e => e.Name))
-            {
-                var examWithQuals = await _examRepository.GetByIdWithQualificationsAsync(exam.Id);
-                var examDto = _mapper.Map<ExamDto>(examWithQuals ?? exam);
-                examDto.QualificationIds = examWithQuals?.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
-                examDto.StreamIds = examWithQuals?.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
-                examDtos.Add(examDto);
-            }
-
-            return examDtos;
         }
 
         public async Task<int> SeedInternationalExamsAsync()
         {
             var httpClient = _httpClientFactory.CreateClient();
             var qualificationServiceUrl = _configuration?["Services:QualificationService:BaseUrl"] ?? _configuration?["Services:MasterService:BaseUrl"] ?? "http://localhost:5009";
-            
+
             try
             {
                 var response = await httpClient.GetAsync($"{qualificationServiceUrl}/api/qualifications");
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("Failed to fetch qualifications from QualificationService");
                     return 0;
                 }
 
                 var jsonContent = await response.Content.ReadAsStringAsync();
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var qualifications = JsonSerializer.Deserialize<List<QualificationDto>>(jsonContent, options);
-                
                 if (qualifications == null || !qualifications.Any())
                 {
-                    Console.WriteLine("No qualifications found");
                     return 0;
                 }
 
@@ -402,70 +200,38 @@ namespace ExamService.Application.Services
                 foreach (var qualification in qualifications.Where(q => q.IsActive))
                 {
                     var existingExams = await _examRepository.GetByQualificationIdAsync(qualification.Id);
-                    var hasInternationalExam = existingExams.Any(e => e.IsInternational);
-                    
-                    if (!hasInternationalExam)
+                    if (existingExams.Any(e => e.IsInternational))
                     {
-                        var randomExamName = internationalExamNames[createdCount % internationalExamNames.Length];
-                        var createDto = new CreateExamDto
-                        {
-                            Name = $"{randomExamName} - {qualification.Name}",
-                            Description = $"International {randomExamName} exam for {qualification.Name} qualification",
-                            DurationInMinutes = 180, // 3 hours
-                            TotalMarks = 100,
-                            PassingMarks = 60,
-                            IsInternational = true,
-                            QualificationIds = new List<int> { qualification.Id }
-                        };
-
-                        await CreateExamAsync(createDto);
-                        createdCount++;
+                        continue;
                     }
+
+                    var randomExamName = internationalExamNames[createdCount % internationalExamNames.Length];
+                    var createDto = new CreateExamDto
+                    {
+                        Name = $"{randomExamName} - {qualification.Name}",
+                        Description = $"International {randomExamName} exam for {qualification.Name} qualification",
+                        DurationInMinutes = 180,
+                        TotalMarks = 100,
+                        PassingMarks = 60,
+                        IsInternational = true,
+                        ExamCategoryId = 1
+                    };
+
+                    await CreateExamAsync(createDto);
+                    createdCount++;
                 }
 
                 return createdCount;
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error seeding international exams: {ex.Message}. Stack: {ex.StackTrace}", ex);
+                throw new Exception($"Error seeding international exams: {ex.Message}", ex);
             }
         }
 
-        // Admin specific methods
         public async Task<ExamStatsDto> GetExamStatsAsync()
         {
-            var stats = await _examRepository.GetExamStatsAsync();
-            return stats;
-        }
-
-        public async Task<IEnumerable<ExamCategoryDto>> GetExamCategoriesAsync()
-        {
-            var categories = await _examRepository.GetExamCategoriesAsync();
-            return _mapper.Map<IEnumerable<ExamCategoryDto>>(categories);
-        }
-
-        public async Task<IEnumerable<ExamTypeDto>> GetExamTypesByCategoryAsync(int categoryId)
-        {
-            var types = await _examRepository.GetExamTypesByCategoryAsync(categoryId);
-            return _mapper.Map<IEnumerable<ExamTypeDto>>(types);
-        }
-
-        public async Task<IEnumerable<ExamTypeDto>> GetTypesByCategoryIdAsync(int categoryId)
-        {
-            var types = await _examRepository.GetExamTypesByCategoryAsync(categoryId);
-            return _mapper.Map<IEnumerable<ExamTypeDto>>(types);
-        }
-
-        public async Task<IEnumerable<ExamCategoryDto>> GetActiveCategoriesAsync()
-        {
-            var categories = await _examRepository.GetActiveCategoriesAsync();
-            return _mapper.Map<IEnumerable<ExamCategoryDto>>(categories);
-        }
-
-        public async Task<IEnumerable<ExamDto>> GetFilteredExamsAsync(int? categoryId, int? typeId, string? status)
-        {
-            var exams = await _examRepository.GetFilteredExamsAsync(categoryId, typeId, status);
-            return _mapper.Map<IEnumerable<ExamDto>>(exams);
+            return await _examRepository.GetExamStatsAsync();
         }
 
         public async Task<bool> UpdateExamStatusAsync(int id, string status)
@@ -475,8 +241,127 @@ namespace ExamService.Application.Services
 
         public async Task<ExamDashboardDto> GetExamDashboardAsync()
         {
-            var dashboard = await _examRepository.GetExamDashboardAsync();
-            return dashboard;
+            return await _examRepository.GetExamDashboardAsync();
+        }
+
+        private async Task<IEnumerable<ExamDto>> GetExamsByInternationalStatus(bool showInternational)
+        {
+            var allExams = await _examRepository.GetAllAsync();
+            var filteredExams = allExams.Where(e => e.IsInternational == showInternational && e.IsActive);
+            return BuildExamDtos(filteredExams, null);
+        }
+
+        private IEnumerable<ExamDto> BuildExamDtos(IEnumerable<Exam> exams, bool? isInternational)
+        {
+            if (isInternational.HasValue)
+            {
+                exams = exams.Where(e => e.IsInternational == isInternational.Value);
+            }
+
+            var examDtos = new List<ExamDto>();
+            foreach (var exam in exams.OrderBy(e => e.Name))
+            {
+                ApplyScheduleState(exam);
+                examDtos.Add(_mapper.Map<ExamDto>(exam));
+            }
+
+            return examDtos;
+        }
+
+        private static void ValidateExamPayload(string name, int? examCategoryId, int? subjectId)
+        {
+            Console.WriteLine($"ValidateExamPayload - Name: '{name}', ExamCategoryId: {examCategoryId}, SubjectId: {subjectId}");
+            
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Exam name is required and cannot be empty.");
+            }
+
+            if (!examCategoryId.HasValue || !AllowedExamCategoryIds.Contains(examCategoryId.Value))
+            {
+                throw new ArgumentException("Exam category must be one of: Test Series, Mock Test, Deep Practice, Previous Year Question.");
+            }
+
+            if ((examCategoryId == MockTestCategoryId || examCategoryId == DeepPracticeCategoryId) && !subjectId.HasValue)
+            {
+                throw new ArgumentException("Subject is required for Mock Test and Deep Practice.");
+            }
+        }
+
+        private static void ApplyScheduleState(Exam exam)
+        {
+            var now = DateTime.UtcNow;
+            if (exam.ValidTill.HasValue && exam.ValidTill.Value <= now)
+            {
+                exam.IsActive = false;
+                exam.Status = "Inactive";
+                return;
+            }
+
+            if (exam.PublishDateTime.HasValue)
+            {
+                if (exam.PublishDateTime.Value <= now)
+                {
+                    exam.IsActive = true;
+                    exam.Status = "Active";
+                    return;
+                }
+
+                exam.IsActive = false;
+                exam.Status = "Scheduled";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(exam.Status))
+            {
+                exam.Status = "Draft";
+            }
+
+            if (string.Equals(exam.Status, "Draft", StringComparison.OrdinalIgnoreCase))
+            {
+                exam.IsActive = false;
+            }
+        }
+
+        private async Task<string?> GetSubjectNameById(int subjectId)
+        {
+            try
+            {
+                // Mock subject names - in real implementation, this would come from database
+                var subjectNames = new Dictionary<int, string>
+                {
+                    { 1, "Mathematics" },
+                    { 2, "Physics" },
+                    { 3, "Chemistry" },
+                    { 4, "Biology" },
+                    { 5, "English" },
+                    { 6, "General Knowledge" },
+                    { 7, "Reasoning" },
+                    { 8, "Computer Science" }
+                };
+
+                return subjectNames.TryGetValue(subjectId, out var name) ? name : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<int> BulkHardDeleteExamsAsync(int[] excludedIds)
+        {
+            var allExams = await _examRepository.GetAllIncludingInactiveAsync();
+            var examsToDelete = allExams.Where(e => !excludedIds.Contains(e.Id)).ToList();
+            
+            int deletedCount = 0;
+            foreach (var exam in examsToDelete)
+            {
+                var result = await _examRepository.HardDeleteByIdAsync(exam.Id);
+                if (result)
+                    deletedCount++;
+            }
+            
+            return deletedCount;
         }
     }
 

@@ -292,25 +292,26 @@ namespace SubscriptionService.Application.Services
             }
         }
 
-        private async Task<string> GenerateProviderOrderIdAsync(PaymentProvider provider, int paymentId)
+        private Task<string> GenerateProviderOrderIdAsync(PaymentProvider provider, int paymentId)
         {
-            return provider switch
+            var result = provider switch
             {
                 PaymentProvider.GooglePay => $"GP_{paymentId}_{DateTime.UtcNow:yyyyMMddHHmmss}",
                 PaymentProvider.Paytm => $"PT_{paymentId}_{DateTime.UtcNow:yyyyMMddHHmmss}",
                 PaymentProvider.PhonePe => $"PP_{paymentId}_{DateTime.UtcNow:yyyyMMddHHmmss}",
                 _ => $"UP_{paymentId}_{DateTime.UtcNow:yyyyMMddHHmmss}"
             };
+            return Task.FromResult(result);
         }
 
-        private async Task<(string PaymentUrl, string QrCode)> GeneratePaymentDetailsAsync(PaymentProvider provider, string orderId, decimal amount, string currency)
+        private Task<(string PaymentUrl, string QrCode)> GeneratePaymentDetailsAsync(PaymentProvider provider, string orderId, decimal amount, string currency)
         {
             // Mock implementation - integrate with actual UPI providers
             var baseUrl = _configuration["PaymentSettings:BaseUrl"] ?? "https://payment.example.com";
             var paymentUrl = $"{baseUrl}/pay/{orderId}";
             var qrCode = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"upi://pay?pa=merchant@upi&pn=RankUp&am={amount}&cu={currency}&tn={orderId}"));
 
-            return (paymentUrl, qrCode);
+            return Task.FromResult((paymentUrl, qrCode));
         }
 
         private async Task<ProviderVerificationResult> VerifyWithProviderAsync(PaymentProvider provider, string transactionId)

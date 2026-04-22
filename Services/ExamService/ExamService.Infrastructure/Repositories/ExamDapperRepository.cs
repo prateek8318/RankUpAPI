@@ -165,9 +165,40 @@ namespace ExamService.Infrastructure.Repositories
             {
                 var sql = @"
                     EXEC [dbo].[Exam_Update] 
-                        @Id, @Name, @Description, @IsActive, @UpdatedAt";
+                        @Id, @Name, @Description, @IsActive, @UpdatedAt,
+                        @ExamCategoryId, @ExamTypeId, @SubjectId, @TotalQuestions, @MarksPerQuestion,
+                        @HasNegativeMarking, @NegativeMarkingValue, @AccessType, @SubscriptionPlanId,
+                        @ExamDate, @PublishDateTime, @ValidTill, @AttemptsAllowed, @ShowResultType, @Status,
+                        @DurationInMinutes, @TotalMarks, @PassingMarks, @ImageUrl, @IsInternational";
 
-                await connection.ExecuteAsync(sql, exam);
+                var parameters = new DynamicParameters();
+                parameters.Add("@Id", exam.Id);
+                parameters.Add("@Name", exam.Name);
+                parameters.Add("@Description", exam.Description);
+                parameters.Add("@IsActive", exam.IsActive);
+                parameters.Add("@UpdatedAt", exam.UpdatedAt ?? DateTime.UtcNow);
+                parameters.Add("@ExamCategoryId", exam.ExamCategoryId);
+                parameters.Add("@ExamTypeId", exam.ExamTypeId);
+                parameters.Add("@SubjectId", exam.SubjectId);
+                parameters.Add("@TotalQuestions", exam.TotalQuestions);
+                parameters.Add("@MarksPerQuestion", exam.MarksPerQuestion);
+                parameters.Add("@HasNegativeMarking", exam.HasNegativeMarking);
+                parameters.Add("@NegativeMarkingValue", exam.NegativeMarkingValue);
+                parameters.Add("@AccessType", exam.AccessType);
+                parameters.Add("@SubscriptionPlanId", exam.SubscriptionPlanId);
+                parameters.Add("@ExamDate", exam.ExamDate);
+                parameters.Add("@PublishDateTime", exam.PublishDateTime);
+                parameters.Add("@ValidTill", exam.ValidTill);
+                parameters.Add("@AttemptsAllowed", exam.AttemptsAllowed);
+                parameters.Add("@ShowResultType", exam.ShowResultType);
+                parameters.Add("@Status", exam.Status);
+                parameters.Add("@DurationInMinutes", exam.DurationInMinutes);
+                parameters.Add("@TotalMarks", exam.TotalMarks);
+                parameters.Add("@PassingMarks", exam.PassingMarks);
+                parameters.Add("@ImageUrl", exam.ImageUrl);
+                parameters.Add("@IsInternational", exam.IsInternational);
+
+                await connection.ExecuteAsync(sql, parameters);
             });
         }
 

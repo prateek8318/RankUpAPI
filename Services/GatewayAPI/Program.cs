@@ -42,6 +42,7 @@ try
 
     // Add Ocelot services (use Docker config when OCELOT_CONFIG env is set)
     var ocelotFile = Environment.GetEnvironmentVariable("OCELOT_CONFIG") ?? "ocelot.json";
+    ocelotFile = Path.GetFileName(ocelotFile);
     Console.WriteLine($"Using Ocelot config: {ocelotFile}");
     builder.Configuration.AddJsonFile(ocelotFile, optional: false, reloadOnChange: true);
     builder.Services.AddOcelot();

@@ -43,5 +43,8 @@ namespace SubscriptionService.Domain.Entities
 
         [NotMapped]
         public decimal SavingsAmount => Math.Round(Price - EffectivePrice, 2);
+
+        [NotMapped]
+        public int TestPapersCount { get; set; } = 0;
     }
 }

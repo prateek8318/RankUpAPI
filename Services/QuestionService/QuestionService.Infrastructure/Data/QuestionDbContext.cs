@@ -13,6 +13,17 @@ namespace QuestionService.Infrastructure.Data
 
         public DbSet<Question> Questions { get; set; }
 
-        // No OnModelCreating - using stored procedures instead
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // Even though most writes happen via stored procedures + Dapper, EF still validates
+            // model metadata at startup; be explicit about decimal precision to avoid truncation.
+            modelBuilder.Entity<Question>(b =>
+            {
+                b.Property(x => x.Marks).HasPrecision(10, 2);
+                b.Property(x => x.NegativeMarks).HasPrecision(10, 2);
+            });
+
+            base.OnModelCreating(modelBuilder);
+        }
     }
 }

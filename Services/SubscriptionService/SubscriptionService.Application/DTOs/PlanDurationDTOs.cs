@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using SubscriptionService.Domain.Entities;
 
 namespace SubscriptionService.Application.DTOs
@@ -83,6 +84,8 @@ namespace SubscriptionService.Application.DTOs
         public List<string> Features { get; set; } = new();
         public List<string> LocalizedFeatures { get; set; } = new();
         public string? ImageUrl { get; set; }
+        public bool IsPopular { get; set; }
+        public bool IsRecommended { get; set; }
         public string? CardColorTheme { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
@@ -91,6 +94,11 @@ namespace SubscriptionService.Application.DTOs
 
     public class CreateSubscriptionPlanWithDurationDto
     {
+        /// <summary>
+        /// Optional: when provided, the plan is updated (upsert flow).
+        /// </summary>
+        public int? Id { get; set; }
+
         [Required]
         [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
@@ -122,10 +130,19 @@ namespace SubscriptionService.Application.DTOs
         [MaxLength(500)]
         public string? ImageUrl { get; set; }
 
+        /// <summary>
+        /// Image file upload for subscription plan (preferred over ImageUrl)
+        /// </summary>
+        public IFormFile? ImageFile { get; set; }
+
         [MaxLength(50)]
         public string? CardColorTheme { get; set; }
 
         public int SortOrder { get; set; } = 0;
+
+        public bool IsPopular { get; set; } = false;
+
+        public bool IsRecommended { get; set; } = false;
 
         [Required]
         public List<CreatePlanDurationOptionDto> DurationOptions { get; set; } = new();

@@ -12,12 +12,19 @@ namespace MasterService.Application.Services
     public class ExamService : BaseService, IExamService
     {
         private readonly IExamRepository _examRepository;
+        private readonly ISubjectRepository _subjectRepository;
         private readonly IMapper _mapper;
         private readonly ILanguageDataService _languageDataService;
 
-        public ExamService(IExamRepository examRepository, IMapper mapper, ILanguageDataService languageDataService, ILogger<ExamService> logger) : base(logger)
+        public ExamService(
+            IExamRepository examRepository,
+            ISubjectRepository subjectRepository,
+            IMapper mapper,
+            ILanguageDataService languageDataService,
+            ILogger<ExamService> logger) : base(logger)
         {
             _examRepository = examRepository;
+            _subjectRepository = subjectRepository;
             _mapper = mapper;
             _languageDataService = languageDataService;
         }
@@ -28,9 +35,20 @@ namespace MasterService.Application.Services
                 _examRepository,
                 async (connection, transaction) =>
                 {
+                    if (createDto.SubjectIds == null || !createDto.SubjectIds.Any())
+                    {
+                        throw new ArgumentException("At least one subject is required.");
+                    }
+
                     var exam = _mapper.Map<Exam>(createDto);
                     exam.CreatedAt = DateTime.UtcNow;
                     exam.IsActive = true;
+
+                    // Set the base Name from the first language name to satisfy database constraint
+                    if (createDto.Names != null && createDto.Names.Any())
+                    {
+                        exam.Name = createDto.Names.First().Name ?? string.Empty;
+                    }
 
                     if (createDto.Names != null && createDto.Names.Any())
                     {
@@ -73,6 +91,7 @@ namespace MasterService.Application.Services
                         relation => new { relation.QualificationId, relation.StreamId });
 
                     await _examRepository.AddAsync(exam, namesJson, relationsJson);
+                    await _examRepository.ReplaceExamSubjectsAsync(exam.Id, createDto.SubjectIds, transaction);
                     await _examRepository.SaveChangesAsync();
 
                     return (await GetExamByIdAsync(exam.Id))!;
@@ -86,11 +105,25 @@ namespace MasterService.Application.Services
                 _examRepository,
                 async (connection, transaction) =>
                 {
+                    if (updateDto.SubjectIds == null || !updateDto.SubjectIds.Any())
+                    {
+                        throw new ArgumentException("At least one subject is required.");
+                    }
+
                     var exam = await _examRepository.GetByIdAsync(id);
                     if (exam == null)
                         return null;
 
-                    exam.Name = updateDto.Name;
+                    // Handle Name property - if null or empty, keep existing value
+                    if (string.IsNullOrWhiteSpace(updateDto.Name))
+                    {
+                        // Keep previous value when client sends partial payload without Name.
+                        exam.Name = exam.Name; // Keep existing name
+                    }
+                    else
+                    {
+                        exam.Name = updateDto.Name;
+                    }
                     exam.Description = updateDto.Description;
                     exam.CountryCode = updateDto.CountryCode;
                     exam.MinAge = updateDto.MinAge;
@@ -152,6 +185,7 @@ namespace MasterService.Application.Services
 
                     // Use the UpdateAsync method that accepts transaction
                     await _examRepository.UpdateAsync(exam, namesJson, relationsJson, transaction);
+                    await _examRepository.ReplaceExamSubjectsAsync(exam.Id, updateDto.SubjectIds, transaction);
                     await _examRepository.SaveChangesAsync();
                     return await GetExamByIdAsync(exam.Id);
                 },
@@ -196,6 +230,8 @@ namespace MasterService.Application.Services
             // Populate QualificationIds and StreamIds
             dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
             dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+            dto.SubjectIds = exam.SubjectIds?.ToList() ?? new List<int>();
+            dto.SubjectNames = await ResolveSubjectNamesAsync(dto.SubjectIds);
             
             if (languageId.HasValue)
             {
@@ -248,6 +284,7 @@ namespace MasterService.Application.Services
                 .ToList();
 
             // Populate QualificationIds and StreamIds for all exams
+            var subjectNameMap = await BuildSubjectNameMapAsync(exams.SelectMany(x => x.SubjectIds ?? new List<int>()));
             foreach (var dto in dtos)
             {
                 var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
@@ -255,6 +292,15 @@ namespace MasterService.Application.Services
                 {
                     dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
                     dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                    dto.SubjectIds = exam.SubjectIds?.ToList() ?? new List<int>();
+                    dto.SubjectNames = dto.SubjectIds
+                        .Where(subjectId => subjectNameMap.ContainsKey(subjectId))
+                        .Select(subjectId => new SubjectNameDto 
+                        { 
+                            Id = subjectId, 
+                            Name = subjectNameMap[subjectId] 
+                        })
+                        .ToList();
                     
                     if (languageId.HasValue)
                     {
@@ -282,6 +328,7 @@ namespace MasterService.Application.Services
                 .ToList();
 
             // Populate QualificationIds and StreamIds for all exams
+            var subjectNameMap = await BuildSubjectNameMapAsync(exams.SelectMany(x => x.SubjectIds ?? new List<int>()));
             foreach (var dto in dtos)
             {
                 var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
@@ -289,6 +336,15 @@ namespace MasterService.Application.Services
                 {
                     dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
                     dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                    dto.SubjectIds = exam.SubjectIds?.ToList() ?? new List<int>();
+                    dto.SubjectNames = dto.SubjectIds
+                        .Where(subjectId => subjectNameMap.ContainsKey(subjectId))
+                        .Select(subjectId => new SubjectNameDto 
+                        { 
+                            Id = subjectId, 
+                            Name = subjectNameMap[subjectId] 
+                        })
+                        .ToList();
                     
                     if (languageId.HasValue)
                     {
@@ -364,6 +420,7 @@ namespace MasterService.Application.Services
                         .ToList();
 
                     // Populate QualificationIds and StreamIds for all exams
+                    var subjectNameMap = await BuildSubjectNameMapAsync(exams.SelectMany(x => x.SubjectIds ?? new List<int>()));
                     foreach (var dto in dtos)
                     {
                         var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
@@ -371,6 +428,15 @@ namespace MasterService.Application.Services
                         {
                             dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
                             dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                            dto.SubjectIds = exam.SubjectIds?.ToList() ?? new List<int>();
+                            dto.SubjectNames = dto.SubjectIds
+                                .Where(subjectId => subjectNameMap.ContainsKey(subjectId))
+                                .Select(subjectId => new SubjectNameDto 
+                                { 
+                                    Id = subjectId, 
+                                    Name = subjectNameMap[subjectId] 
+                                })
+                                .ToList();
                             
                             if (languageId.HasValue)
                             {
@@ -397,6 +463,7 @@ namespace MasterService.Application.Services
                         .ToList();
 
                     // Populate QualificationIds and StreamIds for all exams
+                    var subjectNameMap = await BuildSubjectNameMapAsync(exams.SelectMany(x => x.SubjectIds ?? new List<int>()));
                     foreach (var dto in dtos)
                     {
                         var exam = exams.FirstOrDefault(x => x.Id == dto.Id);
@@ -404,6 +471,15 @@ namespace MasterService.Application.Services
                         {
                             dto.QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>();
                             dto.StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>();
+                            dto.SubjectIds = exam.SubjectIds?.ToList() ?? new List<int>();
+                            dto.SubjectNames = dto.SubjectIds
+                                .Where(subjectId => subjectNameMap.ContainsKey(subjectId))
+                                .Select(subjectId => new SubjectNameDto 
+                                { 
+                                    Id = subjectId, 
+                                    Name = subjectNameMap[subjectId] 
+                                })
+                                .ToList();
                         }
                     }
 
@@ -484,8 +560,37 @@ namespace MasterService.Application.Services
                 UpdatedAt = exam.UpdatedAt,
                 QualificationIds = exam.ExamQualifications?.Select(eq => eq.QualificationId).ToList() ?? new List<int>(),
                 StreamIds = exam.ExamQualifications?.Select(eq => eq.StreamId).ToList() ?? new List<int?>(),
+                SubjectIds = exam.SubjectIds?.ToList() ?? new List<int>(),
+                SubjectNames = new List<SubjectNameDto>(),
                 Names = names
             };
+        }
+
+        private async Task<List<SubjectNameDto>> ResolveSubjectNamesAsync(IEnumerable<int> subjectIds)
+        {
+            var subjectNameMap = await BuildSubjectNameMapAsync(subjectIds);
+            return subjectIds
+                .Where(subjectId => subjectNameMap.ContainsKey(subjectId))
+                .Select(subjectId => new SubjectNameDto 
+                { 
+                    Id = subjectId, 
+                    Name = subjectNameMap[subjectId] 
+                })
+                .ToList();
+        }
+
+        private async Task<Dictionary<int, string>> BuildSubjectNameMapAsync(IEnumerable<int> subjectIds)
+        {
+            var idSet = (subjectIds ?? Enumerable.Empty<int>()).Distinct().ToHashSet();
+            if (idSet.Count == 0)
+            {
+                return new Dictionary<int, string>();
+            }
+
+            var subjects = await _subjectRepository.GetAllAsync();
+            return subjects
+                .Where(subject => idSet.Contains(subject.Id) && subject.IsActive)
+                .ToDictionary(subject => subject.Id, subject => subject.Name);
         }
 
         private async Task<IEnumerable<ExamDto>> GetDefaultExamsOptimized(string language)

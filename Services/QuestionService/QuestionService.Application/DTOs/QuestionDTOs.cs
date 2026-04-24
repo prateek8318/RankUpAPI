@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json.Serialization;
+using QuestionService.Application.Serialization;
 using QuestionService.Domain.Entities;
 
 namespace QuestionService.Application.DTOs
@@ -238,6 +240,31 @@ namespace QuestionService.Application.DTOs
         public int TotalPages { get; set; }
     }
 
+    // Cursor Pagination DTOs
+    public class QuestionCursorRequestDto
+    {
+        public int? ExamId { get; set; }
+        public int? SubjectId { get; set; }
+        public int? TopicId { get; set; }
+        public string? DifficultyLevel { get; set; }
+        public bool? IsPublished { get; set; }
+        public string LanguageCode { get; set; } = "en";
+        public int PageSize { get; set; } = 20;
+        public string? Cursor { get; set; }
+        public string? Direction { get; set; } = "next"; // "next" or "prev"
+    }
+
+    public class QuestionCursorResponseDto
+    {
+        public IReadOnlyList<QuestionDto> Data { get; set; } = new List<QuestionDto>();
+        public string? NextCursor { get; set; }
+        public string? PreviousCursor { get; set; }
+        public bool HasNextPage { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public int TotalCount { get; set; }
+        public int PageSize { get; set; }
+    }
+
     public class QuestionStatisticsDto
     {
         public int TotalQuestions { get; set; }
@@ -375,6 +402,68 @@ namespace QuestionService.Application.DTOs
     }
 
     // Admin-specific DTOs
+    public class CreateQuestionRequestDto
+    {
+        public int ModuleId { get; set; }
+        public int ExamId { get; set; }
+        public int SubjectId { get; set; }
+        public int TopicId { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string OptionA { get; set; } = string.Empty;
+        public string OptionB { get; set; } = string.Empty;
+        public string OptionC { get; set; } = string.Empty;
+        public string OptionD { get; set; } = string.Empty;
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public string Explanation { get; set; } = string.Empty;
+        public decimal Marks { get; set; } = 1;
+        public decimal NegativeMarks { get; set; } = 0;
+        public string DifficultyLevel { get; set; } = "Medium";
+        public string QuestionType { get; set; } = "MCQ";
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
+        public bool SameExplanationForAllLanguages { get; set; }
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+        public int CreatedBy { get; set; }
+        public List<QuestionTranslationUpsertDto> Translations { get; set; } = new();
+    }
+
+    public class CreateQuestionFormDataDto
+    {
+        public int ModuleId { get; set; }
+        public int MockTestId { get; set; }
+        public int SubjectId { get; set; }
+        public int? TopicId { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string OptionA { get; set; } = string.Empty;
+        public string OptionB { get; set; } = string.Empty;
+        public string OptionC { get; set; } = string.Empty;
+        public string OptionD { get; set; } = string.Empty;
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public string Explanation { get; set; } = string.Empty;
+        public decimal Marks { get; set; } = 1;
+        public decimal NegativeMarks { get; set; } = 0;
+        public string DifficultyLevel { get; set; } = "Medium";
+        public string QuestionType { get; set; } = "MCQ";
+        public bool SameExplanationForAllLanguages { get; set; }
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+        public int CreatedBy { get; set; }
+        public string TranslationsJson { get; set; } = "[]";
+        
+        // Image files
+        public IFormFile? QuestionImage { get; set; }
+        public IFormFile? OptionAImage { get; set; }
+        public IFormFile? OptionBImage { get; set; }
+        public IFormFile? OptionCImage { get; set; }
+        public IFormFile? OptionDImage { get; set; }
+        public IFormFile? ExplanationImage { get; set; }
+    }
+
     public class CreateQuestionAdminDto
     {
         public int ModuleId { get; set; }
@@ -447,6 +536,7 @@ namespace QuestionService.Application.DTOs
         public int? SubjectId { get; set; }
         public int? ExamId { get; set; }
         public int? TopicId { get; set; }
+        public int? MockTestId { get; set; }
         public string? DifficultyLevel { get; set; }
         public string? LanguageCode { get; set; }
         public bool? IsPublished { get; set; }
@@ -519,6 +609,123 @@ namespace QuestionService.Application.DTOs
         public string? ErrorMessage { get; set; }
     }
 
+    // Create/Update Question with Images DTOs
+    public class CreateQuestionWithImagesDto
+    {
+        [Required]
+        public int? ModuleId { get; set; }
+        
+        [Required]
+        public int ExamId { get; set; }
+        
+        [Required]
+        public int SubjectId { get; set; }
+        
+        public int? TopicId { get; set; }
+        
+        [Required]
+        public string QuestionText { get; set; } = string.Empty;
+        
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        
+        [Required]
+        public string CorrectAnswer { get; set; } = string.Empty;
+        
+        public string? Explanation { get; set; }
+        
+        [Required]
+        public decimal Marks { get; set; }
+        
+        public decimal NegativeMarks { get; set; }
+        
+        public string DifficultyLevel { get; set; } = "Medium";
+        
+        [Required]
+        public string QuestionType { get; set; } = "MCQ";
+        
+        // Image files
+        public IFormFile? QuestionImage { get; set; }
+        public IFormFile? OptionAImage { get; set; }
+        public IFormFile? OptionBImage { get; set; }
+        public IFormFile? OptionCImage { get; set; }
+        public IFormFile? OptionDImage { get; set; }
+        public IFormFile? ExplanationImage { get; set; }
+        
+        // Existing image URLs (if any)
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
+        
+        public bool SameExplanationForAllLanguages { get; set; } = false;
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+        public int CreatedBy { get; set; }
+    }
+
+    public class UpdateQuestionWithImagesDto
+    {
+        [Required]
+        public int Id { get; set; }
+        
+        [Required]
+        public int? ModuleId { get; set; }
+        
+        [Required]
+        public int ExamId { get; set; }
+        
+        [Required]
+        public int SubjectId { get; set; }
+        
+        public int? TopicId { get; set; }
+        
+        [Required]
+        public string QuestionText { get; set; } = string.Empty;
+        
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        
+        [Required]
+        public string CorrectAnswer { get; set; } = string.Empty;
+        
+        public string? Explanation { get; set; }
+        
+        [Required]
+        public decimal Marks { get; set; }
+        
+        public decimal? NegativeMarks { get; set; }
+        
+        public string? DifficultyLevel { get; set; }
+        public string? QuestionType { get; set; }
+        
+        // Image files
+        public IFormFile? QuestionImage { get; set; }
+        public IFormFile? OptionAImage { get; set; }
+        public IFormFile? OptionBImage { get; set; }
+        public IFormFile? OptionCImage { get; set; }
+        public IFormFile? OptionDImage { get; set; }
+        public IFormFile? ExplanationImage { get; set; }
+        
+        // Existing image URLs (if any)
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
+        
+        public bool? SameExplanationForAllLanguages { get; set; }
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+    }
+
     // Quiz and Subject Management DTOs
     public class SubjectListDto
     {
@@ -537,6 +744,7 @@ namespace QuestionService.Application.DTOs
         public int QuestionCount { get; set; }
         public int Duration { get; set; } // in minutes
         public bool IsActive { get; set; }
+        [JsonConverter(typeof(BoolIntJsonConverter))]
         public bool IsLocked { get; set; } // For mobile app unlock functionality
     }
 

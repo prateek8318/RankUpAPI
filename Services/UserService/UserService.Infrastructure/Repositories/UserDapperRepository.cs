@@ -103,8 +103,60 @@ WHERE u.Id = @Id
         public async Task<IEnumerable<User>> GetAllAsync(int page = 1, int pageSize = 50)
         {
             var sql = "EXEC [dbo].[User_GetAll] @Page, @PageSize";
-            return await WithConnectionAsync(async connection => 
-                await connection.QueryAsync<User>(sql, new { Page = page, PageSize = pageSize }));
+            var fallbackSql = @"
+SELECT
+    u.Id,
+    u.Name,
+    u.Email,
+    u.PhoneNumber,
+    u.CountryCode,
+    u.Gender,
+    u.DateOfBirth,
+    u.Qualification,
+    u.PreferredLanguage,
+    u.ProfilePhoto,
+    u.PreferredExam,
+    u.StateId,
+    u.LanguageId,
+    u.QualificationId,
+    u.ExamId,
+    u.CategoryId,
+    u.StreamId,
+    u.RefreshToken,
+    u.RefreshTokenExpiryTime,
+    u.LastLoginAt,
+    u.IsPhoneVerified,
+    u.InterestedInIntlExam,
+    u.ProfileCompleted,
+    u.DeviceId,
+    u.DeviceType,
+    u.DeviceName,
+    u.FcmToken,
+    u.LastDeviceLoginAt,
+    u.LastDeviceType,
+    u.LastDeviceName,
+    u.LoginType,
+    u.IsActive,
+    u.CreatedAt,
+    u.UpdatedAt
+FROM [dbo].[Users] u
+ORDER BY u.CreatedAt DESC
+OFFSET (@Offset) ROWS FETCH NEXT (@PageSize) ROWS ONLY;";
+
+            return await WithConnectionAsync(async connection =>
+            {
+                try
+                {
+                    return await connection.QueryAsync<User>(sql, new { Page = page, PageSize = pageSize });
+                }
+                catch (SqlException)
+                {
+                    var safePage = page <= 0 ? 1 : page;
+                    var safePageSize = pageSize <= 0 ? 50 : pageSize;
+                    var offset = (safePage - 1) * safePageSize;
+                    return await connection.QueryAsync<User>(fallbackSql, new { Offset = offset, PageSize = safePageSize });
+                }
+            });
         }
 
         public async Task<IEnumerable<User>> GetActiveAsync(int page = 1, int pageSize = 50)
@@ -117,15 +169,39 @@ WHERE u.Id = @Id
         public async Task<int> GetTotalUsersCountAsync()
         {
             var sql = "EXEC [dbo].[User_GetTotalCount]";
-            return await WithConnectionAsync(async connection => 
-                await connection.QueryFirstOrDefaultAsync<int>(sql));
+            var fallbackSql = "SELECT COUNT(1) FROM [dbo].[Users];";
+            return await WithConnectionAsync(async connection =>
+            {
+                try
+                {
+                    return await connection.QueryFirstOrDefaultAsync<int>(sql);
+                }
+                catch (SqlException)
+                {
+                    return await connection.QueryFirstOrDefaultAsync<int>(fallbackSql);
+                }
+            });
         }
 
         public async Task<int> GetDailyActiveUsersCountAsync()
         {
             var sql = "EXEC [dbo].[User_GetDailyActiveCount]";
-            return await WithConnectionAsync(async connection => 
-                await connection.QueryFirstOrDefaultAsync<int>(sql, commandTimeout: 300));
+            var fallbackSql = @"
+SELECT COUNT(1)
+FROM [dbo].[Users]
+WHERE LastLoginAt >= DATEADD(DAY, -1, GETUTCDATE());";
+
+            return await WithConnectionAsync(async connection =>
+            {
+                try
+                {
+                    return await connection.QueryFirstOrDefaultAsync<int>(sql, commandTimeout: 300);
+                }
+                catch (SqlException)
+                {
+                    return await connection.QueryFirstOrDefaultAsync<int>(fallbackSql);
+                }
+            });
         }
 
         public async Task<User> AddAsync(User user)

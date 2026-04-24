@@ -18,6 +18,7 @@ namespace SubscriptionService.Application.Interfaces
         
         // New methods for duration options support
         Task<PlanWithDurationOptionsDto> CreatePlanWithDurationsAsync(CreateSubscriptionPlanWithDurationDto createPlanDto);
+        Task<PlanWithDurationOptionsDto> UpsertPlanWithDurationsAsync(CreateSubscriptionPlanWithDurationDto dto);
         Task<PlanWithDurationOptionsDto?> GetPlanWithDurationsAsync(int id, string? language = null, int? userId = null);
         Task<IEnumerable<PlanWithDurationOptionsDto>> GetActivePlansWithDurationsAsync(string? language = null, int? examId = null, int? userId = null);
         Task<bool> AddDurationOptionsAsync(int planId, List<CreatePlanDurationOptionDto> durationOptions);

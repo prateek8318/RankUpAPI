@@ -86,6 +86,15 @@ namespace TestService.Infrastructure.Repositories
             });
         }
 
+        public async Task<IEnumerable<SubjectMaster>> GetSubjectsByExamAndPracticeModeAsync(int examId, int practiceModeId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = "EXEC [dbo].[Test_GetSubjectsByExamAndPracticeMode] @ExamId, @PracticeModeId";
+                return await connection.QueryAsync<SubjectMaster>(sql, new { ExamId = examId, PracticeModeId = practiceModeId });
+            });
+        }
+
         public async Task<IEnumerable<Test>> GetByExamAndPracticeModeWithFiltersAsync(
             int examId, 
             int practiceModeId, 

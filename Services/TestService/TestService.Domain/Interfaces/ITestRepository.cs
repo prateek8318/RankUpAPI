@@ -5,6 +5,7 @@ namespace TestService.Domain.Interfaces
     public interface ITestRepository : IRepository<Test>
     {
         Task<IEnumerable<Test>> GetByExamAndPracticeModeAsync(int examId, int practiceModeId);
+        Task<IEnumerable<SubjectMaster>> GetSubjectsByExamAndPracticeModeAsync(int examId, int practiceModeId);
         Task<IEnumerable<Test>> GetByExamAndPracticeModeWithFiltersAsync(
             int examId, 
             int practiceModeId, 

@@ -18,13 +18,20 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var procedure = languageId.HasValue
-                    ? "[dbo].[Subject_GetAllByLanguage]"
-                    : "[dbo].[Subject_GetAll]";
-                var subjectList = (await connection.QueryAsync<Subject>(
-                    procedure,
-                    new { LanguageId = languageId },
-                    commandType: CommandType.StoredProcedure)).ToList();
+                List<Subject> subjectList;
+                if (languageId.HasValue)
+                {
+                    subjectList = (await connection.QueryAsync<Subject>(
+                        "[dbo].[Subject_GetAllByLanguage]",
+                        new { LanguageId = languageId.Value },
+                        commandType: CommandType.StoredProcedure)).ToList();
+                }
+                else
+                {
+                    subjectList = (await connection.QueryAsync<Subject>(
+                        "[dbo].[Subject_GetAll]",
+                        commandType: CommandType.StoredProcedure)).ToList();
+                }
                 await PopulateSubjectLanguagesAsync(connection, subjectList, languageId);
 
                 return subjectList;
@@ -73,13 +80,20 @@ namespace MasterService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var procedure = languageId.HasValue
-                    ? "[dbo].[Subject_GetActiveByLanguage]"
-                    : "[dbo].[Subject_GetActive]";
-                var subjectList = (await connection.QueryAsync<Subject>(
-                    procedure,
-                    new { LanguageId = languageId },
-                    commandType: CommandType.StoredProcedure)).ToList();
+                List<Subject> subjectList;
+                if (languageId.HasValue)
+                {
+                    subjectList = (await connection.QueryAsync<Subject>(
+                        "[dbo].[Subject_GetActiveByLanguage]",
+                        new { LanguageId = languageId.Value },
+                        commandType: CommandType.StoredProcedure)).ToList();
+                }
+                else
+                {
+                    subjectList = (await connection.QueryAsync<Subject>(
+                        "[dbo].[Subject_GetActive]",
+                        commandType: CommandType.StoredProcedure)).ToList();
+                }
                 await PopulateSubjectLanguagesAsync(connection, subjectList, languageId);
 
                 return subjectList;

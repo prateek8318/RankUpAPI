@@ -58,9 +58,10 @@ namespace SubscriptionService.Application.Services
                 int validityDays = plan.ValidityDays;
                 decimal finalAmount = plan.Price;
                 
+                PlanDurationOption durationOption = null;
                 if (createSubscriptionDto.DurationOptionId > 0)
                 {
-                    var durationOption = await _subscriptionPlanRepository.GetDurationOptionAsync(createSubscriptionDto.DurationOptionId);
+                    durationOption = await _subscriptionPlanRepository.GetDurationOptionAsync(createSubscriptionDto.DurationOptionId);
                     if (durationOption != null)
                     {
                         validityDays = durationOption.DurationMonths * 30;
@@ -68,16 +69,32 @@ namespace SubscriptionService.Application.Services
                     }
                 }
 
+                // Create order at Razorpay before persisting subscription.
+                // This ensures frontend gets a valid order id for payment flow.
+                RazorpayOrderResponse razorpayOrder;
+                try
+                {
+                    var receipt = $"sub_{createSubscriptionDto.UserId}_{createSubscriptionDto.SubscriptionPlanId}_{DateTime.UtcNow:yyyyMMddHHmmss}";
+                    razorpayOrder = await _razorpayService.CreateOrderAsync(finalAmount, "INR", receipt);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Failed to create Razorpay order for user: {UserId}, plan: {PlanId}",
+                        createSubscriptionDto.UserId, createSubscriptionDto.SubscriptionPlanId);
+                    throw new InvalidOperationException("Unable to create Razorpay order. Please try again.");
+                }
+
                 var subscription = new UserSubscription
                 {
                     UserId = createSubscriptionDto.UserId,
                     SubscriptionPlanId = createSubscriptionDto.SubscriptionPlanId,
                     DurationOptionId = createSubscriptionDto.DurationOptionId,
-                    RazorpayOrderId = $"order_{DateTime.UtcNow:yyyyMMddHHmmss}_{createSubscriptionDto.UserId}",
+                    RazorpayOrderId = razorpayOrder.Id,
                     PurchasedDate = DateTime.UtcNow,
                     ValidTill = DateTime.UtcNow.AddDays(validityDays),
                     TestsUsed = 0,
-                    TestsTotal = plan.TestPapersCount,
+                    TestsTotal = createSubscriptionDto.DurationOptionId > 0 && durationOption != null ? durationOption.TestPapersCount : plan.TestPapersCount,
                     AmountPaid = finalAmount,
                     Currency = "INR",
                     DiscountApplied = plan.Price > finalAmount ? plan.Price - finalAmount : 0,
@@ -90,6 +107,7 @@ namespace SubscriptionService.Application.Services
                 var createdSubscription = await _userSubscriptionRepository.AddAsync(subscription);
 
                 var result = _mapper.Map<UserSubscriptionDto>(createdSubscription);
+                ApplyRealTimeFields(result);
                 
                 _logger.LogInformation("Successfully created subscription with ID: {SubscriptionId}", result.Id);
                 return result;
@@ -185,6 +203,11 @@ namespace SubscriptionService.Application.Services
                     UserSubscription = _mapper.Map<UserSubscriptionDto>(subscription),
                     PaymentTransaction = _mapper.Map<PaymentTransactionDto>(paymentTransaction)
                 };
+                
+                if (result.UserSubscription != null)
+                {
+                    ApplyRealTimeFields(result.UserSubscription);
+                }
 
                 _logger.LogInformation("Successfully activated subscription: {SubscriptionId}", subscription.Id);
                 return result;
@@ -239,6 +262,7 @@ namespace SubscriptionService.Application.Services
                 await _userSubscriptionRepository.UpdateAsync(subscription);
 
                 var result = _mapper.Map<UserSubscriptionDto>(createdSubscription);
+                ApplyRealTimeFields(result);
                 
                 _logger.LogInformation("Successfully created renewal subscription: {SubscriptionId}", result.Id);
                 return result;
@@ -284,7 +308,10 @@ namespace SubscriptionService.Application.Services
             try
             {
                 var subscription = await _userSubscriptionRepository.GetByIdAsync(id);
-                return subscription != null ? _mapper.Map<UserSubscriptionDto>(subscription) : null;
+                if (subscription == null) return null;
+                var dto = _mapper.Map<UserSubscriptionDto>(subscription);
+                ApplyRealTimeFields(dto);
+                return dto;
             }
             catch (Exception ex)
             {
@@ -301,6 +328,18 @@ namespace SubscriptionService.Application.Services
                 if (subscription == null)
                     return null;
 
+                if (subscription.SubscriptionPlan == null)
+                {
+                    subscription.SubscriptionPlan = await _subscriptionPlanRepository.GetByIdAsync(subscription.SubscriptionPlanId);
+                }
+
+                if (subscription.SubscriptionPlan != null)
+                {
+                    subscription.ExamName ??= subscription.SubscriptionPlan.Name;
+                    subscription.ExamDescription ??= subscription.SubscriptionPlan.Description;
+                    subscription.ExamImageUrl ??= subscription.SubscriptionPlan.ImageUrl;
+                }
+
                 var subscriptionDto = _mapper.Map<UserSubscriptionDto>(subscription);
                 
                 // Ensure SubscriptionPlan details are properly mapped
@@ -312,6 +351,8 @@ namespace SubscriptionService.Application.Services
                 // Format dates properly for API response
                 subscriptionDto.PurchasedDate = DateTime.SpecifyKind(subscription.PurchasedDate, DateTimeKind.Utc);
                 subscriptionDto.ValidTill = DateTime.SpecifyKind(subscription.ValidTill, DateTimeKind.Utc);
+
+                ApplyRealTimeFields(subscriptionDto);
                 
                 // Ensure duration information is accurate
                 if (subscriptionDto.SubscriptionPlan != null)
@@ -336,6 +377,18 @@ namespace SubscriptionService.Application.Services
                 if (subscription == null)
                     return null;
 
+                if (subscription.SubscriptionPlan == null)
+                {
+                    subscription.SubscriptionPlan = await _subscriptionPlanRepository.GetByIdAsync(subscription.SubscriptionPlanId);
+                }
+
+                if (subscription.SubscriptionPlan != null)
+                {
+                    subscription.ExamName ??= subscription.SubscriptionPlan.Name;
+                    subscription.ExamDescription ??= subscription.SubscriptionPlan.Description;
+                    subscription.ExamImageUrl ??= subscription.SubscriptionPlan.ImageUrl;
+                }
+
                 // Map the subscription with all computed fields from database
                 var subscriptionDto = _mapper.Map<UserSubscriptionDto>(subscription);
                 
@@ -346,6 +399,7 @@ namespace SubscriptionService.Application.Services
                     subscriptionDto.SubscriptionPlan = _mapper.Map<SubscriptionPlanDto>(subscription.SubscriptionPlan);
                 }
 
+                ApplyRealTimeFields(subscriptionDto);
                 return subscriptionDto;
             }
             catch (Exception ex)
@@ -360,12 +414,17 @@ namespace SubscriptionService.Application.Services
             try
             {
                 var subscriptions = await _userSubscriptionRepository.GetByUserIdWithHistoryAsync(userId);
-                var subscriptionDtos = _mapper.Map<IEnumerable<UserSubscriptionDto>>(subscriptions);
+                var subscriptionDtos = _mapper.Map<List<UserSubscriptionDto>>(subscriptions);
+                foreach (var dto in subscriptionDtos)
+                {
+                    ApplyRealTimeFields(dto);
+                }
+                await EnrichSubscriptionDtosAsync(subscriptionDtos);
 
                 var history = new SubscriptionHistoryDto
                 {
                     UserId = userId,
-                    Subscriptions = subscriptionDtos.ToList(),
+                    Subscriptions = subscriptionDtos,
                     ActiveSubscriptionCount = subscriptionDtos.Count(s => s.Status == "Active"),
                     ExpiredSubscriptionCount = subscriptionDtos.Count(s => s.Status == "Expired"),
                     CancelledSubscriptionCount = subscriptionDtos.Count(s => s.Status == "Cancelled"),
@@ -387,7 +446,13 @@ namespace SubscriptionService.Application.Services
             try
             {
                 var subscriptions = await _userSubscriptionRepository.GetAllAsync();
-                return _mapper.Map<IEnumerable<UserSubscriptionDto>>(subscriptions);
+                var dtos = _mapper.Map<List<UserSubscriptionDto>>(subscriptions);
+                foreach (var dto in dtos)
+                {
+                    ApplyRealTimeFields(dto);
+                }
+                await EnrichSubscriptionDtosAsync(dtos);
+                return dtos;
             }
             catch (Exception ex)
             {
@@ -401,7 +466,12 @@ namespace SubscriptionService.Application.Services
             try
             {
                 var subscriptions = await _userSubscriptionRepository.GetActiveSubscriptionsAsync();
-                return _mapper.Map<IEnumerable<UserSubscriptionDto>>(subscriptions);
+                var dtos = _mapper.Map<List<UserSubscriptionDto>>(subscriptions);
+                foreach (var dto in dtos)
+                {
+                    ApplyRealTimeFields(dto);
+                }
+                return dtos;
             }
             catch (Exception ex)
             {
@@ -415,7 +485,12 @@ namespace SubscriptionService.Application.Services
             try
             {
                 var subscriptions = await _userSubscriptionRepository.GetExpiringSubscriptionsAsync(daysBeforeExpiry);
-                return _mapper.Map<IEnumerable<UserSubscriptionDto>>(subscriptions);
+                var dtos = _mapper.Map<List<UserSubscriptionDto>>(subscriptions);
+                foreach (var dto in dtos)
+                {
+                    ApplyRealTimeFields(dto);
+                }
+                return dtos;
             }
             catch (Exception ex)
             {
@@ -465,7 +540,68 @@ namespace SubscriptionService.Application.Services
             };
         }
 
-        public async Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansAsync(string? language = null)
+        private async Task EnrichSubscriptionDtosAsync(List<UserSubscriptionDto> dtos)
+        {
+            if (dtos.Count == 0)
+            {
+                return;
+            }
+
+            var planIds = dtos.Select(x => x.SubscriptionPlanId).Distinct().ToList();
+            var planMap = new Dictionary<int, SubscriptionPlan>();
+
+            foreach (var planId in planIds)
+            {
+                var plan = await _subscriptionPlanRepository.GetByIdAsync(planId);
+                if (plan != null)
+                {
+                    planMap[planId] = plan;
+                }
+            }
+
+            foreach (var dto in dtos)
+            {
+                if (!planMap.TryGetValue(dto.SubscriptionPlanId, out var plan))
+                {
+                    continue;
+                }
+
+                dto.SubscriptionName = plan.Name;
+                dto.IsPopular = plan.IsPopular;
+                dto.ExamName ??= plan.Name;
+                dto.ExamDescription ??= plan.Description;
+                dto.ExamImageUrl ??= plan.ImageUrl;
+
+                if (dto.SubscriptionPlan == null)
+                {
+                    dto.SubscriptionPlan = _mapper.Map<SubscriptionPlanDto>(plan);
+                }
+            }
+        }
+
+        private static void ApplyRealTimeFields(UserSubscriptionDto dto)
+        {
+            // NOTE: Some DB queries may project these fields; always compute them at response-time.
+            var now = DateTime.UtcNow;
+            var daysRemaining = dto.ValidTill > now
+                ? (int)Math.Ceiling((dto.ValidTill - now).TotalDays)
+                : 0;
+
+            dto.DaysLeft = daysRemaining;
+            dto.DaysUntilExpiry = daysRemaining;
+
+            dto.CurrentStatus =
+                string.Equals(dto.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) ? "Cancelled" :
+                dto.ValidTill <= now ? "Expired" :
+                string.Equals(dto.Status, "Pending", StringComparison.OrdinalIgnoreCase) ? "Pending" :
+                "Active";
+
+            dto.IsExpired =
+                !string.Equals(dto.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
+                dto.ValidTill <= now;
+        }
+
+        public async Task<IEnumerable<SubscriptionPlanListDto>> GetActivePlansAsync(string? language = null, int? examId = null)
         {
             try
             {
@@ -474,6 +610,16 @@ namespace SubscriptionService.Application.Services
                 var currentLanguage = language ?? "en";
                 var plans = await _subscriptionPlanRepository.GetActivePlansWithDurationsAsync(currentLanguage);
                 var planDtos = _mapper.Map<List<SubscriptionPlanListDto>>(plans);
+
+                // Filter by selected exam (user chooses during profile completion)
+                // In this system ExamCategory often contains Master ExamId as string.
+                if (examId.HasValue)
+                {
+                    planDtos = planDtos
+                        .Where(p => string.Equals(p.ExamCategory, examId.Value.ToString(), StringComparison.OrdinalIgnoreCase)
+                                 || (p.ExamId.HasValue && p.ExamId.Value == examId.Value))
+                        .ToList();
+                }
                 
                 // Apply localization if needed
                 ApplyLocalization(planDtos, plans, currentLanguage);
@@ -574,16 +720,21 @@ namespace SubscriptionService.Application.Services
                 {
                     var latestSubscription = userGroup.OrderByDescending(s => s.CreatedAt).First();
                     var activeSubscription = userGroup.FirstOrDefault(s => s.Status == "Active");
+                    var latestStatus = string.Equals(latestSubscription.Status, "Cancelled", StringComparison.OrdinalIgnoreCase)
+                        ? "Cancelled"
+                        : latestSubscription.ValidTill < DateTime.UtcNow
+                            ? "Expired"
+                            : "Active";
 
                     var userManagement = new UserManagementDto
                     {
                         Id = userGroup.Key,
                         CreatedAt = latestSubscription.CreatedAt,
-                        Status = "Active", // Default status - would come from UserService
+                        Status = latestStatus,
                         HasActiveSubscription = activeSubscription != null,
-                        SubscriptionId = activeSubscription?.Id,
+                        SubscriptionId = activeSubscription?.Id ?? latestSubscription.Id,
                         DaysRemaining = activeSubscription != null ? 
-                            (int)(activeSubscription.ValidTill - DateTime.UtcNow).TotalDays : 0
+                            Math.Max(0, (int)Math.Ceiling((activeSubscription.ValidTill - DateTime.UtcNow).TotalDays)) : 0
                     };
 
                     // Add subscription details if active
@@ -597,6 +748,17 @@ namespace SubscriptionService.Application.Services
                         if (plan != null)
                         {
                             userManagement.PlanName = plan.Name;
+                        }
+                    }
+                    else
+                    {
+                        userManagement.SubscriptionExpiryDate = latestSubscription.ValidTill;
+                        userManagement.SubscriptionAmount = latestSubscription.AmountPaid;
+
+                        var latestPlan = await _subscriptionPlanRepository.GetByIdAsync(latestSubscription.SubscriptionPlanId);
+                        if (latestPlan != null)
+                        {
+                            userManagement.PlanName = latestPlan.Name;
                         }
                     }
 

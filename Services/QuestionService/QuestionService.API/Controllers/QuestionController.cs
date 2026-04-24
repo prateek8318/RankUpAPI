@@ -1,9 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Services;
+using QuestionService.Application.Interfaces;
 using QuestionApplicationService = QuestionService.Application.Services.QuestionService;
+using QuestionService.API.Helpers;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace QuestionService.API.Controllers
 {
@@ -21,18 +25,35 @@ namespace QuestionService.API.Controllers
 
         private int GetAuthenticatedUserId()
         {
-            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userIdValue) || !int.TryParse(userIdValue, out var userId))
-                return 0;
-
-            return userId;
+            return AuthClaimsHelper.GetUserId(User);
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<QuestionDto>>> GetAll()
+        public async Task<ActionResult<object>> GetAll([FromQuery] int? examId = null, [FromQuery] int? subjectId = null, [FromQuery] int? topicId = null, [FromQuery] string? difficultyLevel = null, [FromQuery] bool? isPublished = null, [FromQuery] string languageCode = "en", [FromQuery] int pageSize = 20, [FromQuery] string? cursor = null, [FromQuery] string direction = "next")
         {
-            var questions = await _service.GetAllAsync();
-            return Ok(questions);
+            var request = new QuestionCursorRequestDto
+            {
+                ExamId = examId,
+                SubjectId = subjectId,
+                TopicId = topicId,
+                DifficultyLevel = difficultyLevel,
+                IsPublished = isPublished,
+                LanguageCode = languageCode,
+                PageSize = pageSize,
+                Cursor = cursor,
+                Direction = direction
+            };
+
+            var result = await _service.GetQuestionsCursorAsync(request);
+            return Ok(new { 
+                data = result.Data,
+                nextCursor = result.NextCursor,
+                previousCursor = result.PreviousCursor,
+                hasNextPage = result.HasNextPage,
+                hasPreviousPage = result.HasPreviousPage,
+                totalCount = result.TotalCount,
+                pageSize = result.PageSize
+            });
         }
 
         [HttpGet("{id}")]
@@ -55,8 +76,24 @@ namespace QuestionService.API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<QuestionDto>> Create(CreateQuestionDto dto)
         {
-            var question = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = question.Id }, question);
+            try
+            {
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
+                dto.CreatedBy = userId;
+                var question = await _service.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = question.Id }, question);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = "Invalid question payload." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "Failed to create question." });
+            }
         }
 
         [HttpPut("{id}")]
@@ -102,8 +139,30 @@ namespace QuestionService.API.Controllers
 
         [HttpPost("admin")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<object>> CreateAdminQuestion([FromBody] CreateQuestionAdminDto dto)
+        public async Task<ActionResult<object>> CreateAdminQuestion([FromForm] CreateQuestionFormDataDto? dto)
         {
+            if (dto == null)
+                return BadRequest(new { success = false, message = "Request form data is required." });
+
+            var userId = GetAuthenticatedUserId();
+            if (userId <= 0)
+                return Unauthorized(new { success = false, message = "Invalid user" });
+
+            dto.CreatedBy = userId;
+            var question = await _service.CreateAdminQuestionWithImagesAsync(dto);
+            return Ok(new { success = true, questionId = question.Id, data = question });
+        }
+
+        // Keep the old JSON endpoint for backward compatibility
+        [HttpPost("admin/json")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> CreateAdminQuestionJson([FromBody] CreateQuestionRequestDto dto)
+        {
+            var userId = GetAuthenticatedUserId();
+            if (userId <= 0)
+                return Unauthorized(new { success = false, message = "Invalid user" });
+
+            dto.CreatedBy = userId;
             var question = await _service.CreateAdminQuestionAsync(dto);
             return Ok(new { success = true, questionId = question.Id, data = question });
         }
@@ -134,6 +193,21 @@ namespace QuestionService.API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<QuestionPagedResponseDto>> GetAdminQuestionsPaged([FromQuery] QuestionFilterRequestDto filter)
         {
+            var result = await _service.GetAdminQuestionsPagedAsync(filter);
+            return Ok(new { success = true, data = result });
+        }
+
+        [HttpGet("admin/mock-test/{mockTestId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<QuestionPagedResponseDto>> GetQuestionsByMockTest(int mockTestId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, [FromQuery] bool includeInactive = true)
+        {
+            var filter = new QuestionFilterRequestDto
+            {
+                MockTestId = mockTestId,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                IncludeInactive = includeInactive
+            };
             var result = await _service.GetAdminQuestionsPagedAsync(filter);
             return Ok(new { success = true, data = result });
         }
@@ -197,7 +271,7 @@ namespace QuestionService.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Unable to start quiz with provided payload." });
             }
         }
 
@@ -234,7 +308,7 @@ namespace QuestionService.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Unable to save quiz answer with provided payload." });
             }
         }
 
@@ -255,7 +329,7 @@ namespace QuestionService.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Unable to submit quiz with provided payload." });
             }
         }
 
@@ -308,7 +382,7 @@ namespace QuestionService.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Unable to parse bulk upload file." });
             }
         }
 
@@ -319,12 +393,17 @@ namespace QuestionService.API.Controllers
         {
             try
             {
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
+                dto.CreatedBy = userId;
                 var question = await _service.CreateSimpleQuestionAsync(dto);
                 return Ok(new { success = true, questionId = question.Id, data = question });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Unable to create question with provided payload." });
             }
         }
 
@@ -339,7 +418,7 @@ namespace QuestionService.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Unable to fetch exam types." });
             }
         }
 
@@ -354,7 +433,7 @@ namespace QuestionService.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Unable to fetch exam names for requested type." });
             }
         }
 
@@ -369,7 +448,49 @@ namespace QuestionService.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Unable to fetch exam names." });
+            }
+        }
+
+        // Create Question with Images
+        [HttpPost("admin/with-images")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> CreateQuestionWithImages([FromForm] CreateQuestionWithImagesDto dto)
+        {
+            try
+            {
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
+                dto.CreatedBy = userId;
+                var question = await _service.CreateQuestionWithImagesAsync(dto);
+                return Ok(new { success = true, questionId = question.Id, data = question });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = "Unable to create question with images." });
+            }
+        }
+
+        // Update Question with Images
+        [HttpPut("admin/{id}/with-images")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> UpdateQuestionWithImages(int id, [FromForm] UpdateQuestionWithImagesDto dto)
+        {
+            try
+            {
+                dto.Id = id;
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
+                var question = await _service.UpdateQuestionWithImagesAsync(dto);
+                return Ok(new { success = true, data = question });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = "Unable to update question with images." });
             }
         }
     }

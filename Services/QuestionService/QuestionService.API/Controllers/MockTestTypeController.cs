@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Services;
 using QuestionService.Application.Interfaces;
+using QuestionService.API.Helpers;
 using System.Security.Claims;
 
 namespace QuestionService.API.Controllers
@@ -23,11 +24,7 @@ namespace QuestionService.API.Controllers
 
         private int GetAuthenticatedUserId()
         {
-            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userIdValue) || !int.TryParse(userIdValue, out var userId))
-                return 0;
-
-            return userId;
+            return AuthClaimsHelper.GetUserId(User);
         }
 
         #region Mock Tests - Subject Wise Questions
@@ -83,8 +80,13 @@ namespace QuestionService.API.Controllers
         {
             try
             {
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
                 // Validate for MockTest type
                 dto.MockTestType = MockTestType.MockTest;
+                dto.CreatedBy = userId;
                 if (!dto.SubjectId.HasValue)
                 {
                     return BadRequest(new { success = false, message = "SubjectId is required for Mock Test" });
@@ -158,8 +160,13 @@ namespace QuestionService.API.Controllers
         {
             try
             {
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
                 // Validate for TestSeries type
                 dto.MockTestType = MockTestType.TestSeries;
+                dto.CreatedBy = userId;
                 dto.SubjectId = null; // Full length papers don't require specific subject
                 dto.TopicId = null;
                 
@@ -244,8 +251,13 @@ namespace QuestionService.API.Controllers
         {
             try
             {
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
                 // Validate for DeepPractice type
                 dto.MockTestType = MockTestType.DeepPractice;
+                dto.CreatedBy = userId;
                 
                 if (!dto.SubjectId.HasValue)
                 {
@@ -339,8 +351,13 @@ namespace QuestionService.API.Controllers
         {
             try
             {
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
                 // Validate for PreviousYear type
                 dto.MockTestType = MockTestType.PreviousYear;
+                dto.CreatedBy = userId;
                 dto.SubjectId = null; // Previous year papers may cover multiple subjects
                 dto.TopicId = null;
                 

@@ -13,21 +13,11 @@ END
 ELSE
     PRINT '✓ IX_Users_IsActive already exists';
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_PhoneNumber' AND object_id = OBJECT_ID('Users'))
-BEGIN
-    CREATE INDEX IX_Users_PhoneNumber ON Users(PhoneNumber);
-    PRINT '✓ Created IX_Users_PhoneNumber';
-END
-ELSE
-    PRINT '✓ IX_Users_PhoneNumber already exists';
+-- IX_Users_PhoneNumber already exists as unique index in main script
+PRINT '✓ IX_Users_PhoneNumber already exists (unique index from main script)';
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_Email' AND object_id = OBJECT_ID('Users'))
-BEGIN
-    CREATE INDEX IX_Users_Email ON Users(Email);
-    PRINT '✓ Created IX_Users_Email';
-END
-ELSE
-    PRINT '✓ IX_Users_Email already exists';
+-- IX_Users_Email already exists as unique index in main script
+PRINT '✓ IX_Users_Email already exists (unique index from main script)';
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_CountryCode' AND object_id = OBJECT_ID('Users'))
 BEGIN
@@ -53,22 +43,11 @@ END
 ELSE
     PRINT '✓ IX_Users_CreatedAt already exists';
 
--- Composite indexes for better query performance
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_IsActive_PhoneNumber' AND object_id = OBJECT_ID('Users'))
-BEGIN
-    CREATE INDEX IX_Users_IsActive_PhoneNumber ON Users(IsActive, PhoneNumber);
-    PRINT '✓ Created IX_Users_IsActive_PhoneNumber';
-END
-ELSE
-    PRINT '✓ IX_Users_IsActive_PhoneNumber already exists';
+-- Skip IsActive+PhoneNumber composite index - conflicts with unique PhoneNumber index
+PRINT '✓ Skipped IX_Users_IsActive_PhoneNumber - conflicts with unique PhoneNumber index';
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_IsActive_Email' AND object_id = OBJECT_ID('Users'))
-BEGIN
-    CREATE INDEX IX_Users_IsActive_Email ON Users(IsActive, Email);
-    PRINT '✓ Created IX_Users_IsActive_Email';
-END
-ELSE
-    PRINT '✓ IX_Users_IsActive_Email already exists';
+-- Skip IsActive+Email composite index - conflicts with unique Email index
+PRINT '✓ Skipped IX_Users_IsActive_Email - conflicts with unique Email index';
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_IsActive_LastLoginAt' AND object_id = OBJECT_ID('Users'))
 BEGIN
@@ -144,13 +123,8 @@ END
 ELSE
     PRINT '✓ IX_UserSocialLogins_UserId already exists';
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UserSocialLogins_Provider' AND object_id = OBJECT_ID('UserSocialLogins'))
-BEGIN
-    CREATE INDEX IX_UserSocialLogins_Provider ON UserSocialLogins(Provider);
-    PRINT '✓ Created IX_UserSocialLogins_Provider';
-END
-ELSE
-    PRINT '✓ IX_UserSocialLogins_Provider already exists';
+-- Skip Provider index - Provider column is nvarchar(max) and cannot be indexed
+PRINT '✓ Skipped IX_UserSocialLogins_Provider - Provider column is nvarchar(max)';
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UserSocialLogins_GoogleId' AND object_id = OBJECT_ID('UserSocialLogins'))
 BEGIN
@@ -169,30 +143,20 @@ ELSE
     PRINT '✓ IX_UserSocialLogins_Email already exists';
 
 -- Composite indexes for UserSocialLogins
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UserSocialLogins_Provider_GoogleId' AND object_id = OBJECT_ID('UserSocialLogins'))
-BEGIN
-    CREATE INDEX IX_UserSocialLogins_Provider_GoogleId ON UserSocialLogins(Provider, GoogleId);
-    PRINT '✓ Created IX_UserSocialLogins_Provider_GoogleId';
-END
-ELSE
-    PRINT '✓ IX_UserSocialLogins_Provider_GoogleId already exists';
+-- Skip Provider+GoogleId index - Provider column is nvarchar(max) and cannot be indexed
+PRINT '✓ Skipped IX_UserSocialLogins_Provider_GoogleId - Provider column is nvarchar(max)';
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_UserSocialLogins_UserId_Provider' AND object_id = OBJECT_ID('UserSocialLogins'))
-BEGIN
-    CREATE INDEX IX_UserSocialLogins_UserId_Provider ON UserSocialLogins(UserId, Provider);
-    PRINT '✓ Created IX_UserSocialLogins_UserId_Provider';
-END
-ELSE
-    PRINT '✓ IX_UserSocialLogins_UserId_Provider already exists';
+-- Skip UserId+Provider index - Provider column is nvarchar(max) and cannot be indexed
+PRINT '✓ Skipped IX_UserSocialLogins_UserId_Provider - Provider column is nvarchar(max)';
 
 PRINT '====================================================';
 PRINT 'USERSERVICE DATABASE INDEXES CREATED SUCCESSFULLY!';
 PRINT '====================================================';
 PRINT 'Indexes Created:';
-PRINT '1. Users table: IsActive, PhoneNumber, Email, CountryCode, LastLoginAt, CreatedAt';
-PRINT '2. Users composite indexes: IsActive+PhoneNumber, IsActive+Email, IsActive+LastLoginAt, IsActive+CreatedAt';
+PRINT '1. Users table: IsActive, CountryCode, LastLoginAt, CreatedAt (PhoneNumber, Email exist as unique indexes)';
+PRINT '2. Users composite indexes: IsActive+LastLoginAt, IsActive+CreatedAt (PhoneNumber, Email composites skipped)';
 PRINT '3. Users foreign key indexes: StateId, LanguageId, QualificationId, ExamId, CategoryId, StreamId';
-PRINT '4. UserSocialLogins table: UserId, Provider, GoogleId, Email';
-PRINT '5. UserSocialLogins composite indexes: Provider+GoogleId, UserId+Provider';
+PRINT '4. UserSocialLogins table: UserId, GoogleId, Email (Provider skipped - nvarchar(max))';
+PRINT '5. UserSocialLogins composite indexes: None (Provider indexes skipped - nvarchar(max))';
 PRINT '====================================================';
 GO

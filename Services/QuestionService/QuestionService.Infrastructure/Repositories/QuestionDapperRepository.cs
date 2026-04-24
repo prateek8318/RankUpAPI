@@ -153,12 +153,33 @@ namespace QuestionService.Infrastructure.Repositories
             });
         }
 
-        public async Task<int> CreateAdminQuestionAsync(CreateQuestionAdminDto dto)
+        public async Task<int> CreateAdminQuestionAsync(CreateQuestionRequestDto dto)
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[Question_AdminCreate] @ModuleId, @ExamId, @SubjectId, @TopicId, @Marks, @NegativeMarks, @Difficulty, @CorrectAnswer, @SameExplanationForAllLanguages, @IsPublished, @TranslationsJson";
-                return await connection.QueryFirstAsync<int>(sql, new
+                // Create translations JSON for the stored procedure
+                var translationsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        LanguageCode = "en",
+                        QuestionText = dto.QuestionText,
+                        OptionA = dto.OptionA,
+                        OptionB = dto.OptionB,
+                        OptionC = dto.OptionC,
+                        OptionD = dto.OptionD,
+                        Explanation = dto.Explanation,
+                        QuestionImageUrl = dto.QuestionImageUrl,
+                        OptionAImageUrl = dto.OptionAImageUrl,
+                        OptionBImageUrl = dto.OptionBImageUrl,
+                        OptionCImageUrl = dto.OptionCImageUrl,
+                        OptionDImageUrl = dto.OptionDImageUrl
+                    }
+                });
+
+                var sql = "EXEC [dbo].[Question_AdminCreate] @ModuleId, @ExamId, @SubjectId, @TopicId, @Marks, @NegativeMarks, @Difficulty, @CorrectAnswer, @SameExplanationForAllLanguages, @IsPublished, @TranslationsJson, @CreatedBy";
+                
+                var parameters = new
                 {
                     dto.ModuleId,
                     dto.ExamId,
@@ -166,12 +187,15 @@ namespace QuestionService.Infrastructure.Repositories
                     dto.TopicId,
                     dto.Marks,
                     dto.NegativeMarks,
-                    Difficulty = (int)Enum.Parse(typeof(DifficultyLevel), dto.DifficultyLevel ?? "Medium"),
+                    Difficulty = (int)Enum.Parse(typeof(DifficultyLevel), dto.DifficultyLevel ?? "Medium", ignoreCase: true),
                     dto.CorrectAnswer,
                     dto.SameExplanationForAllLanguages,
-                    dto.IsPublished,
-                    TranslationsJson = JsonSerializer.Serialize(dto.Translations)
-                });
+                    IsPublished = true, // Default to published for admin questions
+                    TranslationsJson = translationsJson,
+                    dto.CreatedBy
+                };
+                
+                return await connection.QueryFirstAsync<int>(sql, parameters);
             });
         }
 
@@ -223,24 +247,93 @@ namespace QuestionService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var sql = "EXEC [dbo].[Question_AdminGetPaged] @PageNumber, @PageSize, @ModuleId, @SubjectId, @ExamId, @TopicId, @Difficulty, @LanguageCode, @IsPublished, @IncludeInactive";
-                using var multi = await connection.QueryMultipleAsync(sql, new
+                // If MockTestId is specified, use custom query to filter by MockTestQuestions
+                if (filter.MockTestId.HasValue)
                 {
-                    filter.PageNumber,
-                    filter.PageSize,
-                    filter.ModuleId,
-                    filter.SubjectId,
-                    filter.ExamId,
-                    filter.TopicId,
-                    Difficulty = !string.IsNullOrEmpty(filter.DifficultyLevel) ? (int?)Enum.Parse(typeof(DifficultyLevel), filter.DifficultyLevel) : null,
-                    filter.LanguageCode,
-                    filter.IsPublished,
-                    filter.IncludeInactive
-                });
+                    var sql = @"
+                        WITH Filtered AS
+                        (
+                            SELECT q.Id, q.ModuleId, q.ExamId, q.SubjectId, q.TopicId, q.Difficulty, q.Marks, q.NegativeMarks, q.IsPublished, q.IsActive, q.CreatedAt
+                            FROM dbo.Questions q
+                            INNER JOIN dbo.MockTestQuestions mtq ON q.Id = mtq.QuestionId
+                            WHERE mtq.MockTestId = @MockTestId
+                              AND (@IncludeInactive = 1 OR q.IsActive = 1)
+                              AND (@ModuleId IS NULL OR q.ModuleId = @ModuleId)
+                              AND (@SubjectId IS NULL OR q.SubjectId = @SubjectId)
+                              AND (@ExamId IS NULL OR q.ExamId = @ExamId)
+                              AND (@TopicId IS NULL OR q.TopicId = @TopicId)
+                              AND (@Difficulty IS NULL OR q.Difficulty = @Difficulty)
+                              AND (@IsPublished IS NULL OR q.IsPublished = @IsPublished)
+                        )
+                        SELECT
+                            f.Id, f.ModuleId, f.ExamId, f.SubjectId, f.TopicId, f.Difficulty, f.Marks, f.NegativeMarks, f.IsPublished, f.IsActive, f.CreatedAt,
+                            t.QuestionText AS DisplayQuestionText, t.LanguageCode
+                        FROM Filtered f
+                        OUTER APPLY
+                        (
+                            SELECT TOP 1 qt.QuestionText, qt.LanguageCode
+                            FROM dbo.QuestionTranslations qt
+                            WHERE qt.QuestionId = f.Id
+                              AND (@LanguageCode IS NULL OR qt.LanguageCode = @LanguageCode)
+                            ORDER BY CASE WHEN qt.LanguageCode = ISNULL(@LanguageCode, 'en') THEN 0 ELSE 1 END
+                        ) t
+                        ORDER BY f.CreatedAt DESC
+                        OFFSET (@PageNumber - 1) * @PageSize ROWS
+                        FETCH NEXT @PageSize ROWS ONLY;
 
-                var items = await multi.ReadAsync<QuestionAdminListItemDto>();
-                var total = await multi.ReadFirstOrDefaultAsync<int>();
-                return (items, total);
+                        SELECT COUNT(1)
+                        FROM dbo.Questions q
+                        INNER JOIN dbo.MockTestQuestions mtq ON q.Id = mtq.QuestionId
+                        WHERE mtq.MockTestId = @MockTestId
+                          AND (@IncludeInactive = 1 OR q.IsActive = 1)
+                          AND (@ModuleId IS NULL OR q.ModuleId = @ModuleId)
+                          AND (@SubjectId IS NULL OR q.SubjectId = @SubjectId)
+                          AND (@ExamId IS NULL OR q.ExamId = @ExamId)
+                          AND (@TopicId IS NULL OR q.TopicId = @TopicId)
+                          AND (@Difficulty IS NULL OR q.Difficulty = @Difficulty)
+                          AND (@IsPublished IS NULL OR q.IsPublished = @IsPublished)";
+
+                    using var multi = await connection.QueryMultipleAsync(sql, new
+                    {
+                        filter.MockTestId,
+                        filter.PageNumber,
+                        filter.PageSize,
+                        filter.ModuleId,
+                        filter.SubjectId,
+                        filter.ExamId,
+                        filter.TopicId,
+                        Difficulty = !string.IsNullOrEmpty(filter.DifficultyLevel) ? (int?)Enum.Parse(typeof(DifficultyLevel), filter.DifficultyLevel) : null,
+                        filter.LanguageCode,
+                        filter.IsPublished,
+                        filter.IncludeInactive
+                    });
+
+                    var items = await multi.ReadAsync<QuestionAdminListItemDto>();
+                    var total = await multi.ReadFirstOrDefaultAsync<int>();
+                    return (items, total);
+                }
+                else
+                {
+                    // Use existing stored procedure for other filters
+                    var sql = "EXEC [dbo].[Question_AdminGetPaged] @PageNumber, @PageSize, @ModuleId, @SubjectId, @ExamId, @TopicId, @Difficulty, @LanguageCode, @IsPublished, @IncludeInactive";
+                    using var multi = await connection.QueryMultipleAsync(sql, new
+                    {
+                        filter.PageNumber,
+                        filter.PageSize,
+                        filter.ModuleId,
+                        filter.SubjectId,
+                        filter.ExamId,
+                        filter.TopicId,
+                        Difficulty = !string.IsNullOrEmpty(filter.DifficultyLevel) ? (int?)Enum.Parse(typeof(DifficultyLevel), filter.DifficultyLevel) : null,
+                        filter.LanguageCode,
+                        filter.IsPublished,
+                        filter.IncludeInactive
+                    });
+
+                    var items = await multi.ReadAsync<QuestionAdminListItemDto>();
+                    var total = await multi.ReadFirstOrDefaultAsync<int>();
+                    return (items, total);
+                }
             });
         }
 
@@ -278,6 +371,36 @@ namespace QuestionService.Infrastructure.Repositories
                 {
                     QuestionsJson = JsonSerializer.Serialize(questions)
                 });
+            });
+        }
+
+        public async Task<bool> UpdateQuestionImageUrlsAsync(int questionId, string? questionImageUrl, string? optionAImageUrl, string? optionBImageUrl, string? optionCImageUrl, string? optionDImageUrl, string? explanationImageUrl)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    UPDATE Questions SET
+                        QuestionImageUrl = @QuestionImageUrl,
+                        OptionAImageUrl = @OptionAImageUrl,
+                        OptionBImageUrl = @OptionBImageUrl,
+                        OptionCImageUrl = @OptionCImageUrl,
+                        OptionDImageUrl = @OptionDImageUrl,
+                        ExplanationImageUrl = @ExplanationImageUrl,
+                        UpdatedAt = GETDATE()
+                    WHERE Id = @QuestionId AND IsActive = 1";
+
+                var rows = await connection.ExecuteAsync(sql, new
+                {
+                    QuestionId = questionId,
+                    QuestionImageUrl = questionImageUrl,
+                    OptionAImageUrl = optionAImageUrl,
+                    OptionBImageUrl = optionBImageUrl,
+                    OptionCImageUrl = optionCImageUrl,
+                    OptionDImageUrl = optionDImageUrl,
+                    ExplanationImageUrl = explanationImageUrl
+                });
+
+                return rows > 0;
             });
         }
     }

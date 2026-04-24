@@ -99,5 +99,9 @@ namespace QuestionService.Domain.Entities
         // Navigation properties
         public virtual Topic? Topic { get; set; }
         public virtual ICollection<QuestionTranslation> Translations { get; set; } = new List<QuestionTranslation>();
+        
+        // Runtime properties for cursor pagination
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public int RowNum { get; set; }
     }
 }

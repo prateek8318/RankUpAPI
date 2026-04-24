@@ -407,12 +407,43 @@ namespace UserService.Application.Services
 
 
             if (!string.IsNullOrWhiteSpace(formData.Email))
-                user.Email = formData.Email;
+            {
+                // Check if email is already used by another user (skip for social login users as they already have validation)
+                if (user.LoginType != "Social")
+                {
+                    var currentEmail = user.Email?.Trim();
+                    var newEmail = formData.Email.Trim();
+                    
+                    if (!string.Equals(currentEmail, newEmail, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var existingUser = await _userRepository.GetByEmailAsync(newEmail);
+                        if (existingUser != null && existingUser.Id != userId)
+                        {
+                            throw new InvalidOperationException($"Email {newEmail} is already registered with another user");
+                        }
+                    }
+                }
+                user.Email = formData.Email.Trim();
+            }
 
 
 
             if (!string.IsNullOrWhiteSpace(formData.PhoneNumber))
-                user.PhoneNumber = formData.PhoneNumber;
+            {
+                // Only check for duplicates if the phone number is actually changing
+                var currentPhone = user.PhoneNumber?.Trim();
+                var newPhone = formData.PhoneNumber.Trim();
+                
+                if (!string.Equals(currentPhone, newPhone, StringComparison.OrdinalIgnoreCase))
+                {
+                    var existingUser = await _userRepository.GetByPhoneNumberAsync(newPhone);
+                    if (existingUser != null && existingUser.Id != userId)
+                    {
+                        throw new InvalidOperationException($"Phone number {newPhone} is already registered with another user");
+                    }
+                }
+                user.PhoneNumber = newPhone;
+            }
 
 
 
@@ -510,6 +541,61 @@ namespace UserService.Application.Services
 
             return await _userRepository.GetDailyActiveUsersCountAsync();
 
+        }
+
+        public async Task<UserDto> UpdateUserByAdminAsync(int userId, AdminUserUpdateRequest request)
+        {
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
+            if (user == null)
+                throw new KeyNotFoundException($"User with ID {userId} not found");
+
+            if (!string.IsNullOrWhiteSpace(request.Name))
+                user.Name = request.Name.Trim();
+
+            if (!string.IsNullOrWhiteSpace(request.Email))
+                user.Email = request.Email.Trim();
+
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+                user.PhoneNumber = request.PhoneNumber.Trim();
+
+            if (request.IsActive.HasValue)
+                user.IsActive = request.IsActive.Value;
+
+            if (request.IsPhoneVerified.HasValue)
+                user.IsPhoneVerified = request.IsPhoneVerified.Value;
+
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            await _userRepository.SaveChangesAsync();
+
+            return MapToResponseDto(user);
+        }
+
+        public async Task<bool> SoftDeleteUserByAdminAsync(int userId)
+        {
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
+            if (user == null)
+                return false;
+
+            user.IsActive = false;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            await _userRepository.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<UserDto> SetUserActiveStatusAsync(int userId, bool isActive)
+        {
+            var user = await _userRepository.GetUserEntityByIdAsync(userId);
+            if (user == null)
+                throw new KeyNotFoundException($"User with ID {userId} not found");
+
+            user.IsActive = isActive;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            await _userRepository.SaveChangesAsync();
+
+            return MapToResponseDto(user);
         }
 
         // Pagination support methods

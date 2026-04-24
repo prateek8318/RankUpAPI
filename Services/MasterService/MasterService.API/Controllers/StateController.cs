@@ -160,11 +160,13 @@ namespace MasterService.API.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new { error = ex.Message });
+                _logger.LogWarning(ex, "Invalid state create request");
+                return BadRequest(new { error = "Invalid state create request." });
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(new { error = ex.Message });
+                _logger.LogWarning(ex, "State create conflict");
+                return Conflict(new { error = "State already exists with the provided details." });
             }
             catch (Exception ex)
             {
@@ -193,11 +195,13 @@ namespace MasterService.API.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new { error = ex.Message });
+                _logger.LogWarning(ex, "Invalid state update request for id {Id}", id);
+                return BadRequest(new { error = "Invalid state update request." });
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(new { error = ex.Message });
+                _logger.LogWarning(ex, "State update conflict for id {Id}", id);
+                return Conflict(new { error = "State already exists with the provided details." });
             }
             catch (Exception ex)
             {

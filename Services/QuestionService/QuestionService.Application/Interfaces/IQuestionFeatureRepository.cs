@@ -16,6 +16,8 @@ namespace QuestionService.Application.Interfaces
         Task<object> SubmitQuizAsync(QuizSubmitRequestDto dto);
         Task<IEnumerable<object>> GetSubjectsAsync();
         Task<IEnumerable<object>> GetExamsAsync(int? subjectId = null);
+        Task<bool> IsTopicMappedToExamSubjectAsync(int topicId, int examId, int subjectId);
+        Task<bool> IsSubjectMappedToExamAsync(int subjectId, int examId);
         
         // Exam Integration Methods
         Task<ExamNameDto> GetExamDetailsAsync(int examId);

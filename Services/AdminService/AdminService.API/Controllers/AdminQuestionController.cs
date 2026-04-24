@@ -14,6 +14,7 @@ namespace AdminService.API.Controllers
     [Authorize(Roles = "Admin")]
     public class AdminQuestionController : ControllerBase
     {
+        private const string InternalServerErrorMessage = "Internal server error";
         private readonly IQuestionServiceClient _questionServiceClient;
         private readonly IAuditLogService _auditLogService;
         private readonly ILogger<AdminQuestionController> _logger;
@@ -39,7 +40,7 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error getting questions for quiz {quizId}");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -57,7 +58,7 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error getting question {id}");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -70,13 +71,17 @@ namespace AdminService.API.Controllers
                 if (question == null)
                     return BadRequest(new ApiResponseDto<object> { Success = false, ErrorMessage = "Failed to create question" });
 
-                return CreatedAtAction(nameof(GetQuestionById), new { id = ((dynamic)question).Id }, 
+                var questionId = TryGetEntityId(question);
+                if (questionId == null)
+                    return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
+
+                return CreatedAtAction(nameof(GetQuestionById), new { id = questionId.Value }, 
                     new ApiResponseDto<object> { Success = true, Data = question });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating question");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -94,7 +99,7 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error updating question {id}");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -131,8 +136,19 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error bulk uploading questions for quiz {quizId}");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
+        }
+
+        private static int? TryGetEntityId(object entity)
+        {
+            var idProperty = entity.GetType().GetProperty("Id");
+            if (idProperty?.GetValue(entity) is int id)
+            {
+                return id;
+            }
+
+            return null;
         }
     }
 }

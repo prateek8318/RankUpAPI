@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using SubscriptionService.Application.DTOs;
 using SubscriptionService.Application.Interfaces;
 using Common.Services;
@@ -15,6 +16,9 @@ namespace SubscriptionService.API.Controllers
     [Authorize(Roles = "Admin")]
     public class AdminSubscriptionPlansController : ControllerBase
     {
+        private const string InternalServerErrorMessage = "Internal server error";
+        private const string ConflictOperationMessage = "Operation could not be completed due to current plan state.";
+        private const string ResourceNotFoundMessage = "Requested resource was not found.";
         private readonly ISubscriptionPlanService _subscriptionPlanService;
         private readonly ILogger<AdminSubscriptionPlansController> _logger;
         private readonly ILanguageService _languageService;
@@ -48,15 +52,12 @@ namespace SubscriptionService.API.Controllers
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Duplicate subscription plan create blocked");
-                return Conflict(new { success = false, message = ex.Message });
+                return Conflict(new { success = false, message = ConflictOperationMessage });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating subscription plan");
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
             }
         }
 
@@ -78,20 +79,17 @@ namespace SubscriptionService.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "Subscription plan not found: {PlanId}", id);
-                return NotFound(ex.Message);
+                return NotFound(new { success = false, message = ResourceNotFoundMessage });
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Duplicate subscription plan update blocked: {PlanId}", id);
-                return Conflict(new { success = false, message = ex.Message });
+                return Conflict(new { success = false, message = ConflictOperationMessage });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating subscription plan: {PlanId}", id);
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
             }
         }
 
@@ -115,10 +113,7 @@ namespace SubscriptionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting subscription plan: {PlanId}", id);
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
             }
         }
 
@@ -175,6 +170,120 @@ namespace SubscriptionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error toggling subscription plan status: {PlanId}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Toggle (or explicitly set) plan popular status.
+        /// Backward-compatible endpoint for clients calling /{id}/toggle-popular.
+        /// </summary>
+        /// <param name="id">Plan ID</param>
+        /// <param name="request">Optional explicit status; if omitted, status is toggled</param>
+        /// <returns>Updated status payload</returns>
+        [HttpPut("{id}/toggle-popular")]
+        public async Task<ActionResult<object>> TogglePlanPopularById(int id, [FromBody] TogglePlanPopularByIdRequestDto? request = null)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanService.GetPlanByIdAsync(id);
+                if (plan == null)
+                    return NotFound(new { success = false, message = $"Subscription plan with ID {id} not found" });
+
+                var newIsPopular = request?.IsPopular ?? !plan.IsPopular;
+                var updateDto = new UpdateSubscriptionPlanDto
+                {
+                    Name = plan.Name,
+                    Description = plan.Description,
+                    Type = plan.Type,
+                    Price = plan.Price,
+                    Currency = plan.Currency,
+                    TestPapersCount = plan.TestPapersCount,
+                    Discount = plan.Discount,
+                    Duration = plan.Duration,
+                    DurationType = plan.DurationType,
+                    ValidityDays = plan.ValidityDays,
+                    ExamId = plan.ExamId,
+                    ExamCategory = plan.ExamCategory,
+                    Features = plan.Features,
+                    ImageUrl = plan.ImageUrl,
+                    IsPopular = newIsPopular,
+                    IsRecommended = plan.IsRecommended,
+                    CardColorTheme = plan.CardColorTheme,
+                    SortOrder = plan.SortOrder,
+                    IsActive = plan.IsActive,
+                    Translations = plan.Translations?.ToList()
+                };
+
+                await _subscriptionPlanService.UpdatePlanAsync(id, updateDto);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = new { planId = id, isPopular = newIsPopular },
+                    message = "Plan popular status updated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling subscription plan popular status: {PlanId}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Toggle (or explicitly set) plan recommended status.
+        /// Backward-compatible endpoint for clients calling /{id}/toggle-recommended.
+        /// </summary>
+        /// <param name="id">Plan ID</param>
+        /// <param name="request">Optional explicit status; if omitted, status is toggled</param>
+        /// <returns>Updated status payload</returns>
+        [HttpPut("{id}/toggle-recommended")]
+        public async Task<ActionResult<object>> TogglePlanRecommendedById(int id, [FromBody] TogglePlanRecommendedByIdRequestDto? request = null)
+        {
+            try
+            {
+                var plan = await _subscriptionPlanService.GetPlanByIdAsync(id);
+                if (plan == null)
+                    return NotFound(new { success = false, message = $"Subscription plan with ID {id} not found" });
+
+                var newIsRecommended = request?.IsRecommended ?? !plan.IsRecommended;
+                var updateDto = new UpdateSubscriptionPlanDto
+                {
+                    Name = plan.Name,
+                    Description = plan.Description,
+                    Type = plan.Type,
+                    Price = plan.Price,
+                    Currency = plan.Currency,
+                    TestPapersCount = plan.TestPapersCount,
+                    Discount = plan.Discount,
+                    Duration = plan.Duration,
+                    DurationType = plan.DurationType,
+                    ValidityDays = plan.ValidityDays,
+                    ExamId = plan.ExamId,
+                    ExamCategory = plan.ExamCategory,
+                    Features = plan.Features,
+                    ImageUrl = plan.ImageUrl,
+                    IsPopular = plan.IsPopular,
+                    IsRecommended = newIsRecommended,
+                    CardColorTheme = plan.CardColorTheme,
+                    SortOrder = plan.SortOrder,
+                    IsActive = plan.IsActive,
+                    Translations = plan.Translations?.ToList()
+                };
+
+                await _subscriptionPlanService.UpdatePlanAsync(id, updateDto);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = new { planId = id, isRecommended = newIsRecommended },
+                    message = "Plan recommended status updated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling subscription plan recommended status: {PlanId}", id);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
@@ -391,11 +500,13 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <param name="createPlanDto">Plan creation details with duration options</param>
         /// <returns>Created plan details with duration options</returns>
-        [HttpPost("durations")]
-        public async Task<ActionResult<PlanWithDurationOptionsDto>> CreatePlanWithDurations([FromBody] CreateSubscriptionPlanWithDurationDto createPlanDto)
+        [HttpPost("create-with-durations")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<PlanWithDurationOptionsDto>> CreatePlanWithDurations([FromForm] CreatePlanWithDurationsFormDataDto? request)
         {
+            var createPlanDto = ParseCreatePlanWithDurationsRequest(request);
             if (createPlanDto == null)
-                return BadRequest(new { success = false, message = "Request body is required." });
+                return BadRequest(new { success = false, message = "Invalid multipart payload. Expected FormData with 'data' JSON and optional 'ImageFile'." });
             
             try
             {
@@ -410,15 +521,12 @@ namespace SubscriptionService.API.Controllers
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Duplicate subscription plan create blocked");
-                return Conflict(new { success = false, message = ex.Message });
+                return Conflict(new { success = false, message = ConflictOperationMessage });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating subscription plan with durations");
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
             }
         }
 
@@ -444,15 +552,12 @@ namespace SubscriptionService.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "Subscription plan not found: {PlanId}", planId);
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new { success = false, message = ResourceNotFoundMessage });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error adding duration options to plan: {PlanId}", planId);
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
             }
         }
 
@@ -473,15 +578,12 @@ namespace SubscriptionService.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "Duration option not found: {DurationOptionId}", durationOptionId);
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new { success = false, message = ResourceNotFoundMessage });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating duration option: {DurationOptionId}", durationOptionId);
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
             }
         }
 
@@ -504,10 +606,7 @@ namespace SubscriptionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting duration option: {DurationOptionId}", durationOptionId);
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
             }
         }
 
@@ -516,16 +615,40 @@ namespace SubscriptionService.API.Controllers
         /// </summary>
         /// <returns>List of plans with duration options</returns>
         [HttpGet("durations")]
-        public async Task<ActionResult<IEnumerable<PlanWithDurationOptionsDto>>> GetAllPlansWithDurations([FromQuery] string? language = null)
+        public async Task<ActionResult<IEnumerable<PlanWithDurationOptionsDto>>> GetAllPlansWithDurations(
+            [FromQuery] string? language = null,
+            [FromQuery] int? cursor = null,
+            [FromQuery] int limit = 20)
         {
             try
             {
                 var currentLanguage = language ?? _languageService.GetCurrentLanguage();
-                var result = await _subscriptionPlanService.GetAllPlansWithDurationsAsync(currentLanguage, includeInactive: true);
+                var result = (await _subscriptionPlanService.GetAllPlansWithDurationsAsync(currentLanguage, includeInactive: true))
+                    .OrderByDescending(p => p.Id)
+                    .ToList();
+
+                if (limit <= 0) limit = 20;
+                if (limit > 100) limit = 100;
+
+                var filtered = cursor.HasValue
+                    ? result.Where(p => p.Id < cursor.Value).ToList()
+                    : result;
+
+                var pageItems = filtered.Take(limit).ToList();
+                var hasMore = filtered.Count > pageItems.Count;
+                var nextCursor = hasMore ? pageItems.Last().Id : (int?)null;
+
                 return Ok(new
                 {
                     success = true,
-                    data = result,
+                    data = pageItems,
+                    pagination = new
+                    {
+                        cursor,
+                        limit,
+                        nextCursor,
+                        hasMore
+                    },
                     language = currentLanguage,
                     message = "Subscription plans with duration options fetched successfully"
                 });
@@ -535,6 +658,95 @@ namespace SubscriptionService.API.Controllers
                 _logger.LogError(ex, "Error retrieving subscription plans with durations");
                 return StatusCode(500, new { success = false, message = "Error fetching subscription plans" });
             }
+        }
+
+        /// <summary>
+        /// Create or update subscription plans with duration options
+        /// </summary>
+        /// <param name="request">Plan creation/update details with duration options</param>
+        /// <returns>Created/updated plan details with duration options</returns>
+        [HttpPost("durations")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<PlanWithDurationOptionsDto>> CreateOrUpdatePlanWithDurations([FromForm] CreatePlanWithDurationsFormDataDto? request)
+        {
+            var createPlanDto = ParseCreatePlanWithDurationsRequest(request);
+            if (createPlanDto == null && Request.HasFormContentType)
+            {
+                createPlanDto = ParseCreatePlanWithDurationsFlatForm(Request.Form);
+            }
+            if (createPlanDto == null)
+                return BadRequest(new { success = false, message = "Invalid multipart payload. Expected FormData with 'data' JSON and optional 'ImageFile'." });
+            
+            try
+            {
+                var result = await _subscriptionPlanService.UpsertPlanWithDurationsAsync(createPlanDto);
+                return CreatedAtAction(nameof(GetPlanById), new { id = result.Id }, new
+                {
+                    success = true,
+                    data = result,
+                    message = "Subscription plan with duration options created successfully"
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Duplicate subscription plan create blocked");
+                return Conflict(new { success = false, message = ConflictOperationMessage });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating subscription plan with durations");
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
+            }
+        }
+
+        [HttpPost("durations")]
+        [Consumes("application/json")]
+        public async Task<ActionResult<PlanWithDurationOptionsDto>> CreateOrUpdatePlanWithDurationsJson([FromBody] CreateSubscriptionPlanWithDurationDto? request)
+        {
+            if (request == null)
+                return BadRequest(new { success = false, message = "Request body is required." });
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid request payload.",
+                    errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var result = await _subscriptionPlanService.UpsertPlanWithDurationsAsync(request);
+                return CreatedAtAction(nameof(GetPlanById), new { id = result.Id }, new
+                {
+                    success = true,
+                    data = result,
+                    message = "Subscription plan with duration options created successfully"
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Duplicate subscription plan create blocked");
+                return Conflict(new { success = false, message = ConflictOperationMessage });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating subscription plan with durations via JSON");
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
+            }
+        }
+
+        /// <summary>
+        /// Backward-compatible endpoint for clients posting multipart data to create plans with durations.
+        /// This creates a plan with duration options.
+        /// </summary>
+        [HttpPost("create-durations")]
+        [Consumes("multipart/form-data")]
+        public Task<ActionResult<PlanWithDurationOptionsDto>> CreatePlanWithDurationsCompat([FromForm] CreatePlanWithDurationsFormDataDto? request)
+        {
+            return CreatePlanWithDurations(request);
         }
 
 
@@ -592,10 +804,99 @@ namespace SubscriptionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error uploading plan image");
-                var message = HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.EnvironmentName == "Development"
-                    ? ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "")
-                    : "Internal server error";
-                return StatusCode(500, new { success = false, message });
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
+            }
+        }
+
+        private static CreateSubscriptionPlanWithDurationDto? ParseCreatePlanWithDurationsRequest(CreatePlanWithDurationsFormDataDto? request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Data))
+                return null;
+
+            try
+            {
+                var dto = JsonSerializer.Deserialize<CreateSubscriptionPlanWithDurationDto>(
+                    request.Data,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                if (dto == null)
+                    return null;
+
+                // For this form-data flow, recommended is controlled via dedicated toggle endpoint.
+                dto.IsRecommended = false;
+                dto.ImageFile = request.ImageFile;
+                return dto;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static CreateSubscriptionPlanWithDurationDto? ParseCreatePlanWithDurationsFlatForm(IFormCollection form)
+        {
+            try
+            {
+                if (form == null || !form.Keys.Any())
+                    return null;
+
+                var dto = new CreateSubscriptionPlanWithDurationDto
+                {
+                    Name = form["name"].ToString(),
+                    Description = form["description"].ToString(),
+                    Currency = string.IsNullOrWhiteSpace(form["currency"]) ? "INR" : form["currency"].ToString(),
+                    ExamCategory = form["examCategory"].ToString(),
+                    CardColorTheme = form["cardColorTheme"].ToString(),
+                    ImageUrl = form["imageUrl"].ToString()
+                };
+
+                if (int.TryParse(form["id"], out var id)) dto.Id = id;
+                if (int.TryParse(form["type"], out var type)) dto.Type = (SubscriptionService.Domain.Entities.PlanType)type;
+                if (decimal.TryParse(form["basePrice"], out var basePrice)) dto.BasePrice = basePrice;
+                if (int.TryParse(form["testPapersCount"], out var testPapersCount)) dto.TestPapersCount = testPapersCount;
+                if (int.TryParse(form["examId"], out var examId)) dto.ExamId = examId;
+                if (int.TryParse(form["sortOrder"], out var sortOrder)) dto.SortOrder = sortOrder;
+                if (bool.TryParse(form["isPopular"], out var isPopular)) dto.IsPopular = isPopular;
+                if (bool.TryParse(form["isRecommended"], out var isRecommended)) dto.IsRecommended = isRecommended;
+
+                var featuresRaw = form["features"].ToString();
+                if (!string.IsNullOrWhiteSpace(featuresRaw))
+                {
+                    dto.Features = JsonSerializer.Deserialize<List<string>>(featuresRaw) ?? new List<string>();
+                }
+
+                var durationOptionsRaw = form["durationOptions"].ToString();
+                if (!string.IsNullOrWhiteSpace(durationOptionsRaw))
+                {
+                    dto.DurationOptions = JsonSerializer.Deserialize<List<CreatePlanDurationOptionDto>>(
+                        durationOptionsRaw,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<CreatePlanDurationOptionDto>();
+                }
+
+                var translationsRaw = form["translations"].ToString();
+                if (!string.IsNullOrWhiteSpace(translationsRaw))
+                {
+                    dto.Translations = JsonSerializer.Deserialize<List<SubscriptionPlanTranslationDto>>(
+                        translationsRaw,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<SubscriptionPlanTranslationDto>();
+                }
+
+                if (form.Files != null && form.Files.Count > 0)
+                {
+                    dto.ImageFile = form.Files.GetFile("ImageFile") ?? form.Files[0];
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Description) || dto.Type == 0 || dto.DurationOptions == null || dto.DurationOptions.Count == 0)
+                    return null;
+
+                return dto;
+            }
+            catch
+            {
+                return null;
             }
         }
     }
@@ -603,5 +904,21 @@ namespace SubscriptionService.API.Controllers
     public class TogglePlanStatusByIdRequestDto
     {
         public bool? IsActive { get; set; }
+    }
+
+    public class TogglePlanPopularByIdRequestDto
+    {
+        public bool? IsPopular { get; set; }
+    }
+
+    public class TogglePlanRecommendedByIdRequestDto
+    {
+        public bool? IsRecommended { get; set; }
+    }
+
+    public class CreatePlanWithDurationsFormDataDto
+    {
+        public string? Data { get; set; }
+        public IFormFile? ImageFile { get; set; }
     }
 }

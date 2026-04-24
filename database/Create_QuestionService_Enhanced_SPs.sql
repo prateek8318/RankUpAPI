@@ -2,73 +2,90 @@ USE [RankUp_QuestionDB]
 GO
 
 -- Create Quiz Sessions Table
-CREATE TABLE [dbo].[QuizSessions](
-    [Id] [int] IDENTITY(1,1) NOT NULL,
-    [ExamId] [int] NOT NULL,
-    [UserId] [int] NOT NULL,
-    [LanguageCode] [nvarchar](10) NOT NULL DEFAULT 'en',
-    [StartTime] [datetime2](7) NOT NULL DEFAULT GETDATE(),
-    [EndTime] [datetime2](7) NULL,
-    [Duration] [int] NOT NULL DEFAULT 60, -- in minutes
-    [TotalQuestions] [int] NOT NULL DEFAULT 0,
-    [AnsweredQuestions] [int] NOT NULL DEFAULT 0,
-    [MarkedForReview] [int] NOT NULL DEFAULT 0,
-    [TotalMarks] [decimal](10,2) NOT NULL DEFAULT 0,
-    [ObtainedMarks] [decimal](10,2) NOT NULL DEFAULT 0,
-    [Status] [nvarchar](20) NOT NULL DEFAULT 'NotStarted', -- NotStarted, InProgress, Completed, Submitted
-    [CreatedAt] [datetime2](7) NOT NULL DEFAULT GETDATE(),
-    [UpdatedAt] [datetime2](7) NULL,
-    CONSTRAINT [PK_QuizSessions] PRIMARY KEY CLUSTERED ([Id] ASC)
-)
+IF OBJECT_ID('dbo.QuizSessions', 'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[QuizSessions](
+        [Id] [int] IDENTITY(1,1) NOT NULL,
+        [ExamId] [int] NOT NULL,
+        [UserId] [int] NOT NULL,
+        [LanguageCode] [nvarchar](10) NOT NULL DEFAULT 'en',
+        [StartTime] [datetime2](7) NOT NULL DEFAULT GETDATE(),
+        [EndTime] [datetime2](7) NULL,
+        [Duration] [int] NOT NULL DEFAULT 60, -- in minutes
+        [TotalQuestions] [int] NOT NULL DEFAULT 0,
+        [AnsweredQuestions] [int] NOT NULL DEFAULT 0,
+        [MarkedForReview] [int] NOT NULL DEFAULT 0,
+        [TotalMarks] [decimal](10,2) NOT NULL DEFAULT 0,
+        [ObtainedMarks] [decimal](10,2) NOT NULL DEFAULT 0,
+        [Status] [nvarchar](20) NOT NULL DEFAULT 'NotStarted', -- NotStarted, InProgress, Completed, Submitted
+        [CreatedAt] [datetime2](7) NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt] [datetime2](7) NULL,
+        CONSTRAINT [PK_QuizSessions] PRIMARY KEY CLUSTERED ([Id] ASC)
+    );
+END
 GO
 
 -- Create Quiz Answers Table
-CREATE TABLE [dbo].[QuizAnswers](
-    [Id] [int] IDENTITY(1,1) NOT NULL,
-    [QuizSessionId] [int] NOT NULL,
-    [QuestionId] [int] NOT NULL,
-    [Answer] [nvarchar](1) NOT NULL, -- A, B, C, D
-    [MarkForReview] [bit] NOT NULL DEFAULT 0,
-    [TimeSpent] [int] NOT NULL DEFAULT 0, -- in seconds
-    [IsCorrect] [bit] NULL,
-    [CreatedAt] [datetime2](7) NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT [PK_QuizAnswers] PRIMARY KEY CLUSTERED ([Id] ASC),
-    CONSTRAINT [FK_QuizAnswers_QuizSessions_QuizSessionId] FOREIGN KEY([QuizSessionId]) REFERENCES [dbo].[QuizSessions] ([Id]) ON DELETE CASCADE,
-    CONSTRAINT [FK_QuizAnswers_Questions_QuestionId] FOREIGN KEY([QuestionId]) REFERENCES [dbo].[Questions] ([Id])
-)
+IF OBJECT_ID('dbo.QuizAnswers', 'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[QuizAnswers](
+        [Id] [int] IDENTITY(1,1) NOT NULL,
+        [QuizSessionId] [int] NOT NULL,
+        [QuestionId] [int] NOT NULL,
+        [Answer] [nvarchar](1) NOT NULL, -- A, B, C, D
+        [MarkForReview] [bit] NOT NULL DEFAULT 0,
+        [TimeSpent] [int] NOT NULL DEFAULT 0, -- in seconds
+        [IsCorrect] [bit] NULL,
+        [CreatedAt] [datetime2](7) NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT [PK_QuizAnswers] PRIMARY KEY CLUSTERED ([Id] ASC),
+        CONSTRAINT [FK_QuizAnswers_QuizSessions_QuizSessionId] FOREIGN KEY([QuizSessionId]) REFERENCES [dbo].[QuizSessions] ([Id]) ON DELETE CASCADE,
+        CONSTRAINT [FK_QuizAnswers_Questions_QuestionId] FOREIGN KEY([QuestionId]) REFERENCES [dbo].[Questions] ([Id])
+    );
+END
 GO
 
 -- Create Quiz Results Table
-CREATE TABLE [dbo].[QuizResults](
-    [Id] [int] IDENTITY(1,1) NOT NULL,
-    [QuizSessionId] [int] NOT NULL,
-    [TotalQuestions] [int] NOT NULL,
-    [CorrectAnswers] [int] NOT NULL DEFAULT 0,
-    [WrongAnswers] [int] NOT NULL DEFAULT 0,
-    [SkippedQuestions] [int] NOT NULL DEFAULT 0,
-    [TotalMarks] [decimal](10,2) NOT NULL DEFAULT 0,
-    [ObtainedMarks] [decimal](10,2) NOT NULL DEFAULT 0,
-    [Percentage] [decimal](5,2) NOT NULL DEFAULT 0,
-    [Grade] [nvarchar](10) NULL,
-    [CompletedAt] [datetime2](7) NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT [PK_QuizResults] PRIMARY KEY CLUSTERED ([Id] ASC),
-    CONSTRAINT [FK_QuizResults_QuizSessions_QuizSessionId] FOREIGN KEY([QuizSessionId]) REFERENCES [dbo].[QuizSessions] ([Id]) ON DELETE CASCADE
-)
+IF OBJECT_ID('dbo.QuizResults', 'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[QuizResults](
+        [Id] [int] IDENTITY(1,1) NOT NULL,
+        [QuizSessionId] [int] NOT NULL,
+        [TotalQuestions] [int] NOT NULL,
+        [CorrectAnswers] [int] NOT NULL DEFAULT 0,
+        [WrongAnswers] [int] NOT NULL DEFAULT 0,
+        [SkippedQuestions] [int] NOT NULL DEFAULT 0,
+        [TotalMarks] [decimal](10,2) NOT NULL DEFAULT 0,
+        [ObtainedMarks] [decimal](10,2) NOT NULL DEFAULT 0,
+        [Percentage] [decimal](5,2) NOT NULL DEFAULT 0,
+        [Grade] [nvarchar](10) NULL,
+        [CompletedAt] [datetime2](7) NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT [PK_QuizResults] PRIMARY KEY CLUSTERED ([Id] ASC),
+        CONSTRAINT [FK_QuizResults_QuizSessions_QuizSessionId] FOREIGN KEY([QuizSessionId]) REFERENCES [dbo].[QuizSessions] ([Id]) ON DELETE CASCADE
+    );
+END
 GO
 
 -- Create Indexes for Quiz Tables
-CREATE INDEX [IX_QuizSessions_ExamId] ON [dbo].[QuizSessions] ([ExamId])
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_QuizSessions_ExamId' AND object_id = OBJECT_ID('dbo.QuizSessions'))
+    CREATE INDEX [IX_QuizSessions_ExamId] ON [dbo].[QuizSessions] ([ExamId])
 GO
-CREATE INDEX [IX_QuizSessions_UserId] ON [dbo].[QuizSessions] ([UserId])
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_QuizSessions_UserId' AND object_id = OBJECT_ID('dbo.QuizSessions'))
+    CREATE INDEX [IX_QuizSessions_UserId] ON [dbo].[QuizSessions] ([UserId])
 GO
-CREATE INDEX [IX_QuizSessions_Status] ON [dbo].[QuizSessions] ([Status])
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_QuizSessions_Status' AND object_id = OBJECT_ID('dbo.QuizSessions'))
+    CREATE INDEX [IX_QuizSessions_Status] ON [dbo].[QuizSessions] ([Status])
 GO
-CREATE INDEX [IX_QuizAnswers_QuizSessionId] ON [dbo].[QuizAnswers] ([QuizSessionId])
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_QuizAnswers_QuizSessionId' AND object_id = OBJECT_ID('dbo.QuizAnswers'))
+    CREATE INDEX [IX_QuizAnswers_QuizSessionId] ON [dbo].[QuizAnswers] ([QuizSessionId])
 GO
-CREATE INDEX [IX_QuizAnswers_QuestionId] ON [dbo].[QuizAnswers] ([QuestionId])
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_QuizAnswers_QuestionId' AND object_id = OBJECT_ID('dbo.QuizAnswers'))
+    CREATE INDEX [IX_QuizAnswers_QuestionId] ON [dbo].[QuizAnswers] ([QuestionId])
 GO
 
 -- Bulk Create Questions Stored Procedure
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BulkCreateQuestions]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[BulkCreateQuestions]
+GO
 CREATE PROCEDURE [dbo].[BulkCreateQuestions]
     @FileName NVARCHAR(500),
     @ExamId INT,
@@ -141,6 +158,9 @@ END
 GO
 
 -- Start Quiz Session Stored Procedure
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[StartQuizSession]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[StartQuizSession]
+GO
 CREATE PROCEDURE [dbo].[StartQuizSession]
     @ExamId INT,
     @UserId INT,
@@ -227,6 +247,9 @@ END
 GO
 
 -- Save Quiz Answer Stored Procedure
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SaveQuizAnswer]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[SaveQuizAnswer]
+GO
 CREATE PROCEDURE [dbo].[SaveQuizAnswer]
     @QuizSessionId INT,
     @QuestionId INT,
@@ -283,7 +306,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT ROW_COUNT() AS RowsAffected;
+        SELECT @@ROWCOUNT AS RowsAffected;
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION;
@@ -293,6 +316,9 @@ END
 GO
 
 -- Submit Quiz Stored Procedure
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SubmitQuiz]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[SubmitQuiz]
+GO
 CREATE PROCEDURE [dbo].[SubmitQuiz]
     @QuizSessionId INT,
     @Answers NVARCHAR(MAX) = NULL -- JSON string of answers
@@ -402,6 +428,9 @@ END
 GO
 
 -- Get Quiz Session Stored Procedure
+IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GetQuizSession]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[GetQuizSession]
+GO
 CREATE PROCEDURE [dbo].[GetQuizSession]
     @SessionId INT,
     @UserId INT

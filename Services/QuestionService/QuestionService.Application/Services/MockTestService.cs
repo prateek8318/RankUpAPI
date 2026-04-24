@@ -21,6 +21,306 @@ namespace QuestionService.Application.Services
             _logger = logger;
         }
 
+        public Task<MockTestDto> CreateMockTestWithImageAsync(MockTestCreateWithImageDto dto)
+        {
+            var createDto = new CreateMockTestDto
+            {
+                Name = dto.Name,
+                Description = dto.Description,
+                MockTestType = dto.MockTestType,
+                ExamId = dto.ExamId,
+                SubjectId = dto.SubjectId,
+                TopicId = dto.TopicId,
+                DurationInMinutes = dto.DurationInMinutes,
+                TotalQuestions = dto.TotalQuestions,
+                TotalMarks = dto.TotalMarks,
+                PassingMarks = dto.PassingMarks,
+                MarksPerQuestion = dto.MarksPerQuestion,
+                HasNegativeMarking = dto.HasNegativeMarking,
+                NegativeMarkingValue = dto.NegativeMarkingValue,
+                SubscriptionPlanId = dto.SubscriptionPlanId,
+                AccessType = dto.AccessType,
+                AttemptsAllowed = dto.AttemptsAllowed,
+                Year = dto.Year,
+                Difficulty = dto.Difficulty,
+                PaperCode = dto.PaperCode,
+                ExamDate = dto.ExamDate,
+                PublishDateTime = dto.PublishDateTime,
+                ValidTill = dto.ValidTill,
+                ShowResultType = dto.ShowResultType,
+                CreatedBy = dto.CreatedBy,
+                QuestionIds = dto.QuestionIds
+            };
+
+            return CreateMockTestAsync(createDto);
+        }
+
+        public async Task<MockTestDto> CreateMockTestDraftAsync(MockTestCreateWithImageDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Creating new {MockTestType} draft: {Name} for exam: {ExamId}", dto.MockTestType, dto.Name, dto.ExamId);
+
+                // Validate based on mock test type
+                ValidateMockTestType(dto);
+
+                // Get exam details to validate and populate exam-related data
+                var examDetails = await _questionFeatureRepository.GetExamDetailsAsync(dto.ExamId);
+                if (examDetails == null)
+                {
+                    throw new ArgumentException($"Exam with ID {dto.ExamId} not found");
+                }
+
+                // Set default values based on mock test type and scheduling
+                SetDefaultsForMockTestType(dto, examDetails);
+                
+                // Force status to Draft
+                var createDto = new CreateMockTestDto
+                {
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    MockTestType = dto.MockTestType,
+                    ExamId = dto.ExamId,
+                    SubjectId = dto.SubjectId,
+                    TopicId = dto.TopicId,
+                    DurationInMinutes = dto.DurationInMinutes,
+                    TotalQuestions = dto.TotalQuestions,
+                    TotalMarks = dto.TotalMarks,
+                    PassingMarks = dto.PassingMarks,
+                    MarksPerQuestion = dto.MarksPerQuestion,
+                    HasNegativeMarking = dto.HasNegativeMarking,
+                    NegativeMarkingValue = dto.NegativeMarkingValue,
+                    SubscriptionPlanId = dto.SubscriptionPlanId,
+                    AccessType = dto.AccessType,
+                    AttemptsAllowed = dto.AttemptsAllowed,
+                    Year = dto.Year,
+                    Difficulty = dto.Difficulty,
+                    PaperCode = dto.PaperCode,
+                    ExamDate = dto.ExamDate,
+                    PublishDateTime = dto.PublishDateTime,
+                    ValidTill = dto.ValidTill,
+                    ShowResultType = dto.ShowResultType,
+                    CreatedBy = dto.CreatedBy,
+                    QuestionIds = dto.QuestionIds,
+                    Status = MockTestStatus.Draft // Force draft status
+                };
+
+                // Create the mock test
+                var mockTest = await _mockTestRepository.CreateAsync(createDto);
+
+                // If specific questions are provided, add them to the mock test
+                if (dto.QuestionIds != null && dto.QuestionIds.Any())
+                {
+                    for (int i = 0; i < dto.QuestionIds.Count; i++)
+                    {
+                        var questionId = dto.QuestionIds[i];
+                        var marks = dto.MarksPerQuestion > 0 ? dto.MarksPerQuestion : examDetails.MarksPerQuestion;
+                        var negativeMarks = dto.HasNegativeMarking ? dto.NegativeMarkingValue ?? 0 : examDetails.HasNegativeMarking ? examDetails.NegativeMarkingValue ?? 0 : 0;
+                        
+                        await _mockTestRepository.AddQuestionAsync(mockTest.Id, questionId, i + 1, marks, negativeMarks);
+                    }
+                }
+
+                _logger.LogInformation("{MockTestType} draft created successfully: {MockTestId}", dto.MockTestType, mockTest.Id);
+                return mockTest;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating {MockTestType} draft: {Name}", dto.MockTestType, dto.Name);
+                throw;
+            }
+        }
+
+        public Task<MockTestListResponseDto> GetMockTestsListAsync(MockTestListRequestDto request)
+            => GetMockTestsAsync(request.PageNumber, request.PageSize, request.ExamId, request.SubjectId, request.IsActive);
+
+        public async Task<MockTestSummaryDto> GetMockTestSummaryAsync()
+        {
+            var result = await GetMockTestsAsync(1, 1000);
+            return new MockTestSummaryDto
+            {
+                TotalMockTests = result.TotalCount,
+                ActiveMockTests = result.MockTests.Count(x => x.IsUnlocked || x.AttemptsAllowed > 0),
+                PaidMockTests = result.MockTests.Count(x => string.Equals(x.AccessType, "Paid", StringComparison.OrdinalIgnoreCase)),
+                FreeMockTests = result.MockTests.Count(x => string.Equals(x.AccessType, "Free", StringComparison.OrdinalIgnoreCase))
+            };
+        }
+
+        public async Task<List<ExamListDto>> GetExamsForUserAsync(int userId)
+        {
+            var exams = await _questionFeatureRepository.GetExamsAsync(null);
+            return exams.Select(x => new ExamListDto
+            {
+                Id = (int)(x.GetType().GetProperty("Id")?.GetValue(x) ?? 0),
+                Name = x.GetType().GetProperty("Name")?.GetValue(x)?.ToString() ?? string.Empty,
+                Description = x.GetType().GetProperty("Description")?.GetValue(x)?.ToString(),
+                QuestionCount = (int)(x.GetType().GetProperty("QuestionCount")?.GetValue(x) ?? 0),
+                Duration = (int)(x.GetType().GetProperty("Duration")?.GetValue(x) ?? 0),
+                IsActive = ToBool(x.GetType().GetProperty("IsActive")?.GetValue(x), true),
+                IsLocked = ToBool(x.GetType().GetProperty("IsLocked")?.GetValue(x), false)
+            }).ToList();
+        }
+
+        private static bool ToBool(object? value, bool defaultValue)
+        {
+            if (value == null) return defaultValue;
+            if (value is bool b) return b;
+            if (value is byte by) return by != 0;
+            if (value is short s) return s != 0;
+            if (value is int i) return i != 0;
+            if (value is long l) return l != 0;
+
+            var str = value.ToString();
+            if (string.IsNullOrWhiteSpace(str)) return defaultValue;
+            if (bool.TryParse(str, out var parsedBool)) return parsedBool;
+            if (long.TryParse(str, out var parsedNum)) return parsedNum != 0;
+            return defaultValue;
+        }
+
+        public async Task<ExamListDto> GetExamDetailsAsync(int userId, int examId)
+        {
+            var exams = await GetExamsForUserAsync(userId);
+            return exams.FirstOrDefault(x => x.Id == examId)
+                   ?? throw new KeyNotFoundException($"Exam with ID {examId} not found");
+        }
+
+        public async Task<List<SubjectListDto>> GetSubjectsForExamAsync(int userId, int examId)
+        {
+            try
+            {
+                // Get exam-specific subjects from master database
+                var examSubjects = await _mockTestRepository.GetSubjectsForExamAsync(examId);
+                return examSubjects.Select(x => new SubjectListDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Description = x.Description,
+                    QuestionCount = x.QuestionCount,
+                    IsActive = x.IsActive
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving subjects for exam {ExamId}", examId);
+                throw;
+            }
+        }
+
+        public async Task<SubjectListDto> GetSubjectDetailsAsync(int userId, int examId, int subjectId)
+        {
+            var subjects = await GetSubjectsForExamAsync(userId, examId);
+            return subjects.FirstOrDefault(x => x.Id == subjectId)
+                   ?? throw new KeyNotFoundException($"Subject with ID {subjectId} not found");
+        }
+
+        public async Task<SubjectMockTestsResponseDto> GetMockTestsForSubjectAsync(int userId, int examId, int subjectId)
+        {
+            var list = await GetMockTestsForUserAsync(userId, 1, 200, examId, subjectId);
+            return new SubjectMockTestsResponseDto
+            {
+                SubjectId = subjectId,
+                SubjectName = list.MockTests.FirstOrDefault()?.SubjectName ?? string.Empty,
+                MockTests = list.MockTests.Select(x => new SimpleMockTestDto
+                {
+                    MockTestId = x.Id,
+                    Name = x.Name,
+                    Description = x.Description,
+                    TotalQuestions = x.TotalQuestions,
+                    TotalMarks = x.TotalMarks,
+                    DurationInMinutes = x.DurationInMinutes,
+                    AccessType = x.AccessType
+                }).ToList()
+            };
+        }
+
+        public async Task<SimpleMockTestDto> GetMockTestDetailsAsync(int userId, int examId, int subjectId, int mockTestId)
+        {
+            var detail = await GetMockTestDetailForUserAsync(userId, mockTestId)
+                         ?? throw new KeyNotFoundException($"Mock test with ID {mockTestId} not found");
+            return new SimpleMockTestDto
+            {
+                MockTestId = detail.Id,
+                Name = detail.Name,
+                Description = detail.Description,
+                TotalQuestions = detail.TotalQuestions,
+                TotalMarks = detail.TotalMarks,
+                DurationInMinutes = detail.DurationInMinutes,
+                AccessType = detail.AccessType
+            };
+        }
+
+        public Task<object> StartMockTestAsync(int userId, int examId, int subjectId, int mockTestId)
+            => StartMockTestAsync(new StartMockTestDto { UserId = userId, MockTestId = mockTestId })
+                .ContinueWith(t => (object)t.Result);
+
+        public Task<ExamListDto> CreateExamAsync(CreateExamDto dto)
+            => throw new NotSupportedException("Exam creation is not supported in this service.");
+
+        public Task<ExamListDto> UpdateExamAsync(int examId, UpdateExamDto dto)
+            => throw new NotSupportedException("Exam update is not supported in this service.");
+
+        public Task<bool> DeleteExamAsync(int examId)
+            => throw new NotSupportedException("Exam deletion is not supported in this service.");
+
+        public async Task<SubjectWiseMockTestResponseDto> GetSubjectWiseMockTestsAsync(int userId, MockTestListRequestDto request)
+        {
+            var list = await GetMockTestsForUserAsync(userId, request.PageNumber, request.PageSize, request.ExamId, request.SubjectId);
+            return new SubjectWiseMockTestResponseDto
+            {
+                Subjects = list.MockTests
+                    .GroupBy(x => new { x.SubjectId, x.SubjectName })
+                    .Select(g => new SubjectMockTestsResponseDto
+                    {
+                        SubjectId = g.Key.SubjectId ?? 0,
+                        SubjectName = g.Key.SubjectName ?? string.Empty,
+                        MockTests = g.Select(x => new SimpleMockTestDto
+                        {
+                            MockTestId = x.Id,
+                            Name = x.Name,
+                            Description = x.Description,
+                            TotalQuestions = x.TotalQuestions,
+                            TotalMarks = x.TotalMarks,
+                            DurationInMinutes = x.DurationInMinutes,
+                            AccessType = x.AccessType
+                        }).ToList()
+                    }).ToList()
+            };
+        }
+
+        public async Task<MockTestFilterOptionsDto> GetMockTestFilterOptionsAsync(int userId)
+        {
+            return new MockTestFilterOptionsDto
+            {
+                Exams = (await _questionFeatureRepository.GetAllExamNamesAsync()).ToList(),
+                Subjects = (await _questionFeatureRepository.GetSubjectsAsync()).Select(x => new SubjectListDto
+                {
+                    Id = (int)(x.GetType().GetProperty("Id")?.GetValue(x) ?? 0),
+                    Name = x.GetType().GetProperty("Name")?.GetValue(x)?.ToString() ?? string.Empty,
+                    Description = x.GetType().GetProperty("Description")?.GetValue(x)?.ToString(),
+                    QuestionCount = (int)(x.GetType().GetProperty("QuestionCount")?.GetValue(x) ?? 0),
+                    IsActive = (bool)(x.GetType().GetProperty("IsActive")?.GetValue(x) ?? true)
+                }).ToList()
+            };
+        }
+
+        public Task<MockTestListResponseDto> GetMockTestsForUserListAsync(int userId, MockTestListRequestDto request)
+            => GetMockTestsForUserAsync(userId, request.PageNumber, request.PageSize, request.ExamId, request.SubjectId);
+
+        public Task<MockTestListResponseDto> GetMockTestsForUserAsync(int userId, int? examId, int? subjectId, string? testCategory, string? access, string? difficulty)
+            => GetMockTestsForUserAsync(userId, 1, 50, examId, subjectId);
+
+        public Task<MockTestListResponseDto> GetMockTestsForExamAsync(int userId, int examId)
+            => GetMockTestsForUserAsync(userId, 1, 50, examId, null);
+
+        public Task<MockTestListResponseDto> GetMockTestsForSubjectSimpleAsync(int userId, int subjectId)
+            => GetMockTestsForUserAsync(userId, 1, 50, null, subjectId);
+
+        public Task<MockTestDetailDto?> GetMockTestDetailsSimpleAsync(int userId, int mockTestId)
+            => GetMockTestDetailForUserAsync(userId, mockTestId);
+
+        public Task<MockTestSessionDto> StartMockTestSessionSimpleAsync(int userId, int mockTestId)
+            => StartMockTestAsync(new StartMockTestDto { UserId = userId, MockTestId = mockTestId });
+
         // Admin Operations
         public async Task<MockTestDto> CreateMockTestAsync(CreateMockTestDto dto)
         {
@@ -38,8 +338,14 @@ namespace QuestionService.Application.Services
                     throw new ArgumentException($"Exam with ID {dto.ExamId} not found");
                 }
 
-                // Set default values based on mock test type
+                // Set default values based on mock test type and scheduling
                 SetDefaultsForMockTestType(dto, examDetails);
+                
+                // Set status based on scheduling
+                if (!dto.Status.Equals(MockTestStatus.Draft))
+                {
+                    SetMockTestStatus(dto);
+                }
 
                 // Create the mock test
                 var mockTest = await _mockTestRepository.CreateAsync(dto);
@@ -50,8 +356,8 @@ namespace QuestionService.Application.Services
                     for (int i = 0; i < dto.QuestionIds.Count; i++)
                     {
                         var questionId = dto.QuestionIds[i];
-                        var marks = examDetails.MarksPerQuestion;
-                        var negativeMarks = examDetails.HasNegativeMarking ? examDetails.NegativeMarkingValue ?? 0 : 0;
+                        var marks = dto.MarksPerQuestion > 0 ? dto.MarksPerQuestion : examDetails.MarksPerQuestion;
+                        var negativeMarks = dto.HasNegativeMarking ? dto.NegativeMarkingValue ?? 0 : examDetails.HasNegativeMarking ? examDetails.NegativeMarkingValue ?? 0 : 0;
                         
                         await _mockTestRepository.AddQuestionAsync(mockTest.Id, questionId, i + 1, marks, negativeMarks);
                     }
@@ -145,10 +451,25 @@ namespace QuestionService.Application.Services
                         DurationInMinutes = mt.DurationInMinutes,
                         TotalQuestions = mt.TotalQuestions,
                         TotalMarks = mt.TotalMarks,
+                        MarksPerQuestion = mt.MarksPerQuestion,
                         HasNegativeMarking = mt.HasNegativeMarking,
+                        NegativeMarkingValue = mt.NegativeMarkingValue,
                         AccessType = mt.AccessType,
                         SubscriptionPlanId = mt.SubscriptionPlanId,
-                        CreatedAt = mt.CreatedAt
+                        IsUnlocked = false, // Default for admin view
+                        AttemptsUsed = 0, // Default for admin view
+                        AttemptsAllowed = mt.AttemptsAllowed,
+                        Status = mt.Status?.ToString() ?? string.Empty,
+                        CreatedAt = mt.CreatedAt,
+                        Year = mt.Year,
+                        Difficulty = mt.Difficulty,
+                        PaperCode = mt.PaperCode,
+                        MockTestTypeDisplay = GetMockTestTypeDisplayName(mt.MockTestType),
+                        ExamDate = mt.ExamDate,
+                        PublishDateTime = mt.PublishDateTime,
+                        ValidTill = mt.ValidTill,
+                        ShowResultType = mt.ShowResultType,
+                        ImageUrl = mt.ImageUrl
                     }).ToList(),
                     TotalCount = totalCount,
                     PageNumber = pageNumber,
@@ -170,6 +491,13 @@ namespace QuestionService.Application.Services
             {
                 var mockTests = await _mockTestRepository.GetForUserAsync(userId, pageNumber, pageSize, examId, subjectId);
                 var userSubscription = await _mockTestRepository.GetUserSubscriptionAsync(userId);
+
+                // Always compute lock/unlock server-side from one rule set.
+                foreach (var mockTest in mockTests)
+                {
+                    var (canAccess, _) = EvaluateAccess(mockTest, userSubscription);
+                    mockTest.IsUnlocked = canAccess;
+                }
 
                 return new MockTestListResponseDto
                 {
@@ -216,47 +544,12 @@ namespace QuestionService.Application.Services
                 }
 
                 var userSubscription = await _mockTestRepository.GetUserSubscriptionAsync(userId);
-
-                // Check access based on subscription
-                if (mockTest.AccessType == "Free")
-                {
-                    return new MockTestAccessResponseDto
-                    {
-                        CanAccess = true,
-                        Reason = "Free mock test",
-                        UserSubscription = userSubscription,
-                        MockTest = mockTest
-                    };
-                }
-
-                // Check if user has active subscription
-                if (userSubscription == null || !userSubscription.IsActive || userSubscription.IsExpired)
-                {
-                    return new MockTestAccessResponseDto
-                    {
-                        CanAccess = false,
-                        Reason = "Active subscription required",
-                        UserSubscription = userSubscription,
-                        MockTest = mockTest
-                    };
-                }
-
-                // Check if subscription plan matches mock test requirements
-                if (mockTest.SubscriptionPlanId.HasValue && mockTest.SubscriptionPlanId != userSubscription.SubscriptionPlanId)
-                {
-                    return new MockTestAccessResponseDto
-                    {
-                        CanAccess = false,
-                        Reason = "Higher subscription plan required",
-                        UserSubscription = userSubscription,
-                        MockTest = mockTest
-                    };
-                }
+                var (canAccess, reason) = EvaluateAccess(mockTest, userSubscription);
 
                 return new MockTestAccessResponseDto
                 {
-                    CanAccess = true,
-                    Reason = "Access granted",
+                    CanAccess = canAccess,
+                    Reason = reason,
                     UserSubscription = userSubscription,
                     MockTest = mockTest
                 };
@@ -278,6 +571,11 @@ namespace QuestionService.Application.Services
                 var accessCheck = await CheckMockTestAccessAsync(dto.UserId, dto.MockTestId);
                 if (!accessCheck.CanAccess)
                 {
+                    if (string.Equals(accessCheck.Reason, "Mock test not found", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new KeyNotFoundException(accessCheck.Reason);
+                    }
+
                     throw new UnauthorizedAccessException(accessCheck.Reason);
                 }
 
@@ -303,6 +601,20 @@ namespace QuestionService.Application.Services
             }
         }
 
+        public async Task<bool> SaveMockTestAnswerAsync(int sessionId, int userId, SaveMockTestAnswerDto answer)
+        {
+            try
+            {
+                _logger.LogInformation("Saving answer for mock test session: {SessionId}, question: {QuestionId}", sessionId, answer.QuestionId);
+                return await _mockTestRepository.SaveSessionAnswerAsync(sessionId, userId, answer);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving answer for mock test session: {SessionId}", sessionId);
+                throw;
+            }
+        }
+
         public async Task<MockTestAttemptDto> SubmitMockTestAsync(int sessionId, int userId, List<QuizAnswerRequestDto> answers)
         {
             try
@@ -314,6 +626,20 @@ namespace QuestionService.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error submitting mock test session: {SessionId}", sessionId);
+                throw;
+            }
+        }
+
+        public async Task<MockTestAttemptDto> SubmitMockTestAsync(int sessionId, int userId)
+        {
+            try
+            {
+                _logger.LogInformation("Submitting mock test session from saved answers: {SessionId} for user: {UserId}", sessionId, userId);
+                return await _mockTestRepository.SubmitSessionAsync(sessionId, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error submitting mock test session from saved answers: {SessionId}", sessionId);
                 throw;
             }
         }
@@ -372,15 +698,30 @@ namespace QuestionService.Application.Services
         }
 
         // Statistics
-        public async Task<object> GetMockTestStatisticsAsync(int? examId = null, int? subjectId = null)
+        public async Task<MockTestStatisticsDto> GetMockTestStatisticsAsync(MockTestStatisticsRequestDto? request = null)
         {
             try
             {
-                return await _mockTestRepository.GetStatisticsAsync(examId, subjectId);
+                var examId = request?.ExamId;
+                var subjectId = request?.SubjectId;
+                return await _mockTestRepository.GetMockTestStatisticsAsync(examId, subjectId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving mock test statistics");
+                throw;
+            }
+        }
+
+        public async Task<object> GetMockTestStatisticsLegacyAsync(int? examId = null, int? subjectId = null)
+        {
+            try
+            {
+                return await _mockTestRepository.GetStatisticsLegacyAsync(examId, subjectId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving mock test statistics (legacy)");
                 throw;
             }
         }
@@ -456,6 +797,7 @@ namespace QuestionService.Application.Services
                 case MockTestType.DeepPractice:
                     dto.DurationInMinutes = dto.DurationInMinutes > 0 ? dto.DurationInMinutes : 15;
                     dto.TotalQuestions = dto.TotalQuestions > 0 ? dto.TotalQuestions : 20;
+                    dto.Difficulty = dto.Difficulty ?? "Medium";
                     break;
 
                 case MockTestType.PreviousYear:
@@ -468,12 +810,54 @@ namespace QuestionService.Application.Services
             // Set default marks based on exam details
             if (dto.TotalMarks == 0)
             {
-                dto.TotalMarks = dto.TotalQuestions * examDetails.MarksPerQuestion;
+                dto.TotalMarks = dto.TotalQuestions * (dto.MarksPerQuestion > 0 ? dto.MarksPerQuestion : examDetails.MarksPerQuestion);
             }
 
             if (dto.PassingMarks == 0)
             {
                 dto.PassingMarks = dto.TotalMarks * 0.35m; // 35% passing
+            }
+            
+            // Set default negative marking if not specified
+            if (!dto.HasNegativeMarking && examDetails.HasNegativeMarking)
+            {
+                dto.HasNegativeMarking = examDetails.HasNegativeMarking;
+                dto.NegativeMarkingValue = examDetails.NegativeMarkingValue;
+            }
+            
+            // Set default marks per question if not specified
+            if (dto.MarksPerQuestion == 0)
+            {
+                dto.MarksPerQuestion = examDetails.MarksPerQuestion;
+            }
+        }
+        
+        private void SetMockTestStatus(CreateMockTestDto dto)
+        {
+            // If PublishDateTime is set, check if it should be active, scheduled, or inactive
+            if (dto.PublishDateTime.HasValue)
+            {
+                if (dto.PublishDateTime.Value > DateTime.UtcNow)
+                {
+                    // Scheduled for future - set to Scheduled
+                    dto.Status = MockTestStatus.Scheduled;
+                }
+                else
+                {
+                    // PublishDateTime is in the past or now - set to Active
+                    dto.Status = MockTestStatus.Active;
+                }
+            }
+            else
+            {
+                // No PublishDateTime set - default to Active
+                dto.Status = MockTestStatus.Active;
+            }
+            
+            // Check if ValidTill is expired (but don't override Scheduled status)
+            if (dto.ValidTill.HasValue && dto.ValidTill.Value < DateTime.UtcNow && dto.Status != MockTestStatus.Scheduled)
+            {
+                dto.Status = MockTestStatus.Inactive;
             }
         }
 
@@ -526,7 +910,13 @@ namespace QuestionService.Application.Services
                     var negativeMarks = examDetails.HasNegativeMarking ? examDetails.NegativeMarkingValue ?? 0 : 0;
                     
                     // Get question ID using reflection since question is of type object
-                    var questionId = question.GetType().GetProperty("Id")?.GetValue(question) ?? 0;
+                    var questionIdValue = question.GetType().GetProperty("Id")?.GetValue(question);
+                    if (questionIdValue == null)
+                    {
+                        _logger.LogWarning("Question ID is null for question at index {Index}", i);
+                        continue; // Skip this question
+                    }
+                    var questionId = Convert.ToInt32(questionIdValue);
                     
                     await _mockTestRepository.AddQuestionAsync(mockTestId, (int)questionId, i + 1, marks, negativeMarks);
                 }
@@ -562,6 +952,66 @@ namespace QuestionService.Application.Services
         private string GeneratePreviousYearCode(string examType, int year)
         {
             return $"{examType.ToUpper()}-{year}-ACT";
+        }
+
+        private static (bool CanAccess, string Reason) EvaluateAccess(MockTestDto mockTest, UserSubscriptionDto? userSubscription)
+            => EvaluateAccess(mockTest.AccessType, mockTest.SubscriptionPlanId, userSubscription);
+
+        private static (bool CanAccess, string Reason) EvaluateAccess(MockTestListDto mockTest, UserSubscriptionDto? userSubscription)
+            => EvaluateAccess(mockTest.AccessType, mockTest.SubscriptionPlanId, userSubscription);
+
+        private static (bool CanAccess, string Reason) EvaluateAccess(string accessType, int? requiredSubscriptionPlanId, UserSubscriptionDto? userSubscription)
+        {
+            if (string.Equals(accessType, "Free", StringComparison.OrdinalIgnoreCase))
+            {
+                return (true, "Free mock test");
+            }
+
+            if (userSubscription == null || !userSubscription.IsActive || userSubscription.IsExpired)
+            {
+                return (false, "Active subscription required");
+            }
+
+            if (requiredSubscriptionPlanId.HasValue && requiredSubscriptionPlanId != userSubscription.SubscriptionPlanId)
+            {
+                return (false, "This mock test is not included in your current plan");
+            }
+
+            // Plan-level quota enforcement: when quota is configured, block after limit.
+            if (userSubscription.TestsTotal > 0 && userSubscription.TestsUsed >= userSubscription.TestsTotal)
+            {
+                return (false, "Mock test quota exhausted for your subscription");
+            }
+
+            if (userSubscription.TestsTotal <= 0)
+            {
+                return (false, "No mock test quota configured for your subscription");
+            }
+
+            return (true, "Access granted");
+        }
+
+        private static string GetMockTestTypeDisplayName(MockTestType mockTestType)
+        {
+            return mockTestType switch
+            {
+                MockTestType.MockTest => "Mock Test",
+                MockTestType.TestSeries => "Test Series",
+                MockTestType.DeepPractice => "Deep Practice",
+                MockTestType.PreviousYear => "Previous Year",
+                _ => "Unknown"
+            };
+        }
+
+        private static MockTestStatus GetStatusFromString(string? statusValue)
+        {
+            return statusValue switch
+            {
+                "Active" => MockTestStatus.Active,
+                "Inactive" => MockTestStatus.Inactive,
+                "Draft" => MockTestStatus.Draft,
+                _ => MockTestStatus.Active
+            };
         }
     }
 }

@@ -14,6 +14,7 @@ namespace AdminService.API.Controllers
     [Authorize(Roles = "Admin")]
     public class AdminSubscriptionController : ControllerBase
     {
+        private const string InternalServerErrorMessage = "Internal server error";
         private readonly ISubscriptionServiceClient _subscriptionServiceClient;
         private readonly ILogger<AdminSubscriptionController> _logger;
 
@@ -36,7 +37,7 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting subscription plans");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -54,7 +55,7 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error getting subscription plan {id}");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -67,13 +68,17 @@ namespace AdminService.API.Controllers
                 if (plan == null)
                     return BadRequest(new ApiResponseDto<object> { Success = false, ErrorMessage = "Failed to create subscription plan" });
 
-                return CreatedAtAction(nameof(GetSubscriptionPlanById), new { id = ((dynamic)plan).Id }, 
+                var planId = TryGetEntityId(plan);
+                if (planId == null)
+                    return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
+
+                return CreatedAtAction(nameof(GetSubscriptionPlanById), new { id = planId.Value }, 
                     new ApiResponseDto<object> { Success = true, Data = plan });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating subscription plan");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -91,7 +96,7 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error updating subscription plan {id}");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -124,7 +129,7 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all user subscriptions");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -139,7 +144,7 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting expiring user subscriptions");
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
         }
 
@@ -159,8 +164,19 @@ namespace AdminService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting subscription history for user {UserId}", userId);
-                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = ex.Message });
+                return StatusCode(500, new ApiResponseDto<object> { Success = false, ErrorMessage = InternalServerErrorMessage });
             }
+        }
+
+        private static int? TryGetEntityId(object entity)
+        {
+            var idProperty = entity.GetType().GetProperty("Id");
+            if (idProperty?.GetValue(entity) is int id)
+            {
+                return id;
+            }
+
+            return null;
         }
     }
 }

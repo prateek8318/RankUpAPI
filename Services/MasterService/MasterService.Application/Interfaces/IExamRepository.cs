@@ -21,6 +21,8 @@ namespace MasterService.Application.Interfaces
         Task<Exam> AddAsync(Exam exam, string? namesJson = null, string? relationsJson = null, IDbTransaction? transaction = null);
         Task UpdateAsync(Exam exam, string? namesJson = null, string? relationsJson = null);
         Task UpdateAsync(Exam exam, string? namesJson = null, string? relationsJson = null, IDbTransaction? transaction = null);
+        Task ReplaceExamSubjectsAsync(int examId, IEnumerable<int> subjectIds, IDbTransaction? transaction = null);
+        Task<Dictionary<int, List<int>>> GetSubjectMappingsByExamIdsAsync(IEnumerable<int> examIds);
         Task DeleteAsync(Exam exam);
         Task DeleteAsync(Exam exam, IDbTransaction? transaction = null);
         Task<bool> SoftDeleteByIdAsync(int id);

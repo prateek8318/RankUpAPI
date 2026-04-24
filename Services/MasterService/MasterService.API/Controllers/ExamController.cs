@@ -307,6 +307,8 @@ namespace MasterService.API.Controllers
                     CreatedAt = e.CreatedAt,
                     QualificationIds = e.QualificationIds,
                     StreamIds = e.StreamIds,
+                    SubjectIds = e.SubjectIds,
+                    SubjectNames = e.SubjectNames,
                     Names = e.Names?.Where(n => n.LanguageId == languageId.Value).ToList() ?? new List<ExamLanguageDto>()
                 };
             });

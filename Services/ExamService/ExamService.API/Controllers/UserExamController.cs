@@ -54,6 +54,41 @@ namespace ExamService.API.Controllers
         }
 
         /// <summary>
+        /// Get active exams filtered by category/subject/type
+        /// </summary>
+        /// <param name="examCategoryId">1=TestSeries, 2=MockTest, 3=DeepPractice, 4=PreviousYear</param>
+        /// <param name="subjectId">Subject ID filter</param>
+        /// <param name="examTypeId">Exam type filter</param>
+        /// <param name="isInternational">Optional international filter</param>
+        /// <param name="language">Optional language code</param>
+        [HttpGet("by-flow")]
+        public async Task<ActionResult<object>> GetActiveExamsByFlow(
+            [FromQuery] int? examCategoryId = null,
+            [FromQuery] int? subjectId = null,
+            [FromQuery] int? examTypeId = null,
+            [FromQuery] bool? isInternational = null,
+            [FromQuery] string? language = null)
+        {
+            try
+            {
+                var currentLanguage = language ?? _languageService.GetCurrentLanguage();
+                var exams = await _examService.GetActiveExamsByFiltersAsync(examCategoryId, subjectId, examTypeId, isInternational);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = exams,
+                    language = currentLanguage,
+                    message = "Filtered exams fetched successfully"
+                });
+            }
+            catch
+            {
+                return StatusCode(500, new { success = false, message = "Error fetching filtered exams" });
+            }
+        }
+
+        /// <summary>
         /// Get active exam by ID for users
         /// </summary>
         /// <param name="id">Exam ID</param>

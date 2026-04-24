@@ -567,10 +567,12 @@ namespace SubscriptionService.Infrastructure.Repositories
                 // Create the subscription plan
                 var planSql = @"
                     INSERT INTO SubscriptionPlans (
-                        Name, Description, Price, Duration, ValidityDays, Type, ExamCategory, ExamId, Features,
+                        Name, Description, Price, Currency, TestPapersCount, Discount, Duration, DurationType, ValidityDays,
+                        Type, ExamCategory, ExamId, Features, ImageUrl, IsPopular, IsRecommended, CardColorTheme,
                         IsActive, SortOrder, CreatedAt, UpdatedAt
                     ) VALUES (
-                        @Name, @Description, @Price, @Duration, @ValidityDays, @Type, @ExamCategory, @ExamId, @Features,
+                        @Name, @Description, @Price, @Currency, @TestPapersCount, @Discount, @Duration, @DurationType, @ValidityDays,
+                        @Type, @ExamCategory, @ExamId, @Features, @ImageUrl, @IsPopular, @IsRecommended, @CardColorTheme,
                         @IsActive, @SortOrder, @CreatedAt, @UpdatedAt
                     );
                     
@@ -585,12 +587,20 @@ namespace SubscriptionService.Infrastructure.Repositories
                     plan.Name,
                     plan.Description,
                     plan.Price,
+                    plan.Currency,
+                    plan.TestPapersCount,
+                    plan.Discount,
                     plan.Duration,
+                    plan.DurationType,
                     plan.ValidityDays,
                     plan.Type,
                     plan.ExamCategory,
                     plan.ExamId,
                     Features = plan.Features != null ? string.Join(",", plan.Features) : null,
+                    plan.ImageUrl,
+                    plan.IsPopular,
+                    plan.IsRecommended,
+                    plan.CardColorTheme,
                     plan.IsActive,
                     plan.SortOrder,
                     plan.CreatedAt,
@@ -652,6 +662,148 @@ namespace SubscriptionService.Infrastructure.Repositories
                                 @SubscriptionPlanId, @LanguageCode, @Name, @Description, @Features, @CreatedAt
                             )";
                         
+                        await connection.ExecuteAsync(translationSql, translationEntity, transaction);
+                    }
+                }
+
+                return mappedPlan;
+            });
+        }
+
+        public async Task<SubscriptionPlan> UpdatePlanWithDurationsAsync(int planId, SubscriptionPlan plan, IEnumerable<PlanDurationOption> durationOptions, IEnumerable<SubscriptionPlanTranslation>? translations = null)
+        {
+            return await WithTransactionAsync(async (connection, transaction) =>
+            {
+                // Ensure plan exists
+                var exists = await connection.QuerySingleAsync<int>(
+                    "SELECT COUNT(1) FROM SubscriptionPlans WHERE Id = @Id",
+                    new { Id = planId },
+                    transaction);
+                if (exists <= 0)
+                    throw new KeyNotFoundException($"Subscription plan with ID {planId} not found");
+
+                // Update base plan fields (keep schema aligned with CreatePlanWithDurationsAsync insert)
+                var updateSql = @"
+                    UPDATE SubscriptionPlans
+                    SET
+                        Name = @Name,
+                        Description = @Description,
+                        Price = @Price,
+                        Currency = @Currency,
+                        TestPapersCount = @TestPapersCount,
+                        Discount = @Discount,
+                        Duration = @Duration,
+                        DurationType = @DurationType,
+                        ValidityDays = @ValidityDays,
+                        Type = @Type,
+                        ExamCategory = @ExamCategory,
+                        ExamId = @ExamId,
+                        Features = @Features,
+                        ImageUrl = @ImageUrl,
+                        IsPopular = @IsPopular,
+                        IsRecommended = @IsRecommended,
+                        CardColorTheme = @CardColorTheme,
+                        IsActive = @IsActive,
+                        SortOrder = @SortOrder,
+                        UpdatedAt = @UpdatedAt
+                    WHERE Id = @Id;
+
+                    SELECT Id, 
+                           Name, Description, Price, Duration, ValidityDays, Type, ExamCategory, ExamId, Features,
+                           IsActive, SortOrder, CreatedAt, UpdatedAt, Currency, TestPapersCount, Discount,
+                           DurationType, ImageUrl, IsPopular, IsRecommended, CardColorTheme
+                    FROM SubscriptionPlans WHERE Id = @Id;";
+
+                var parameters = new
+                {
+                    Id = planId,
+                    plan.Name,
+                    plan.Description,
+                    plan.Price,
+                    plan.Currency,
+                    plan.TestPapersCount,
+                    plan.Discount,
+                    plan.Duration,
+                    plan.DurationType,
+                    plan.ValidityDays,
+                    plan.Type,
+                    plan.ExamCategory,
+                    plan.ExamId,
+                    Features = plan.Features != null ? string.Join(",", plan.Features) : null,
+                    plan.ImageUrl,
+                    plan.IsPopular,
+                    plan.IsRecommended,
+                    plan.CardColorTheme,
+                    plan.IsActive,
+                    plan.SortOrder,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                var updatedRow = await connection.QueryFirstOrDefaultAsync<SubscriptionPlanDbRow>(updateSql, parameters, transaction);
+                if (updatedRow == null)
+                    throw new InvalidOperationException("Failed to update subscription plan");
+
+                var mappedPlan = MapToEntity(updatedRow);
+
+                // Replace duration options
+                await connection.ExecuteAsync(
+                    "DELETE FROM PlanDurationOptions WHERE SubscriptionPlanId = @PlanId",
+                    new { PlanId = planId },
+                    transaction);
+
+                foreach (var option in durationOptions)
+                {
+                    var durationOption = new PlanDurationOption
+                    {
+                        SubscriptionPlanId = mappedPlan.Id,
+                        DurationMonths = option.DurationMonths,
+                        Price = option.Price,
+                        DiscountPercentage = option.DiscountPercentage,
+                        DisplayLabel = option.DisplayLabel,
+                        IsPopular = option.IsPopular,
+                        SortOrder = option.SortOrder,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    var durationSql = @"
+                        INSERT INTO PlanDurationOptions (
+                            SubscriptionPlanId, DurationMonths, Price, DiscountPercentage, 
+                            DisplayLabel, IsPopular, SortOrder, IsActive, CreatedAt
+                        ) VALUES (
+                            @SubscriptionPlanId, @DurationMonths, @Price, @DiscountPercentage,
+                            @DisplayLabel, @IsPopular, @SortOrder, @IsActive, @CreatedAt
+                        )";
+
+                    await connection.ExecuteAsync(durationSql, durationOption, transaction);
+                }
+
+                // Replace translations (non-English only, same as create flow)
+                await connection.ExecuteAsync(
+                    "DELETE FROM SubscriptionPlanTranslations WHERE SubscriptionPlanId = @PlanId",
+                    new { PlanId = planId },
+                    transaction);
+
+                if (translations != null)
+                {
+                    foreach (var translation in translations)
+                    {
+                        var translationEntity = new SubscriptionPlanTranslation
+                        {
+                            SubscriptionPlanId = mappedPlan.Id,
+                            LanguageCode = translation.LanguageCode,
+                            Name = translation.Name,
+                            Description = translation.Description,
+                            Features = translation.Features
+                        };
+
+                        var translationSql = @"
+                            INSERT INTO SubscriptionPlanTranslations (
+                                SubscriptionPlanId, LanguageCode, Name, Description, Features, CreatedAt
+                            ) VALUES (
+                                @SubscriptionPlanId, @LanguageCode, @Name, @Description, @Features, @CreatedAt
+                            )";
+
                         await connection.ExecuteAsync(translationSql, translationEntity, transaction);
                     }
                 }

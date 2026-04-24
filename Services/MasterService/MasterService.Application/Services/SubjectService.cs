@@ -40,8 +40,8 @@ namespace MasterService.Application.Services
         {
             try
             {
-                // Use GetAllAsync which already returns all subjects including inactive
-                var subjects = await _subjectRepository.GetAllAsync(languageId);
+                // For admin, get ALL subjects without language filtering to show both active and inactive
+                var subjects = await _subjectRepository.GetAllAsync((int?)null);
                 return subjects.Select(MapToSubjectDto);
             }
             catch (Exception ex)

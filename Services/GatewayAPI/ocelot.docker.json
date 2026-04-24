@@ -22,7 +22,8 @@
       "DownstreamHostAndPorts": [{ "Host": "examservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/exams/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 2000
     },
     {
       "DownstreamPathTemplate": "/api/users/{everything}",
@@ -37,8 +38,25 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/auth/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 2000
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/subscription-plans/durations",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/admin/subscription-plans/durations",
+      "UpstreamHttpMethod": ["GET", "POST"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 2100
     },
     {
       "DownstreamPathTemplate": "/uploads/{everything}",
@@ -46,6 +64,30 @@
       "DownstreamHostAndPorts": [{ "Host": "masterservice", "Port": 80 }],
       "UpstreamPathTemplate": "/uploads/{everything}",
       "UpstreamHttpMethod": ["GET"]
+    },
+    {
+      "DownstreamPathTemplate": "/uploads/subscription-plans/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/uploads/subscription-plans/{everything}",
+      "UpstreamHttpMethod": ["GET"],
+      "Priority": 200
+    },
+    {
+      "DownstreamPathTemplate": "/images/subscription-plans/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/images/subscription-plans/{everything}",
+      "UpstreamHttpMethod": ["GET"],
+      "Priority": 200
+    },
+    {
+      "DownstreamPathTemplate": "/images/plans/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/images/plans/{everything}",
+      "UpstreamHttpMethod": ["GET"],
+      "Priority": 200
     },
     {
       "DownstreamPathTemplate": "/api/qualifications",
@@ -205,7 +247,8 @@
       "DownstreamHostAndPorts": [{ "Host": "adminservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 0
     },
     {
       "DownstreamPathTemplate": "/api/home",
@@ -258,7 +301,34 @@
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" }
     },
     {
-      "DownstreamPathTemplate": "/api/v1/admin/plans/{everything}",
+      "DownstreamPathTemplate": "/api/mock-tests/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "questionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/mock-tests/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 110
+    },
+    {
+      "DownstreamPathTemplate": "/api/exams",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "questionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/question-exams",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 110
+    },
+    {
+      "DownstreamPathTemplate": "/api/exams/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "questionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/question-exams/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
+      "Priority": 110
+    },
+    {
+      "DownstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
@@ -344,7 +414,6 @@
       "DownstreamHostAndPorts": [{ "Host": "userservice", "Port": 80 }],
       "UpstreamPathTemplate": "/api/admin/users/{everything}",
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
       "Priority": 100
     },
     {
@@ -382,6 +451,22 @@
       "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
       "Priority": 100
+    },
+    {
+      "DownstreamPathTemplate": "/wallet",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/wallet",
+      "UpstreamHttpMethod": ["POST"],
+      "Priority": 110
+    },
+    {
+      "DownstreamPathTemplate": "/walletWebhook",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/walletWebhook",
+      "UpstreamHttpMethod": ["POST"],
+      "Priority": 110
     }
   ],
   "GlobalConfiguration": {

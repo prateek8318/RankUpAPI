@@ -152,6 +152,16 @@ namespace SubscriptionService.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Legacy-compatible wallet webhook route.
+        /// Matches older integration: POST /walletWebhook
+        /// </summary>
+        [HttpPost("~/walletWebhook")]
+        public async Task<IActionResult> LegacyWalletWebhook()
+        {
+            return await WalletWebhook();
+        }
+
         private async Task ProcessRazorpayWebhook(RazorpayWebhookPayload webhookData)
         {
             switch (webhookData.Event?.ToLower())

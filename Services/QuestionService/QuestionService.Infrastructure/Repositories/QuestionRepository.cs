@@ -29,7 +29,7 @@ namespace QuestionService.Infrastructure.Repositories
                     LEFT JOIN Topics t ON q.TopicId = t.Id
                     LEFT JOIN QuestionTranslations qt ON q.Id = qt.QuestionId
                     WHERE q.Id = @Id AND q.IsActive = 1
-                    ORDER BY qt.LanguageCode";
+                    ORDER BY CASE WHEN qt.LanguageCode = 'en' THEN 0 ELSE 1 END, qt.LanguageCode";
 
                 var questionDict = new Dictionary<int, Question>();
 
@@ -69,7 +69,7 @@ namespace QuestionService.Infrastructure.Repositories
                     LEFT JOIN Topics t ON q.TopicId = t.Id
                     LEFT JOIN QuestionTranslations qt ON q.Id = qt.QuestionId
                     WHERE q.IsActive = 1
-                    ORDER BY q.CreatedAt DESC";
+                    ORDER BY q.CreatedAt DESC, CASE WHEN qt.LanguageCode = 'en' THEN 0 ELSE 1 END, qt.LanguageCode";
 
                 var questionDict = new Dictionary<int, Question>();
 
@@ -269,6 +269,177 @@ namespace QuestionService.Infrastructure.Repositories
                 var totalCount = await multi.ReadSingleAsync<int>();
 
                 return (questionLookup.Values, totalCount);
+            });
+        }
+
+        public async Task<(IEnumerable<Question> Questions, int TotalCount, string? NextCursor, string? PreviousCursor, bool HasNextPage, bool HasPreviousPage)> GetQuestionsCursorAsync(string? cursor, int pageSize, string direction = "next", int? examId = null, int? subjectId = null, int? topicId = null, string? difficultyLevel = null, bool? isPublished = null, string languageCode = "en")
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                // Cursor format: "<createdAtTicks>|<id>" (keyset cursor; stable even when new rows are inserted)
+                static bool TryParseKeysetCursor(string? raw, out long createdAtTicks, out int id)
+                {
+                    createdAtTicks = 0;
+                    id = 0;
+                    if (string.IsNullOrWhiteSpace(raw)) return false;
+
+                    var parts = raw.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    if (parts.Length != 2) return false;
+
+                    return long.TryParse(parts[0], out createdAtTicks) && int.TryParse(parts[1], out id);
+                }
+
+                var hasCursor = TryParseKeysetCursor(cursor, out var cursorTicks, out var cursorId);
+                var cursorCreatedAtUtc = hasCursor ? new DateTime(cursorTicks, DateTimeKind.Utc) : (DateTime?)null;
+
+                // Keyset pagination:
+                // - next page (older): (CreatedAt,Id) < cursor
+                // - prev page (newer): (CreatedAt,Id) > cursor
+                var sql = @"
+                    SELECT TOP (@PageSize + 1)
+                        q.Id, q.ModuleId, q.ExamId, q.SubjectId, q.TopicId, q.QuestionText, 
+                        q.OptionA, q.OptionB, q.OptionC, q.OptionD, q.CorrectAnswer, q.Explanation,
+                        q.Marks, q.NegativeMarks, q.DifficultyLevel, q.QuestionType, q.QuestionImageUrl,
+                        q.OptionAImageUrl, q.OptionBImageUrl, q.OptionCImageUrl, q.OptionDImageUrl,
+                        q.ExplanationImageUrl, q.SameExplanationForAllLanguages, q.Reference, q.Tags,
+                        q.CreatedBy, q.ReviewedBy, q.IsPublished, q.PublishDate, q.CreatedAt, 
+                        q.UpdatedAt, q.IsActive
+                    FROM Questions q
+                    WHERE q.IsActive = 1
+                      AND (@ExamId IS NULL OR q.ExamId = @ExamId)
+                      AND (@SubjectId IS NULL OR q.SubjectId = @SubjectId)
+                      AND (@TopicId IS NULL OR q.TopicId = @TopicId)
+                      AND (@DifficultyLevel IS NULL OR q.DifficultyLevel = @DifficultyLevel)
+                      AND (@IsPublished IS NULL OR q.IsPublished = @IsPublished)
+                      AND (
+                           @HasCursor = 0
+                           OR (
+                                @Direction = 'next'
+                                AND (
+                                     q.CreatedAt < @CursorCreatedAt
+                                     OR (q.CreatedAt = @CursorCreatedAt AND q.Id < @CursorId)
+                                )
+                           )
+                           OR (
+                                @Direction = 'prev'
+                                AND (
+                                     q.CreatedAt > @CursorCreatedAt
+                                     OR (q.CreatedAt = @CursorCreatedAt AND q.Id > @CursorId)
+                                )
+                           )
+                      )
+                    ORDER BY
+                      CASE WHEN @Direction = 'prev' THEN q.CreatedAt END ASC,
+                      CASE WHEN @Direction = 'prev' THEN q.Id END ASC,
+                      CASE WHEN @Direction = 'next' THEN q.CreatedAt END DESC,
+                      CASE WHEN @Direction = 'next' THEN q.Id END DESC;
+
+                    SELECT COUNT(1)
+                    FROM Questions q
+                    WHERE q.IsActive = 1
+                      AND (@ExamId IS NULL OR q.ExamId = @ExamId)
+                      AND (@SubjectId IS NULL OR q.SubjectId = @SubjectId)
+                      AND (@TopicId IS NULL OR q.TopicId = @TopicId)
+                      AND (@DifficultyLevel IS NULL OR q.DifficultyLevel = @DifficultyLevel)
+                      AND (@IsPublished IS NULL OR q.IsPublished = @IsPublished);";
+
+                var parameters = new
+                {
+                    ExamId = examId,
+                    SubjectId = subjectId,
+                    TopicId = topicId,
+                    DifficultyLevel = difficultyLevel,
+                    IsPublished = isPublished,
+                    Direction = direction,
+                    PageSize = pageSize,
+                    HasCursor = hasCursor ? 1 : 0,
+                    CursorCreatedAt = cursorCreatedAtUtc ?? DateTime.UtcNow,
+                    CursorId = cursorId
+                };
+
+                using var multi = await connection.QueryMultipleAsync(sql, parameters);
+                var rows = multi.Read<dynamic>().ToList();
+                var totalCount = await multi.ReadSingleAsync<int>();
+
+                static int? ToNullableInt(object? value) => value is null ? null : Convert.ToInt32(value);
+
+                var mapped = rows.Select(r => new Question
+                {
+                    Id = Convert.ToInt32(r.Id),
+                    ModuleId = ToNullableInt(r.ModuleId),
+                    ExamId = Convert.ToInt32(r.ExamId),
+                    SubjectId = Convert.ToInt32(r.SubjectId),
+                    TopicId = ToNullableInt(r.TopicId),
+                    QuestionText = r.QuestionText,
+                    OptionA = r.OptionA,
+                    OptionB = r.OptionB,
+                    OptionC = r.OptionC,
+                    OptionD = r.OptionD,
+                    CorrectAnswer = r.CorrectAnswer,
+                    Explanation = r.Explanation,
+                    Marks = r.Marks,
+                    NegativeMarks = r.NegativeMarks,
+                    DifficultyLevel = r.DifficultyLevel,
+                    QuestionType = r.QuestionType,
+                    QuestionImageUrl = r.QuestionImageUrl,
+                    OptionAImageUrl = r.OptionAImageUrl,
+                    OptionBImageUrl = r.OptionBImageUrl,
+                    OptionCImageUrl = r.OptionCImageUrl,
+                    OptionDImageUrl = r.OptionDImageUrl,
+                    ExplanationImageUrl = r.ExplanationImageUrl,
+                    SameExplanationForAllLanguages = r.SameExplanationForAllLanguages,
+                    Reference = r.Reference,
+                    Tags = r.Tags,
+                    CreatedBy = Convert.ToInt32(r.CreatedBy),
+                    ReviewedBy = ToNullableInt(r.ReviewedBy),
+                    IsPublished = r.IsPublished,
+                    PublishDate = r.PublishDate,
+                    CreatedAt = r.CreatedAt,
+                    UpdatedAt = r.UpdatedAt,
+                    IsActive = r.IsActive
+                }).ToList();
+
+                // For prev direction we ordered ASC to fetch newer; flip to keep response always newest->oldest
+                if (direction == "prev")
+                {
+                    mapped.Reverse();
+                }
+
+                var hasMore = mapped.Count > pageSize;
+                var pageItems = mapped.Take(pageSize).ToList();
+
+                string? nextCursor = null;
+                string? previousCursor = null;
+                bool hasNextPage;
+                bool hasPreviousPage;
+
+                if (pageItems.Count == 0)
+                {
+                    return (pageItems, totalCount, null, null, false, false);
+                }
+
+                // Cursors are based on boundary items
+                var last = pageItems.Last();
+                var first = pageItems.First();
+                var lastCursor = $"{last.CreatedAt.ToUniversalTime().Ticks}|{last.Id}";
+                var firstCursor = $"{first.CreatedAt.ToUniversalTime().Ticks}|{first.Id}";
+
+                if (direction == "next")
+                {
+                    hasNextPage = hasMore;
+                    hasPreviousPage = hasCursor;
+                    nextCursor = hasNextPage ? lastCursor : null;
+                    previousCursor = hasPreviousPage ? firstCursor : null;
+                }
+                else
+                {
+                    hasPreviousPage = hasMore;
+                    hasNextPage = hasCursor;
+                    previousCursor = hasPreviousPage ? firstCursor : null;
+                    nextCursor = hasNextPage ? lastCursor : null;
+                }
+
+                return (pageItems, totalCount, nextCursor, previousCursor, hasNextPage, hasPreviousPage);
             });
         }
 
@@ -794,10 +965,10 @@ namespace QuestionService.Infrastructure.Repositories
                         s.Name,
                         s.Description,
                         COUNT(q.Id) AS QuestionCount,
-                        s.IsActive
-                    FROM Subjects s
+                        CAST(ISNULL(s.IsActive, 1) AS BIT) AS IsActive
+                    FROM [RankUp_MasterDB].[dbo].[Subjects] s
                     LEFT JOIN Questions q ON s.Id = q.SubjectId AND q.IsActive = 1
-                    WHERE s.IsActive = 1
+                    WHERE ISNULL(s.IsActive, 1) = 1
                     GROUP BY s.Id, s.Name, s.Description, s.IsActive
                     ORDER BY s.Name";
 
@@ -814,18 +985,77 @@ namespace QuestionService.Infrastructure.Repositories
                         e.Id,
                         e.Name,
                         e.Description,
+                        e.CountryCode,
+                        e.MinAge,
+                        e.MaxAge,
+                        e.ImageUrl,
+                        CAST(ISNULL(e.IsInternational, 0) AS BIT) AS IsInternational,
                         COUNT(q.Id) AS QuestionCount,
-                        e.Duration,
-                        e.IsActive,
+                        CAST(0 AS INT) AS Duration,
+                        CAST(ISNULL(e.IsActive, 1) AS BIT) AS IsActive,
                         0 AS IsLocked -- Mock unlock status
-                    FROM Exams e
+                    FROM [RankUp_MasterDB].[dbo].[Exams] e
                     LEFT JOIN Questions q ON e.Id = q.ExamId AND q.IsActive = 1
-                    WHERE e.IsActive = 1
-                    AND (@SubjectId IS NULL OR e.SubjectId = @SubjectId)
-                    GROUP BY e.Id, e.Name, e.Description, e.Duration, e.IsActive
+                    WHERE ISNULL(e.IsActive, 1) = 1
+                    AND (
+                        @SubjectId IS NULL
+                        OR EXISTS
+                        (
+                            SELECT 1
+                            FROM [RankUp_MasterDB].[dbo].[ExamSubjects] es
+                            WHERE es.ExamId = e.Id
+                              AND es.SubjectId = @SubjectId
+                              AND ISNULL(es.IsActive, 1) = 1
+                        )
+                    )
+                    GROUP BY e.Id, e.Name, e.Description, e.CountryCode, e.MinAge, e.MaxAge, e.ImageUrl, e.IsInternational, e.IsActive
                     ORDER BY e.Name";
 
                 return await connection.QueryAsync(sql, new { SubjectId = subjectId });
+            });
+        }
+
+        public async Task<bool> IsTopicMappedToExamSubjectAsync(int topicId, int examId, int subjectId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT COUNT(1)
+                    FROM Topics t
+                    WHERE t.Id = @TopicId
+                      AND t.IsActive = 1
+                      AND t.ExamId = @ExamId
+                      AND t.SubjectId = @SubjectId";
+
+                var count = await connection.QuerySingleAsync<int>(sql, new
+                {
+                    TopicId = topicId,
+                    ExamId = examId,
+                    SubjectId = subjectId
+                });
+
+                return count > 0;
+            });
+        }
+
+        public async Task<bool> IsSubjectMappedToExamAsync(int subjectId, int examId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT COUNT(1)
+                    FROM [RankUp_MasterDB].[dbo].[ExamSubjects] es
+                    WHERE es.ExamId = @ExamId
+                      AND es.SubjectId = @SubjectId
+                      AND ISNULL(es.IsActive, 1) = 1";
+
+                var count = await connection.QuerySingleAsync<int>(sql, new
+                {
+                    ExamId = examId,
+                    SubjectId = subjectId
+                });
+
+                return count > 0;
             });
         }
 
@@ -1042,26 +1272,26 @@ namespace QuestionService.Infrastructure.Repositories
             {
                 RowNumber = rowNumber,
                 Module = Get("module"),
-                Exam = Get("exam", "examname") ?? string.Empty,
+                Exam = Get("exam", "examname", "examtype") ?? string.Empty,
                 Subject = Get("subject", "subjectname") ?? string.Empty,
                 Topic = Get("topic", "topicname"),
-                QuestionText = Get("questiontext", "question") ?? string.Empty,
-                OptionA = Get("optiona"),
-                OptionB = Get("optionb"),
-                OptionC = Get("optionc"),
-                OptionD = Get("optiond"),
-                CorrectAnswer = (Get("correctanswer", "answer") ?? string.Empty).Trim(),
-                Explanation = Get("explanation"),
+                QuestionText = Get("questiontext", "question", "questionnameenglish", "questionname") ?? string.Empty,
+                OptionA = Get("optiona", "option1", "optionone"),
+                OptionB = Get("optionb", "option2", "optiontwo"),
+                OptionC = Get("optionc", "option3", "optionthree"),
+                OptionD = Get("optiond", "option4", "optionfour"),
+                CorrectAnswer = (Get("correctanswer", "answer", "correctoption") ?? string.Empty).Trim(),
+                Explanation = Get("explanation", "solutiondetailenglish", "solutiondetail", "solution"),
                 Marks = ParseDecimal(Get("marks"), 1m),
                 NegativeMarks = ParseDecimal(Get("negativemarks"), 0m),
                 DifficultyLevel = Get("difficultylevel", "difficulty") ?? "Medium",
                 QuestionType = Get("questiontype") ?? "MCQ",
-                QuestionImageUrl = Get("questionimageurl"),
-                OptionAImageUrl = Get("optionaimageurl"),
-                OptionBImageUrl = Get("optionbimageurl"),
-                OptionCImageUrl = Get("optioncimageurl"),
-                OptionDImageUrl = Get("optiondimageurl"),
-                ExplanationImageUrl = Get("explanationimageurl"),
+                QuestionImageUrl = Get("questionimageurl", "questionimage"),
+                OptionAImageUrl = Get("optionaimageurl", "option1image"),
+                OptionBImageUrl = Get("optionbimageurl", "option2image"),
+                OptionCImageUrl = Get("optioncimageurl", "option3image"),
+                OptionDImageUrl = Get("optiondimageurl", "option4image"),
+                ExplanationImageUrl = Get("explanationimageurl", "solutionimage"),
                 Reference = Get("reference"),
                 Tags = Get("tags"),
                 SameExplanationForAllLanguages = ParseBool(Get("sameexplanationforalllanguages"))
@@ -1106,15 +1336,23 @@ namespace QuestionService.Infrastructure.Repositories
                     SELECT 
                         e.Id,
                         e.Name,
-                        e.ExamType,
-                        e.SubjectId,
+                        CAST('General' AS NVARCHAR(100)) AS ExamType,
+                        ISNULL(es.SubjectId, 0) AS SubjectId,
                         s.Name AS SubjectName,
-                        e.HasNegativeMarking,
-                        e.NegativeMarkingValue,
-                        e.MarksPerQuestion
-                    FROM Exams e
-                    LEFT JOIN Subjects s ON e.SubjectId = s.Id
-                    WHERE e.Id = @ExamId AND e.IsActive = 1";
+                        CAST(0 AS BIT) AS HasNegativeMarking,
+                        CAST(0 AS DECIMAL(10,2)) AS NegativeMarkingValue,
+                        CAST(1 AS DECIMAL(10,2)) AS MarksPerQuestion
+                    FROM [RankUp_MasterDB].[dbo].[Exams] e
+                    OUTER APPLY
+                    (
+                        SELECT TOP 1 esm.SubjectId
+                        FROM [RankUp_MasterDB].[dbo].[ExamSubjects] esm
+                        WHERE esm.ExamId = e.Id
+                          AND ISNULL(esm.IsActive, 1) = 1
+                        ORDER BY esm.SubjectId
+                    ) es
+                    LEFT JOIN [RankUp_MasterDB].[dbo].[Subjects] s ON s.Id = es.SubjectId AND ISNULL(s.IsActive, 1) = 1
+                    WHERE e.Id = @ExamId AND ISNULL(e.IsActive, 1) = 1";
 
                 return await connection.QuerySingleOrDefaultAsync<ExamNameDto>(sql, new { ExamId = examId });
             });
@@ -1125,13 +1363,13 @@ namespace QuestionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = @"
-                    SELECT DISTINCT 
-                        et.Id,
-                        et.Name,
-                        et.ExamType
-                    FROM ExamTypes et
-                    WHERE et.IsActive = 1
-                    ORDER BY et.Name";
+                    SELECT 
+                        e.Id,
+                        e.Name,
+                        CAST('General' AS NVARCHAR(100)) AS ExamType
+                    FROM [RankUp_MasterDB].[dbo].[Exams] e
+                    WHERE ISNULL(e.IsActive, 1) = 1
+                    ORDER BY e.Name";
 
                 return await connection.QueryAsync<ExamTypeDto>(sql);
             });
@@ -1145,18 +1383,57 @@ namespace QuestionService.Infrastructure.Repositories
                     SELECT 
                         e.Id,
                         e.Name,
-                        e.ExamType,
-                        e.SubjectId,
+                        CAST('General' AS NVARCHAR(100)) AS ExamType,
+                        ISNULL(es.SubjectId, 0) AS SubjectId,
                         s.Name AS SubjectName,
-                        e.HasNegativeMarking,
-                        e.NegativeMarkingValue,
-                        e.MarksPerQuestion
-                    FROM Exams e
-                    LEFT JOIN Subjects s ON e.SubjectId = s.Id
-                    WHERE e.ExamType = @ExamType AND e.IsActive = 1
+                        CAST(0 AS BIT) AS HasNegativeMarking,
+                        CAST(0 AS DECIMAL(10,2)) AS NegativeMarkingValue,
+                        CAST(1 AS DECIMAL(10,2)) AS MarksPerQuestion
+                    FROM [RankUp_MasterDB].[dbo].[Exams] e
+                    OUTER APPLY
+                    (
+                        SELECT TOP 1 esm.SubjectId
+                        FROM [RankUp_MasterDB].[dbo].[ExamSubjects] esm
+                        WHERE esm.ExamId = e.Id
+                          AND ISNULL(esm.IsActive, 1) = 1
+                        ORDER BY esm.SubjectId
+                    ) es
+                    LEFT JOIN [RankUp_MasterDB].[dbo].[Subjects] s ON s.Id = es.SubjectId AND ISNULL(s.IsActive, 1) = 1
+                    WHERE (@ExamType IS NULL OR @ExamType = '' OR @ExamType = 'General')
+                      AND ISNULL(e.IsActive, 1) = 1
                     ORDER BY e.Name";
 
                 return await connection.QueryAsync<ExamNameDto>(sql, new { ExamType = examType });
+            });
+        }
+
+        public async Task<bool> UpdateQuestionImageUrlsAsync(int questionId, string? questionImageUrl, string? optionAImageUrl, string? optionBImageUrl, string? optionCImageUrl, string? optionDImageUrl, string? explanationImageUrl)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    UPDATE Questions SET
+                        QuestionImageUrl = @QuestionImageUrl,
+                        OptionAImageUrl = @OptionAImageUrl,
+                        OptionBImageUrl = @OptionBImageUrl,
+                        OptionCImageUrl = @OptionCImageUrl,
+                        OptionDImageUrl = @OptionDImageUrl,
+                        ExplanationImageUrl = @ExplanationImageUrl,
+                        UpdatedAt = GETDATE()
+                    WHERE Id = @QuestionId AND IsActive = 1";
+
+                var rowsAffected = await connection.ExecuteAsync(sql, new
+                {
+                    QuestionId = questionId,
+                    QuestionImageUrl = questionImageUrl,
+                    OptionAImageUrl = optionAImageUrl,
+                    OptionBImageUrl = optionBImageUrl,
+                    OptionCImageUrl = optionCImageUrl,
+                    OptionDImageUrl = optionDImageUrl,
+                    ExplanationImageUrl = explanationImageUrl
+                });
+
+                return rowsAffected > 0;
             });
         }
 
@@ -1168,16 +1445,24 @@ namespace QuestionService.Infrastructure.Repositories
                     SELECT 
                         e.Id,
                         e.Name,
-                        e.ExamType,
-                        e.SubjectId,
+                        CAST('General' AS NVARCHAR(100)) AS ExamType,
+                        ISNULL(es.SubjectId, 0) AS SubjectId,
                         s.Name AS SubjectName,
-                        e.HasNegativeMarking,
-                        e.NegativeMarkingValue,
-                        e.MarksPerQuestion
-                    FROM Exams e
-                    LEFT JOIN Subjects s ON e.SubjectId = s.Id
-                    WHERE e.IsActive = 1
-                    ORDER BY e.ExamType, e.Name";
+                        CAST(0 AS BIT) AS HasNegativeMarking,
+                        CAST(0 AS DECIMAL(10,2)) AS NegativeMarkingValue,
+                        CAST(1 AS DECIMAL(10,2)) AS MarksPerQuestion
+                    FROM [RankUp_MasterDB].[dbo].[Exams] e
+                    OUTER APPLY
+                    (
+                        SELECT TOP 1 esm.SubjectId
+                        FROM [RankUp_MasterDB].[dbo].[ExamSubjects] esm
+                        WHERE esm.ExamId = e.Id
+                          AND ISNULL(esm.IsActive, 1) = 1
+                        ORDER BY esm.SubjectId
+                    ) es
+                    LEFT JOIN [RankUp_MasterDB].[dbo].[Subjects] s ON s.Id = es.SubjectId AND ISNULL(s.IsActive, 1) = 1
+                    WHERE ISNULL(e.IsActive, 1) = 1
+                    ORDER BY e.Name";
 
                 return await connection.QueryAsync<ExamNameDto>(sql);
             });

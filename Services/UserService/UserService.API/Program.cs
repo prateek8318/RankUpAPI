@@ -60,6 +60,9 @@ builder.Services.AddScoped<ISocialLoginService, SocialLoginService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IDeviceInfoService, UserService.Application.Services.DeviceInfoService>();
 
+// HttpClientFactory (used by AdminUserController for SubscriptionService calls)
+builder.Services.AddHttpClient();
+
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
 

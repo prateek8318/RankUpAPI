@@ -22,8 +22,40 @@ namespace SubscriptionService.Infrastructure.Repositories
         public async Task<IEnumerable<UserSubscription>> GetAllAsync()
         {
             var sql = "EXEC [dbo].[UserSubscription_GetAll]";
-            return await WithConnectionAsync(async connection => 
-                await connection.QueryAsync<UserSubscription>(sql));
+            var fallbackSql = @"
+                SELECT
+                    us.Id,
+                    us.UserId,
+                    us.SubscriptionPlanId,
+                    us.DurationOptionId,
+                    us.RazorpayOrderId,
+                    us.RazorpayPaymentId,
+                    us.RazorpaySignature,
+                    us.PurchasedDate,
+                    us.ValidTill,
+                    us.TestsUsed,
+                    us.TestsTotal,
+                    us.AmountPaid,
+                    us.Currency,
+                    us.DiscountApplied,
+                    us.Status,
+                    us.AutoRenewal,
+                    us.CreatedAt,
+                    us.UpdatedAt
+                FROM [dbo].[UserSubscriptions] us
+                ORDER BY us.CreatedAt DESC";
+
+            return await WithConnectionAsync(async connection =>
+            {
+                try
+                {
+                    return await connection.QueryAsync<UserSubscription>(sql);
+                }
+                catch (SqlException)
+                {
+                    return await connection.QueryAsync<UserSubscription>(fallbackSql);
+                }
+            });
         }
 
         public async Task<IEnumerable<UserSubscription>> FindAsync(System.Linq.Expressions.Expression<Func<UserSubscription, bool>> predicate)
@@ -54,15 +86,80 @@ namespace SubscriptionService.Infrastructure.Repositories
 
             var sqlWithDurationOption = @"
                 EXEC [dbo].[UserSubscription_Create] 
-                    @UserId, @SubscriptionPlanId, @DurationOptionId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
-                    @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenewal,
-                    @RazorpaySubscriptionId, @CreatedAt, @UpdatedAt";
+                    @UserId = @UserId,
+                    @SubscriptionPlanId = @SubscriptionPlanId,
+                    @DurationOptionId = @DurationOptionId,
+                    @RazorpayOrderId = @RazorpayOrderId,
+                    @RazorpayPaymentId = @RazorpayPaymentId,
+                    @RazorpaySignature = @RazorpaySignature,
+                    @OriginalAmount = @OriginalAmount,
+                    @FinalAmount = @FinalAmount,
+                    @StartDate = @StartDate,
+                    @EndDate = @EndDate,
+                    @Status = @Status,
+                    @AutoRenewal = @AutoRenewal,
+                    @RazorpaySubscriptionId = @RazorpaySubscriptionId,
+                    @CreatedAt = @CreatedAt,
+                    @UpdatedAt = @UpdatedAt";
 
             var sqlLegacy = @"
                 EXEC [dbo].[UserSubscription_Create] 
-                    @UserId, @SubscriptionPlanId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
-                    @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenewal,
-                    @RazorpaySubscriptionId, @CreatedAt, @UpdatedAt";
+                    @UserId = @UserId,
+                    @SubscriptionPlanId = @SubscriptionPlanId,
+                    @RazorpayOrderId = @RazorpayOrderId,
+                    @RazorpayPaymentId = @RazorpayPaymentId,
+                    @RazorpaySignature = @RazorpaySignature,
+                    @OriginalAmount = @OriginalAmount,
+                    @FinalAmount = @FinalAmount,
+                    @StartDate = @StartDate,
+                    @EndDate = @EndDate,
+                    @Status = @Status,
+                    @AutoRenewal = @AutoRenewal,
+                    @RazorpaySubscriptionId = @RazorpaySubscriptionId,
+                    @CreatedAt = @CreatedAt,
+                    @UpdatedAt = @UpdatedAt";
+
+            var sqlDirectInsert = @"
+                INSERT INTO [dbo].[UserSubscriptions]
+                (
+                    [UserId],
+                    [SubscriptionPlanId],
+                    [DurationOptionId],
+                    [RazorpayOrderId],
+                    [RazorpayPaymentId],
+                    [RazorpaySignature],
+                    [PurchasedDate],
+                    [ValidTill],
+                    [TestsUsed],
+                    [TestsTotal],
+                    [AmountPaid],
+                    [Currency],
+                    [DiscountApplied],
+                    [Status],
+                    [AutoRenewal],
+                    [CreatedAt],
+                    [UpdatedAt]
+                )
+                VALUES
+                (
+                    @UserId,
+                    @SubscriptionPlanId,
+                    @DurationOptionId,
+                    @RazorpayOrderId,
+                    @RazorpayPaymentId,
+                    @RazorpaySignature,
+                    @StartDate,
+                    @EndDate,
+                    0,
+                    0,
+                    @FinalAmount,
+                    'INR',
+                    (@OriginalAmount - @FinalAmount),
+                    @Status,
+                    @AutoRenewal,
+                    @CreatedAt,
+                    @UpdatedAt
+                );";
 
             await WithConnectionAsync(async connection =>
             {
@@ -74,7 +171,15 @@ namespace SubscriptionService.Infrastructure.Repositories
                 {
                     // Backward compatibility for environments where UserSubscription_Create
                     // has not yet been updated with @DurationOptionId.
-                    await connection.ExecuteAsync(sqlLegacy, parameters);
+                    try
+                    {
+                        await connection.ExecuteAsync(sqlLegacy, parameters);
+                    }
+                    catch (SqlException)
+                    {
+                        // Final fallback for environments with incompatible proc signatures.
+                        await connection.ExecuteAsync(sqlDirectInsert, parameters);
+                    }
                 }
             });
             return entity;
@@ -82,11 +187,34 @@ namespace SubscriptionService.Infrastructure.Repositories
 
         public async Task<UserSubscription> UpdateAsync(UserSubscription entity)
         {
-            var sql = @"
+            var procedureSql = @"
                 EXEC [dbo].[UserSubscription_Update] 
                     @Id, @UserId, @SubscriptionPlanId, @RazorpayOrderId, @RazorpayPaymentId, @RazorpaySignature,
                     @OriginalAmount, @FinalAmount, @StartDate, @EndDate, @Status, @AutoRenew,
                     @RazorpaySubscriptionId, @LastRenewalDate, @CancelledDate, @CancellationReason, @UpdatedAt";
+
+            var fallbackSql = @"
+                UPDATE [dbo].[UserSubscriptions]
+                SET
+                    [UserId] = @UserId,
+                    [SubscriptionPlanId] = @SubscriptionPlanId,
+                    [DurationOptionId] = @DurationOptionId,
+                    [RazorpayOrderId] = @RazorpayOrderId,
+                    [RazorpayPaymentId] = @RazorpayPaymentId,
+                    [RazorpaySignature] = @RazorpaySignature,
+                    [PurchasedDate] = @PurchasedDate,
+                    [ValidTill] = @ValidTill,
+                    [TestsUsed] = @TestsUsed,
+                    [TestsTotal] = @TestsTotal,
+                    [AmountPaid] = @AmountPaid,
+                    [Currency] = @Currency,
+                    [DiscountApplied] = @DiscountApplied,
+                    [Status] = @Status,
+                    [AutoRenewal] = @AutoRenewal,
+                    [CancelledDate] = @CancelledDate,
+                    [CancellationReason] = @CancellationReason,
+                    [UpdatedAt] = @UpdatedAt
+                WHERE [Id] = @Id";
 
             var parameters = new
             {
@@ -96,21 +224,31 @@ namespace SubscriptionService.Infrastructure.Repositories
                 RazorpayOrderId = entity.RazorpayOrderId,
                 RazorpayPaymentId = entity.RazorpayPaymentId,
                 RazorpaySignature = entity.RazorpaySignature,
-                // OriginalAmount = entity.OriginalAmount, // Not available
-                // FinalAmount = entity.FinalAmount, // Not available
-                // StartDate = entity.StartDate, // Not available
-                // EndDate = entity.EndDate, // Not available
-                Status = entity.Status.ToString(),
-                AutoRenew = entity.AutoRenewal,  // ✅ Fixed: was AutoRenewal
-                // RazorpaySubscriptionId = entity.RazorpaySubscriptionId, // Not available
-                // LastRenewalDate = entity.LastRenewalDate, // Not available
-                // CancelledDate = entity.CancelledDate, // Not available
-                // CancellationReason = entity.CancellationReason, // Not available
+                OriginalAmount = entity.AmountPaid + entity.DiscountApplied,
+                FinalAmount = entity.AmountPaid,
+                StartDate = entity.PurchasedDate,
+                EndDate = entity.ValidTill,
+                Status = entity.Status,
+                AutoRenewal = entity.AutoRenewal,
+                RazorpaySubscriptionId = (string?)null,
+                LastRenewalDate = (DateTime?)null,
+                CancelledDate = entity.Status == "Cancelled" ? DateTime.UtcNow : (DateTime?)null,
+                CancellationReason = (string?)null,
                 UpdatedAt = entity.UpdatedAt
             };
 
-            await WithConnectionAsync(async connection => 
-                await connection.ExecuteAsync(sql, parameters));
+            await WithConnectionAsync(async connection =>
+            {
+                try
+                {
+                    await connection.ExecuteAsync(procedureSql, parameters);
+                }
+                catch (SqlException)
+                {
+                    // Fallback for environments where proc signature differs from current entity model.
+                    await connection.ExecuteAsync(fallbackSql, parameters);
+                }
+            });
             return entity;
         }
 
@@ -137,8 +275,41 @@ namespace SubscriptionService.Infrastructure.Repositories
         public async Task<IEnumerable<UserSubscription>> GetByUserIdWithHistoryAsync(int userId)
         {
             var sql = "EXEC [dbo].[UserSubscription_GetByUserIdWithHistory] @UserId";
-            return await WithConnectionAsync(async connection => 
-                await connection.QueryAsync<UserSubscription>(sql, new { UserId = userId }));
+            var fallbackSql = @"
+                SELECT
+                    us.Id,
+                    us.UserId,
+                    us.SubscriptionPlanId,
+                    us.DurationOptionId,
+                    us.RazorpayOrderId,
+                    us.RazorpayPaymentId,
+                    us.RazorpaySignature,
+                    us.PurchasedDate,
+                    us.ValidTill,
+                    us.TestsUsed,
+                    us.TestsTotal,
+                    us.AmountPaid,
+                    us.Currency,
+                    us.DiscountApplied,
+                    us.Status,
+                    us.AutoRenewal,
+                    us.CreatedAt,
+                    us.UpdatedAt
+                FROM [dbo].[UserSubscriptions] us
+                WHERE us.UserId = @UserId
+                ORDER BY us.CreatedAt DESC";
+
+            return await WithConnectionAsync(async connection =>
+            {
+                try
+                {
+                    return await connection.QueryAsync<UserSubscription>(sql, new { UserId = userId });
+                }
+                catch (SqlException)
+                {
+                    return await connection.QueryAsync<UserSubscription>(fallbackSql, new { UserId = userId });
+                }
+            });
         }
 
         public async Task<IEnumerable<UserSubscription>> GetActiveSubscriptionsAsync()
@@ -183,7 +354,46 @@ namespace SubscriptionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[UserSubscription_GetActiveByUserId] @UserId";
-                return await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { UserId = userId });
+                var fromProcedure = await connection.QueryFirstOrDefaultAsync<UserSubscription>(sql, new { UserId = userId });
+                if (fromProcedure != null)
+                {
+                    return fromProcedure;
+                }
+
+                // Fallback for environments where stored procedure/schema is out of sync.
+                // Prefer an active, non-expired subscription; otherwise return latest non-cancelled subscription.
+                var fallbackSql = @"
+                    SELECT TOP 1
+                        us.Id,
+                        us.UserId,
+                        us.SubscriptionPlanId,
+                        us.DurationOptionId,
+                        us.RazorpayOrderId,
+                        us.RazorpayPaymentId,
+                        us.RazorpaySignature,
+                        us.PurchasedDate,
+                        us.ValidTill,
+                        us.TestsUsed,
+                        us.TestsTotal,
+                        us.AmountPaid,
+                        us.Currency,
+                        us.DiscountApplied,
+                        us.Status,
+                        us.AutoRenewal,
+                        us.CreatedAt,
+                        us.UpdatedAt
+                    FROM [dbo].[UserSubscriptions] us
+                    WHERE us.UserId = @UserId
+                      AND us.Status <> 'Cancelled'
+                    ORDER BY
+                        CASE
+                            WHEN us.Status = 'Active' AND us.ValidTill >= GETUTCDATE() THEN 0
+                            WHEN us.Status = 'Pending' THEN 1
+                            ELSE 2
+                        END,
+                        us.CreatedAt DESC";
+
+                return await connection.QueryFirstOrDefaultAsync<UserSubscription>(fallbackSql, new { UserId = userId });
             });
         }
 

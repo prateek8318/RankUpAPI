@@ -142,6 +142,38 @@ BEGIN
 END
 GO
 
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Test_GetSubjectsByExamAndPracticeMode]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[Test_GetSubjectsByExamAndPracticeMode]
+GO
+CREATE PROCEDURE [dbo].[Test_GetSubjectsByExamAndPracticeMode]
+    @ExamId INT,
+    @PracticeModeId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT DISTINCT
+        s.Id,
+        s.ExamId,
+        s.Name,
+        s.Description,
+        s.IconUrl,
+        s.DisplayOrder,
+        s.IsActive,
+        s.CreatedAt,
+        s.UpdatedAt
+    FROM dbo.Subjects s
+    INNER JOIN dbo.Tests t
+        ON t.SubjectId = s.Id
+       AND t.ExamId = s.ExamId
+       AND t.IsActive = 1
+    WHERE s.IsActive = 1
+      AND s.ExamId = @ExamId
+      AND t.PracticeModeId = @PracticeModeId
+    ORDER BY s.DisplayOrder, s.Name;
+END
+GO
+
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[AttemptAnswer_Save]') AND type in (N'P', N'PC'))
     DROP PROCEDURE [dbo].[AttemptAnswer_Save]
 GO

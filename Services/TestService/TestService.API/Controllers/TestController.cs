@@ -38,6 +38,23 @@ namespace TestService.API.Controllers
             }
         }
 
+        [HttpGet("exams/{examId:int}/subjects")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<SubjectDto>>> GetSubjectsByExam(
+            int examId,
+            [FromQuery] int practiceModeId = TestService.Domain.Entities.PracticeModeIds.MockTest)
+        {
+            try
+            {
+                var subjects = await _testService.GetSubjectsByExamAndPracticeModeAsync(examId, practiceModeId);
+                return Ok(subjects);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
         [HttpGet("user/available")]
         [Authorize]
         public async Task<ActionResult<ApiResponse<UserTestListResponseDto>>> GetAvailableTestsForUser(

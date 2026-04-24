@@ -103,6 +103,25 @@ namespace UserService.Application.DTOs
         
         public DateTime? LastLoginAtIST { get; set; }
 
+        // Admin user-management enrichment fields from SubscriptionService
+        public bool HasActiveSubscription { get; set; }
+        public int? SubscriptionId { get; set; }
+        public string? SubscriptionPlanName { get; set; }
+        public DateTime? SubscriptionExpiryDate { get; set; }
+        public int DaysRemaining { get; set; }
+        public decimal? SubscriptionAmount { get; set; }
+        public string? SubscriptionStatus { get; set; }
+        public bool? SubscriptionIsPopular { get; set; }
+
+    }
+
+    public class AdminUserUpdateRequest
+    {
+        public string? Name { get; set; }
+        public string? Email { get; set; }
+        public string? PhoneNumber { get; set; }
+        public bool? IsActive { get; set; }
+        public bool? IsPhoneVerified { get; set; }
     }
 
 

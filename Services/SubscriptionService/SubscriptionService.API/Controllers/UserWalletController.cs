@@ -140,6 +140,17 @@ namespace SubscriptionService.API.Controllers
         }
 
         /// <summary>
+        /// Legacy-compatible wallet recharge route.
+        /// Matches older integration: POST /wallet
+        /// </summary>
+        [HttpPost("~/wallet")]
+        [Authorize]
+        public async Task<ActionResult<RazorpayWalletRechargeResponseDto>> LegacyRechargeWallet([FromBody] RechargeWalletRazorpayDto rechargeDto)
+        {
+            return await InitiateRecharge(rechargeDto);
+        }
+
+        /// <summary>
         /// Verify wallet recharge payment
         /// </summary>
         /// <param name="verifyDto">Verification details</param>

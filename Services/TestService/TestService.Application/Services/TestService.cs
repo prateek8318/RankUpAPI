@@ -91,6 +91,12 @@ namespace TestService.Application.Services
             return testDtos;
         }
 
+        public async Task<IEnumerable<SubjectDto>> GetSubjectsByExamAndPracticeModeAsync(int examId, int practiceModeId)
+        {
+            var subjects = await _testRepository.GetSubjectsByExamAndPracticeModeAsync(examId, practiceModeId);
+            return _mapper.Map<IEnumerable<SubjectDto>>(subjects);
+        }
+
         public async Task<TestDto> CreateAsync(CreateTestDto dto)
         {
             // Validate practice mode and filters
@@ -101,7 +107,6 @@ namespace TestService.Application.Services
             test.IsActive = true;
 
             await _testRepository.AddAsync(test);
-            await _testRepository.SaveChangesAsync();
 
             return await GetByIdAsync(test.Id) ?? throw new InvalidOperationException("Failed to retrieve created test");
         }
@@ -118,7 +123,6 @@ namespace TestService.Application.Services
             test.UpdatedAt = DateTime.UtcNow;
 
             await _testRepository.UpdateAsync(test);
-            await _testRepository.SaveChangesAsync();
 
             return await GetByIdAsync(test.Id);
         }
@@ -132,7 +136,6 @@ namespace TestService.Application.Services
             test.UpdatedAt = DateTime.UtcNow;
 
             await _testRepository.UpdateAsync(test);
-            await _testRepository.SaveChangesAsync();
 
             return true;
         }
@@ -279,8 +282,6 @@ namespace TestService.Application.Services
                     }
                 }
 
-                await _testRepository.SaveChangesAsync();
-
                 result.Status = result.ErrorCount > 0 
                     ? (result.SuccessCount > 0 ? "PartialSuccess" : "Failed")
                     : "Completed";
@@ -309,8 +310,10 @@ namespace TestService.Application.Services
             switch (practiceModeId)
             {
                 case PracticeModeIds.MockTest:
-                    if (seriesId.HasValue || subjectId.HasValue || year.HasValue)
-                        throw new ArgumentException("Mock Test should not have Series, Subject, or Year filters");
+                    if (seriesId.HasValue || year.HasValue)
+                        throw new ArgumentException("Mock Test should not have Series or Year filters");
+                    if (!subjectId.HasValue)
+                        throw new ArgumentException("Mock Test requires SubjectId");
                     break;
 
                 case PracticeModeIds.TestSeries:

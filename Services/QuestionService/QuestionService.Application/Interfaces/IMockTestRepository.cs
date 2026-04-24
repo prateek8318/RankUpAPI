@@ -25,10 +25,16 @@ namespace QuestionService.Application.Interfaces
         // Session management
         Task<MockTestSessionDto> CreateSessionAsync(StartMockTestDto dto);
         Task<MockTestSessionDto?> GetSessionAsync(int sessionId, int userId);
+        Task<bool> SaveSessionAnswerAsync(int sessionId, int userId, SaveMockTestAnswerDto answer);
         Task<MockTestAttemptDto> SubmitSessionAsync(int sessionId, int userId, List<QuizAnswerRequestDto> answers);
+        Task<MockTestAttemptDto> SubmitSessionAsync(int sessionId, int userId);
         
         // Statistics
-        Task<object> GetStatisticsAsync(int? examId = null, int? subjectId = null);
+        Task<MockTestStatisticsDto> GetMockTestStatisticsAsync(int? examId = null, int? subjectId = null);
+        Task<object> GetStatisticsLegacyAsync(int? examId = null, int? subjectId = null);
         Task<List<object>> GetUserPerformanceAsync(int userId, int? examId = null);
+        
+        // Exam-specific subjects
+        Task<IEnumerable<SubjectListDto>> GetSubjectsForExamAsync(int examId);
     }
 }

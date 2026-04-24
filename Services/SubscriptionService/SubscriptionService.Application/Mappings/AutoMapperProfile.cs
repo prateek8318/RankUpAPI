@@ -34,6 +34,11 @@ namespace SubscriptionService.Application.Mappings
             CreateMap<UserSubscription, UserSubscriptionDto>()
                 .ForMember(dest => dest.DaysUntilExpiry, opt => opt.MapFrom(src => 
                     src.ValidTill > DateTime.UtcNow ? (int)(src.ValidTill - DateTime.UtcNow).TotalDays : 0))
+                .ForMember(dest => dest.DaysLeft, opt => opt.MapFrom(src => 
+                    src.ValidTill > DateTime.UtcNow ? (int)(src.ValidTill - DateTime.UtcNow).TotalDays : 0))
+                .ForMember(dest => dest.CurrentStatus, opt => opt.MapFrom(src => 
+                    src.ValidTill <= DateTime.UtcNow ? "Expired" : 
+                    src.Status == "Pending" ? "Pending" : "Active"))
                 .ForMember(dest => dest.IsExpired, opt => opt.MapFrom(src => 
                     src.ValidTill <= DateTime.UtcNow && src.Status != "Cancelled"))
                 .ForMember(dest => dest.ExamName, opt => opt.MapFrom(src => src.ExamName))

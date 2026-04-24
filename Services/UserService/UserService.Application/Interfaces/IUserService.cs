@@ -30,6 +30,12 @@ namespace UserService.Application.Interfaces
 
         Task<int> GetDailyActiveUsersCountAsync();
 
+        Task<UserDto> UpdateUserByAdminAsync(int userId, AdminUserUpdateRequest request);
+
+        Task<bool> SoftDeleteUserByAdminAsync(int userId);
+
+        Task<UserDto> SetUserActiveStatusAsync(int userId, bool isActive);
+
     }
 
 }

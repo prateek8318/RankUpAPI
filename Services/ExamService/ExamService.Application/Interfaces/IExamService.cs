@@ -10,6 +10,7 @@ namespace ExamService.Application.Interfaces
         Task<ExamDto?> GetExamByIdAsync(int id);
         Task<ExamDto?> GetExamByIdAsync(int id, string? language);
         Task<IEnumerable<ExamDto>> GetAllExamsAsync(bool? isInternational = null);
+        Task<IEnumerable<ExamDto>> GetActiveExamsByFiltersAsync(int? examCategoryId = null, int? subjectId = null, int? examTypeId = null, bool? isInternational = null);
         Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(bool? isInternational = null);
         Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(string? language, bool? isInternational = null);
         Task<IEnumerable<ExamDto>> GetExamsForUserAsync(int userId);

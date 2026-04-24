@@ -188,6 +188,9 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// Serve wwwroot (uploads etc.)
+app.UseStaticFiles();
+
 // Remove HTTPS redirection for development to avoid CORS issues
 if (!app.Environment.IsDevelopment())
 {

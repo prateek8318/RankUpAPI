@@ -2,13 +2,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Services;
+using QuestionService.API.Helpers;
+using System.Security.Claims;
 
 namespace QuestionService.API.Controllers
 {
     /// <summary>
     /// Questions Management Controller
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/question-management")]
     [ApiController]
     [Authorize]
     public class QuestionsController : ControllerBase
@@ -22,6 +24,11 @@ namespace QuestionService.API.Controllers
             _logger = logger;
         }
 
+        private int GetAuthenticatedUserId()
+        {
+            return AuthClaimsHelper.GetUserId(User);
+        }
+
         /// <summary>
         /// Create a new question
         /// </summary>
@@ -32,6 +39,11 @@ namespace QuestionService.API.Controllers
         {
             try
             {
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized("Invalid user");
+
+                createDto.CreatedBy = userId;
                 var result = await _questionService.CreateAsync(createDto);
                 return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }

@@ -8,6 +8,7 @@ namespace QuestionService.Domain.Interfaces
         Task<IEnumerable<Question>> GetAllAsync();
         Task<Question?> GetByTransactionIdAsync(string transactionId);
         Task<(IEnumerable<Question> Questions, int TotalCount)> GetQuestionsPagedAsync(int pageNumber, int pageSize, int? examId = null, int? subjectId = null, int? topicId = null, string? difficultyLevel = null, bool? isPublished = null, string languageCode = "en");
+        Task<(IEnumerable<Question> Questions, int TotalCount, string? NextCursor, string? PreviousCursor, bool HasNextPage, bool HasPreviousPage)> GetQuestionsCursorAsync(string? cursor, int pageSize, string direction = "next", int? examId = null, int? subjectId = null, int? topicId = null, string? difficultyLevel = null, bool? isPublished = null, string languageCode = "en");
         Task<(int TotalQuestions, int AddedToday, int NegativeMarksCount, int UnpublishedCount)> GetStatisticsAsync();
         Task<Question> CreateQuestionAsync(string questionText, string? optionA, string? optionB, string? optionC, string? optionD, string correctAnswer, decimal marks, int examId, int subjectId, int? topicId = null, string difficultyLevel = "Medium", int createdBy = 0);
         Task<bool> UpdateQuestionAsync(int id, string? questionText, string? optionA, string? optionB, string? optionC, string? optionD, string? correctAnswer, decimal? marks, string? difficultyLevel);

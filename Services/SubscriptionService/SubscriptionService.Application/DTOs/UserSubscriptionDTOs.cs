@@ -33,6 +33,8 @@ namespace SubscriptionService.Application.DTOs
         public string? ExamName { get; set; }
         public string? ExamDescription { get; set; }
         public string? ExamImageUrl { get; set; }
+        public string? SubscriptionName { get; set; }
+        public bool IsPopular { get; set; }
     }
 
     public class CreateUserSubscriptionDto

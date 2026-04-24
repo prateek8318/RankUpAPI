@@ -32,6 +32,7 @@ namespace MasterService.Infrastructure.Repositories
                 
                 exam.ExamLanguages = languages;
                 exam.ExamQualifications = relations;
+                await AttachSubjectMappingsAsync(connection, new[] { exam });
                 return exam;
             });
         }
@@ -54,6 +55,7 @@ namespace MasterService.Infrastructure.Repositories
 
                 exam.ExamLanguages = languages;
                 exam.ExamQualifications = relations;
+                await AttachSubjectMappingsAsync(connection, new[] { exam });
                 return exam;
             });
         }
@@ -70,6 +72,7 @@ namespace MasterService.Infrastructure.Repositories
                 var languages = (await multi.ReadAsync<ExamLanguage>()).ToList();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages);
+                await AttachSubjectMappingsAsync(connection, exams);
                 return exams;
             });
         }
@@ -88,6 +91,7 @@ namespace MasterService.Infrastructure.Repositories
                 var totalCount = await multi.ReadFirstOrDefaultAsync<int>();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages);
+                await AttachSubjectMappingsAsync(connection, exams);
                 
                 return new PaginatedResponse<Exam>
                 {
@@ -112,6 +116,7 @@ namespace MasterService.Infrastructure.Repositories
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
+                await AttachSubjectMappingsAsync(connection, exams);
                 return exams;
             });
         }
@@ -131,6 +136,7 @@ namespace MasterService.Infrastructure.Repositories
                 var totalCount = await multi.ReadFirstOrDefaultAsync<int>();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
+                await AttachSubjectMappingsAsync(connection, exams);
                 
                 return new PaginatedResponse<Exam>
                 {
@@ -155,6 +161,7 @@ namespace MasterService.Infrastructure.Repositories
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
+                await AttachSubjectMappingsAsync(connection, exams);
                 return exams;
             });
         }
@@ -173,6 +180,7 @@ namespace MasterService.Infrastructure.Repositories
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
+                await AttachSubjectMappingsAsync(connection, exams);
                 return exams;
             });
         }
@@ -191,6 +199,7 @@ namespace MasterService.Infrastructure.Repositories
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
+                await AttachSubjectMappingsAsync(connection, exams);
                 return exams;
             });
         }
@@ -216,6 +225,7 @@ namespace MasterService.Infrastructure.Repositories
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
+                await AttachSubjectMappingsAsync(connection, exams);
                 return exams;
             });
         }
@@ -242,6 +252,7 @@ namespace MasterService.Infrastructure.Repositories
                 var qualifications = (await multi.ReadAsync<ExamQualification>()).ToList();
                 
                 RepositoryEntityMapper.AttachExamRelations(exams, languages, qualifications);
+                await AttachSubjectMappingsAsync(connection, exams);
                 return exams;
             });
         }
@@ -438,6 +449,50 @@ namespace MasterService.Infrastructure.Repositories
             return affected > 0;
         }
 
+        public async Task ReplaceExamSubjectsAsync(int examId, IEnumerable<int> subjectIds, IDbTransaction? transaction = null)
+        {
+            var subjectIdCsv = string.Join(",", (subjectIds ?? Enumerable.Empty<int>()).Distinct());
+
+            if (transaction != null)
+            {
+                await transaction.Connection.ExecuteAsync(
+                    "[dbo].[ExamSubject_ReplaceMappings]",
+                    new { ExamId = examId, SubjectIds = subjectIdCsv },
+                    transaction,
+                    commandType: CommandType.StoredProcedure);
+                return;
+            }
+
+            await WithConnectionAsync(async connection =>
+            {
+                return await connection.ExecuteAsync(
+                    "[dbo].[ExamSubject_ReplaceMappings]",
+                    new { ExamId = examId, SubjectIds = subjectIdCsv },
+                    commandType: CommandType.StoredProcedure);
+            });
+        }
+
+        public async Task<Dictionary<int, List<int>>> GetSubjectMappingsByExamIdsAsync(IEnumerable<int> examIds)
+        {
+            var ids = (examIds ?? Enumerable.Empty<int>()).Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<int, List<int>>();
+            }
+
+            return await WithConnectionAsync(async connection =>
+            {
+                var rows = await connection.QueryAsync<(int ExamId, int SubjectId)>(
+                    "[dbo].[ExamSubject_GetByExamIds]",
+                    new { ExamIds = string.Join(",", ids) },
+                    commandType: CommandType.StoredProcedure);
+
+                return rows
+                    .GroupBy(x => x.ExamId)
+                    .ToDictionary(g => g.Key, g => g.Select(x => x.SubjectId).Distinct().ToList());
+            });
+        }
+
         public async Task<int> SaveChangesAsync()
         {
             _logger?.LogDebug("SaveChangesAsync invoked on {Repository}. Dapper calls are already committed.", nameof(ExamDapperRepository));
@@ -453,6 +508,32 @@ namespace MasterService.Infrastructure.Repositories
         public async Task ExecuteInTransactionAsync(Func<IDbConnection, IDbTransaction, Task> operation, string operationName)
         {
             await WithTransactionAsync(operation, operationName);
+        }
+
+        private static async Task AttachSubjectMappingsAsync(IDbConnection connection, IEnumerable<Exam> exams)
+        {
+            var examList = exams?.ToList() ?? new List<Exam>();
+            if (examList.Count == 0)
+            {
+                return;
+            }
+
+            var examIdsCsv = string.Join(",", examList.Select(x => x.Id).Distinct());
+            var rows = await connection.QueryAsync<(int ExamId, int SubjectId)>(
+                "[dbo].[ExamSubject_GetByExamIds]",
+                new { ExamIds = examIdsCsv },
+                commandType: CommandType.StoredProcedure);
+
+            var map = rows
+                .GroupBy(x => x.ExamId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.SubjectId).Distinct().ToList());
+
+            foreach (var exam in examList)
+            {
+                exam.SubjectIds = map.TryGetValue(exam.Id, out var subjectIds)
+                    ? subjectIds
+                    : new List<int>();
+            }
         }
     }
 }

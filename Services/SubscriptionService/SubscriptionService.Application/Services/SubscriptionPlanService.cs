@@ -574,6 +574,13 @@ namespace SubscriptionService.Application.Services
                 if (duplicate)
                     throw new InvalidOperationException($"Subscription plan '{createPlanDto.Name}' already exists for this exam type.");
 
+                // Handle image upload
+                string? imageUrl = createPlanDto.ImageUrl;
+                if (createPlanDto.ImageFile != null)
+                {
+                    imageUrl = await _imageUploadService.UploadImageAsync(createPlanDto.ImageFile);
+                }
+
                 // Create base plan
                 var plan = new SubscriptionPlan
                 {
@@ -583,13 +590,16 @@ namespace SubscriptionService.Application.Services
                     Price = createPlanDto.BasePrice, // Use base price for 1 month
                     Currency = createPlanDto.Currency,
                     TestPapersCount = createPlanDto.TestPapersCount,
+                    Discount = 0,
                     Duration = 1, // Default to 1 month
                     DurationType = "Monthly",
                     ValidityDays = 30, // Default to 30 days
                     ExamId = createPlanDto.ExamId,
                     ExamCategory = createPlanDto.ExamCategory,
                     Features = createPlanDto.Features ?? new List<string>(),
-                    ImageUrl = createPlanDto.ImageUrl,
+                    ImageUrl = imageUrl,
+                    IsPopular = createPlanDto.IsPopular,
+                    IsRecommended = createPlanDto.IsRecommended,
                     CardColorTheme = createPlanDto.CardColorTheme,
                     SortOrder = createPlanDto.SortOrder,
                     CreatedAt = DateTime.UtcNow,
@@ -633,6 +643,96 @@ namespace SubscriptionService.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating plan with durations: {PlanName}", createPlanDto.Name);
+                throw;
+            }
+        }
+
+        public async Task<PlanWithDurationOptionsDto> UpsertPlanWithDurationsAsync(CreateSubscriptionPlanWithDurationDto dto)
+        {
+            if (dto.Id.HasValue && dto.Id.Value > 0)
+            {
+                return await UpdatePlanWithDurationsAsync(dto.Id.Value, dto);
+            }
+
+            return await CreatePlanWithDurationsAsync(dto);
+        }
+
+        private async Task<PlanWithDurationOptionsDto> UpdatePlanWithDurationsAsync(int planId, CreateSubscriptionPlanWithDurationDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Updating subscription plan with durations: {PlanId}", planId);
+
+                // Handle image upload (keep existing if not provided)
+                var existing = await _subscriptionPlanRepository.GetByIdAsync(planId);
+                if (existing == null)
+                    throw new KeyNotFoundException($"Subscription plan with ID {planId} not found");
+
+                string? imageUrl = dto.ImageUrl ?? existing.ImageUrl;
+                if (dto.ImageFile != null)
+                {
+                    imageUrl = await _imageUploadService.UploadImageAsync(dto.ImageFile);
+                }
+
+                var plan = new SubscriptionPlan
+                {
+                    Id = planId,
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    Type = dto.Type,
+                    Price = dto.BasePrice,
+                    Currency = dto.Currency,
+                    TestPapersCount = dto.TestPapersCount,
+                    Discount = 0,
+                    Duration = 1,
+                    DurationType = "Monthly",
+                    ValidityDays = 30,
+                    ExamId = dto.ExamId,
+                    ExamCategory = dto.ExamCategory,
+                    Features = dto.Features ?? new List<string>(),
+                    ImageUrl = imageUrl,
+                    IsPopular = dto.IsPopular,
+                    IsRecommended = dto.IsRecommended,
+                    CardColorTheme = dto.CardColorTheme,
+                    SortOrder = dto.SortOrder,
+                    IsActive = existing.IsActive,
+                    CreatedAt = existing.CreatedAt,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                var durationOptions = dto.DurationOptions.Select(x => new PlanDurationOption
+                {
+                    DurationMonths = x.DurationMonths,
+                    Price = x.Price,
+                    DiscountPercentage = x.DiscountPercentage,
+                    DisplayLabel = x.DisplayLabel,
+                    IsPopular = x.IsPopular,
+                    SortOrder = x.SortOrder,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                }).ToList();
+
+                var translations = dto.Translations?
+                    .Where(t => !string.IsNullOrWhiteSpace(t.LanguageCode) && t.LanguageCode.Trim().ToLowerInvariant() != "en")
+                    .Select(t => new SubscriptionPlanTranslation
+                    {
+                        LanguageCode = t.LanguageCode.Trim().ToLowerInvariant(),
+                        Name = t.Name,
+                        Description = t.Description,
+                        Features = t.Features ?? new List<string>()
+                    }).ToList();
+
+                var updatedPlan = await _subscriptionPlanRepository.UpdatePlanWithDurationsAsync(planId, plan, durationOptions, translations);
+
+                var result = await GetPlanWithDurationsAsync(updatedPlan.Id, "en");
+                if (result == null)
+                    throw new InvalidOperationException("Failed to retrieve updated plan with durations");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating plan with durations: {PlanId}", planId);
                 throw;
             }
         }

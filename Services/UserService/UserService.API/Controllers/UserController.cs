@@ -21,6 +21,8 @@ namespace UserService.API.Controllers
     public class UserController : ControllerBase
 
     {
+        private const string InvalidUserTokenMessage = "Invalid user token.";
+        private const string InvalidProfileUpdateRequestMessage = "Invalid profile update request.";
 
         private readonly IUserService _userService;
 
@@ -55,7 +57,12 @@ namespace UserService.API.Controllers
 
             {
 
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                if (!TryGetCurrentUserId(out var userId))
+                {
+                    return Unauthorized(ApiResponse.CreateUnauthorized(
+                        InvalidUserTokenMessage,
+                        ErrorCodes.UNAUTHORIZED));
+                }
 
                 var user = await _userService.GetUserByIdAsync(userId);
 
@@ -109,7 +116,12 @@ namespace UserService.API.Controllers
 
             {
 
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                if (!TryGetCurrentUserId(out var userId))
+                {
+                    return Unauthorized(ApiResponse.CreateUnauthorized(
+                        InvalidUserTokenMessage,
+                        ErrorCodes.UNAUTHORIZED));
+                }
 
                 var user = await _userService.PatchUserProfileAsync(userId, request);
 
@@ -154,6 +166,7 @@ namespace UserService.API.Controllers
         [HttpPatch("profile-with-image")]
 
         [Authorize]
+        [Consumes("multipart/form-data")]
 
         [RequestFormLimits(MultipartBodyLengthLimit = 10485760)]
         [RequestSizeLimit(10485760)]
@@ -166,7 +179,12 @@ namespace UserService.API.Controllers
 
             {
 
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                if (!TryGetCurrentUserId(out var userId))
+                {
+                    return Unauthorized(ApiResponse.CreateUnauthorized(
+                        InvalidUserTokenMessage,
+                        ErrorCodes.UNAUTHORIZED));
+                }
 
                 var user = await _userService.PatchProfileWithImageAsync(userId, formData);
 
@@ -193,10 +211,10 @@ namespace UserService.API.Controllers
             catch (InvalidOperationException ex)
 
             {
-
+                _logger.LogWarning(ex, "Invalid profile-with-image payload");
                 return BadRequest(ApiResponse.CreateBadRequest(
 
-                    ex.Message,
+                    InvalidProfileUpdateRequestMessage,
 
                     ErrorCodes.INVALID_FILE_FORMAT));
 
@@ -216,6 +234,71 @@ namespace UserService.API.Controllers
 
             }
 
+        }
+
+        [HttpPatch("profile-with-image")]
+        [Authorize]
+        [Consumes("application/json")]
+        public async Task<ActionResult<UserDto>> PatchProfileWithImageJson([FromBody] PatchProfileRequest patchRequest)
+        {
+            try
+            {
+                if (!TryGetCurrentUserId(out var userId))
+                {
+                    return Unauthorized(ApiResponse.CreateUnauthorized(
+                        InvalidUserTokenMessage,
+                        ErrorCodes.UNAUTHORIZED));
+                }
+
+                var formData = new PatchProfileFormData
+                {
+                    FullName = patchRequest.FullName,
+                    Email = patchRequest.Email,
+                    PhoneNumber = patchRequest.PhoneNumber,
+                    Gender = patchRequest.Gender,
+                    Dob = patchRequest.Dob,
+                    StateId = patchRequest.StateId,
+                    LanguageId = patchRequest.LanguageId,
+                    QualificationId = patchRequest.QualificationId,
+                    ExamId = patchRequest.ExamId,
+                    CategoryId = patchRequest.CategoryId,
+                    StreamId = patchRequest.StreamId,
+                    InterestedInIntlExam = patchRequest.InterestedInIntlExam
+                };
+
+                var user = await _userService.PatchProfileWithImageAsync(userId, formData);
+
+                return Ok(ApiResponse.CreateSuccess(
+                    "User profile updated successfully",
+                    user));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(ApiResponse.CreateNotFound(
+                    "User profile not found for update",
+                    ErrorCodes.USER_NOT_FOUND));
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invalid JSON patch profile payload");
+                return BadRequest(ApiResponse.CreateBadRequest(
+                    InvalidProfileUpdateRequestMessage,
+                    ErrorCodes.MISSING_REQUIRED_FIELDS));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user profile via JSON patch");
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "An error occurred while updating your profile. Please try again later.",
+                    ErrorCodes.INTERNAL_SERVER_ERROR));
+            }
+        }
+
+        private bool TryGetCurrentUserId(out int userId)
+        {
+            userId = 0;
+            var claimValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(claimValue, out userId) && userId > 0;
         }
 
     }

@@ -36,7 +36,6 @@ namespace TestService.Application.Services
             testSeries.IsActive = true;
 
             await _repository.AddAsync(testSeries);
-            await _repository.SaveChangesAsync();
 
             return await GetByIdAsync(testSeries.Id) ?? throw new InvalidOperationException("Failed to retrieve created test series");
         }
@@ -110,7 +109,6 @@ namespace TestService.Application.Services
             testSeries.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(testSeries);
-            await _repository.SaveChangesAsync();
 
             return await GetByIdAsync(testSeries.Id);
         }
@@ -124,7 +122,6 @@ namespace TestService.Application.Services
             testSeries.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(testSeries);
-            await _repository.SaveChangesAsync();
 
             return true;
         }

@@ -49,6 +49,11 @@ namespace MasterService.Domain.Entities
         /// Mapping to qualifications/streams this exam applies to.
         /// </summary>
         public ICollection<ExamQualification> ExamQualifications { get; set; } = new List<ExamQualification>();
+
+        /// <summary>
+        /// Subject mappings for this exam (master subject ids).
+        /// </summary>
+        public List<int> SubjectIds { get; set; } = new();
     }
 }
 

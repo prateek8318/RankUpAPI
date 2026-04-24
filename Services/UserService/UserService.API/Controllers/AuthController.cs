@@ -37,9 +37,10 @@ namespace UserService.API.Controllers
 
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AuthResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ApiResponse))]
         [AllowAnonymous]
         [HttpPost("send-otp")]
-        public IActionResult SendOtp([FromBody] OtpRequest request)
+        public async Task<IActionResult> SendOtp([FromBody] OtpRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.MobileNumber) || !IsValidMobileNumber(request.MobileNumber))
             {
@@ -55,13 +56,20 @@ namespace UserService.API.Controllers
                     ErrorCodes.INVALID_COUNTRY_CODE));
             }
 
-            var useRandomOtp = _configuration.GetValue<bool>("OtpSettings:UseRandomOtp", false);
-            var defaultOtp = _configuration.GetValue<string>("OtpSettings:DefaultOtp", "123456");
-            var otp = useRandomOtp ? _otpService.GenerateOtp() : defaultOtp;
-            
+            var otp = _otpService.GenerateOtp();
             var fullPhoneNumber = $"{request.CountryCode}{request.MobileNumber}";
             _otpService.StoreOtp(fullPhoneNumber, otp);
-            _logger.LogInformation($"OTP for {fullPhoneNumber}: {otp}");
+
+            var otpSent = await _otpService.SendOtpAsync(fullPhoneNumber, otp);
+            if (!otpSent)
+            {
+                _otpService.RemoveOtp(fullPhoneNumber);
+                return StatusCode(500, ApiResponse.CreateInternalServerError(
+                    "Unable to send OTP right now. Please try again.",
+                    ErrorCodes.EXTERNAL_SERVICE_ERROR));
+            }
+
+            _logger.LogInformation("OTP dispatched for {PhoneNumber}", fullPhoneNumber);
 
             return Ok(new AuthResponse
             {

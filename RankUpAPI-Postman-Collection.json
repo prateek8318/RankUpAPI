@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RankUpAPI SubscriptionService",
-    "_postman_id": "49b26efc-123a-40fc-af9f-8dd6f0a9f4cf",
+    "_postman_id": "b09da07c-20ae-4e98-a9bf-1cb5a49902bf",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -758,6 +758,75 @@
       ]
     },
     {
+      "name": "/api/admin/subscription-plans/{id}/toggle-status",
+      "item": [
+        {
+          "name": "PUT /api/admin/subscription-plans/{id}/toggle-status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}/toggle-status"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/{id}/toggle-popular",
+      "item": [
+        {
+          "name": "PUT /api/admin/subscription-plans/{id}/toggle-popular",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}/toggle-popular"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/{id}/toggle-recommended",
+      "item": [
+        {
+          "name": "PUT /api/admin/subscription-plans/{id}/toggle-recommended",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/{id}/toggle-recommended"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "/api/admin/subscription-plans/paged",
       "item": [
         {
@@ -873,10 +942,10 @@
       ]
     },
     {
-      "name": "/api/admin/subscription-plans/durations",
+      "name": "/api/admin/subscription-plans/create-with-durations",
       "item": [
         {
-          "name": "POST /api/admin/subscription-plans/durations",
+          "name": "POST /api/admin/subscription-plans/create-with-durations",
           "request": {
             "method": "POST",
             "header": [
@@ -887,25 +956,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/durations"
-            },
-            "description": ""
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/admin/subscription-plans/durations",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/subscription-plans/durations"
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/create-with-durations"
             },
             "description": ""
           },
@@ -970,6 +1021,70 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/admin/subscription-plans/duration-options/{durationOptionId}"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/durations",
+      "item": [
+        {
+          "name": "GET /api/admin/subscription-plans/durations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/durations"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/admin/subscription-plans/durations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/durations"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/api/admin/subscription-plans/create-durations",
+      "item": [
+        {
+          "name": "POST /api/admin/subscription-plans/create-durations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscription-plans/create-durations"
             },
             "description": ""
           },
@@ -2026,6 +2141,29 @@
       ]
     },
     {
+      "name": "/wallet",
+      "item": [
+        {
+          "name": "POST /wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallet"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "/api/user/Wallet/recharge/verify",
       "item": [
         {
@@ -2156,6 +2294,29 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/webhooks/wallet"
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "/walletWebhook",
+      "item": [
+        {
+          "name": "POST /walletWebhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/walletWebhook"
             },
             "description": ""
           },

@@ -15,6 +15,8 @@ namespace MasterService.Application.DTOs
         public List<ExamLanguageDto> Names { get; set; } = new();
         public List<int> QualificationIds { get; set; } = new();
         public List<int?> StreamIds { get; set; } = new();
+        public List<int> SubjectIds { get; set; } = new();
+        public List<SubjectNameDto> SubjectNames { get; set; } = new();
     }
 
     public class ExamLanguageDto
@@ -24,6 +26,12 @@ namespace MasterService.Application.DTOs
         public string LanguageName { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
+    }
+
+    public class SubjectNameDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
     public class ExamLanguageCreateDto
@@ -69,6 +77,13 @@ namespace MasterService.Application.DTOs
         /// Optional streams, index-aligned with QualificationIds.
         /// </summary>
         public List<int?>? StreamIds { get; set; }
+
+        /// <summary>
+        /// Subject mappings for this exam.
+        /// </summary>
+        [Required(ErrorMessage = "At least one subject is required")]
+        [MinLength(1, ErrorMessage = "At least one subject is required")]
+        public List<int> SubjectIds { get; set; } = new();
     }
 
     public class UpdateExamDto : BaseUpdateDto
@@ -95,6 +110,10 @@ namespace MasterService.Application.DTOs
         public List<int>? QualificationIds { get; set; }
 
         public List<int?>? StreamIds { get; set; }
+
+        [Required(ErrorMessage = "At least one subject is required")]
+        [MinLength(1, ErrorMessage = "At least one subject is required")]
+        public List<int> SubjectIds { get; set; } = new();
     }
 
     // Qualification DTOs with inheritance from base classes

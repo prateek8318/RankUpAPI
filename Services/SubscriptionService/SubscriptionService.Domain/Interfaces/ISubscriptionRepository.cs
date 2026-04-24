@@ -42,6 +42,7 @@ namespace SubscriptionService.Domain.Interfaces
         Task<IEnumerable<UserSubscription>> GetUserActiveSubscriptionsAsync(int userId);
         Task AddTranslationAsync(SubscriptionPlanTranslation translation);
         Task<SubscriptionPlan> CreatePlanWithDurationsAsync(SubscriptionPlan plan, IEnumerable<PlanDurationOption> durationOptions, IEnumerable<SubscriptionPlanTranslation>? translations = null);
+        Task<SubscriptionPlan> UpdatePlanWithDurationsAsync(int planId, SubscriptionPlan plan, IEnumerable<PlanDurationOption> durationOptions, IEnumerable<SubscriptionPlanTranslation>? translations = null);
     }
 
     public interface IUserSubscriptionRepository : ISubscriptionRepository<UserSubscription>

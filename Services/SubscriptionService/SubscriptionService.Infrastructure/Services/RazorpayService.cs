@@ -23,23 +23,37 @@ namespace SubscriptionService.Infrastructure.Services
             _logger = logger;
             _httpClient = httpClient;
             
-            _keyId = _configuration["Razorpay:KeyId"] ?? throw new ArgumentNullException("Razorpay:KeyId not configured");
-            _keySecret = _configuration["Razorpay:KeySecret"] ?? throw new ArgumentNullException("Razorpay:KeySecret not configured");
+            _keyId = Environment.GetEnvironmentVariable("RAZORPAY_KEY_ID")
+                     ?? Environment.GetEnvironmentVariable("RAZOR_KEY_ID_TEST")
+                     ?? _configuration["Razorpay:KeyId"]
+                     ?? string.Empty;
+            _keySecret = Environment.GetEnvironmentVariable("RAZORPAY_KEY_SECRET")
+                         ?? Environment.GetEnvironmentVariable("RAZOR_KEY_SECRET_TEST")
+                         ?? _configuration["Razorpay:KeySecret"]
+                         ?? string.Empty;
             _baseUrl = _configuration["Razorpay:BaseUrl"] ?? "https://api.razorpay.com/v1";
 
             // Debug logging
-            _logger.LogInformation("Razorpay KeyId: {KeyId}", _keyId?.Substring(0, Math.Min(8, _keyId?.Length ?? 0)));
+            _logger.LogInformation("Razorpay KeyId: {KeyId}", _keyId);
             _logger.LogInformation("Razorpay KeySecret is null: {IsNull}", string.IsNullOrEmpty(_keySecret));
 
-            // Set up basic authentication
-            var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_keyId}:{_keySecret}"));
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
+            // Set up basic authentication only when credentials are configured.
+            if (!string.IsNullOrWhiteSpace(_keyId) && !string.IsNullOrWhiteSpace(_keySecret))
+            {
+                var authString = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_keyId}:{_keySecret}"));
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authString);
+            }
+            else
+            {
+                _logger.LogWarning("Razorpay credentials are not configured. Razorpay API operations will fail until keys are set.");
+            }
         }
 
         public async Task<RazorpayOrderResponse> CreateOrderAsync(decimal amount, string currency = "INR", string receipt = null)
         {
             try
             {
+                EnsureConfigured();
                 _logger.LogInformation("Creating Razorpay order for amount: {Amount} {Currency}", amount, currency);
 
                 var orderRequest = new
@@ -80,6 +94,7 @@ namespace SubscriptionService.Infrastructure.Services
         {
             try
             {
+                EnsureConfigured();
                 _logger.LogInformation("Getting Razorpay order details for: {OrderId}", orderId);
 
                 var response = await _httpClient.GetAsync($"{_baseUrl}/orders/{orderId}");
@@ -108,6 +123,7 @@ namespace SubscriptionService.Infrastructure.Services
         {
             try
             {
+                EnsureConfigured();
                 _logger.LogInformation("Verifying Razorpay payment: {OrderId}, {PaymentId}", orderId, paymentId);
 
                 // Generate the expected signature
@@ -138,6 +154,7 @@ namespace SubscriptionService.Infrastructure.Services
         {
             try
             {
+                EnsureConfigured();
                 _logger.LogInformation("Creating Razorpay subscription for user: {UserId}", request.UserId);
 
                 var subscriptionRequest = new
@@ -179,6 +196,7 @@ namespace SubscriptionService.Infrastructure.Services
         {
             try
             {
+                EnsureConfigured();
                 _logger.LogInformation("Cancelling Razorpay subscription: {SubscriptionId}", subscriptionId);
 
                 var cancelRequest = new
@@ -210,6 +228,7 @@ namespace SubscriptionService.Infrastructure.Services
         {
             try
             {
+                EnsureConfigured();
                 _logger.LogInformation("Processing refund for payment: {PaymentId}, amount: {Amount}", paymentId, amount);
 
                 var refundRequest = new
@@ -244,6 +263,7 @@ namespace SubscriptionService.Infrastructure.Services
         {
             try
             {
+                EnsureConfigured();
                 _logger.LogInformation("Getting payment details for: {PaymentId}", paymentId);
 
                 var response = await _httpClient.GetAsync($"{_baseUrl}/payments/{paymentId}");
@@ -273,6 +293,14 @@ namespace SubscriptionService.Infrastructure.Services
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));
             var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
             return BitConverter.ToString(hash).Replace("-", "").ToLower();
+        }
+
+        private void EnsureConfigured()
+        {
+            if (string.IsNullOrWhiteSpace(_keyId) || string.IsNullOrWhiteSpace(_keySecret))
+            {
+                throw new InvalidOperationException("Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET (or Razorpay:KeyId/KeySecret in configuration).");
+            }
         }
     }
 }

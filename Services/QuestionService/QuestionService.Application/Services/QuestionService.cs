@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Interfaces;
@@ -13,6 +14,7 @@ namespace QuestionService.Application.Services
         private readonly DomainQuestionRepository _questionRepository;
         private readonly IQuestionRepository _adminRepository;
         private readonly IQuestionFeatureRepository _featureRepository;
+        private readonly IMockTestRepository _mockTestRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<QuestionService> _logger;
 
@@ -20,12 +22,14 @@ namespace QuestionService.Application.Services
             DomainQuestionRepository questionRepository,
             IQuestionRepository adminRepository,
             IQuestionFeatureRepository featureRepository,
+            IMockTestRepository mockTestRepository,
             IMapper mapper,
             ILogger<QuestionService> logger)
         {
             _questionRepository = questionRepository;
             _adminRepository = adminRepository;
             _featureRepository = featureRepository;
+            _mockTestRepository = mockTestRepository;
             _mapper = mapper;
             _logger = logger;
         }
@@ -35,21 +39,41 @@ namespace QuestionService.Application.Services
             try
             {
                 _logger.LogInformation("Creating new question for exam: {ExamId}, subject: {SubjectId}", dto.ExamId, dto.SubjectId);
+                await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
 
-                var question = await _questionRepository.CreateQuestionAsync(
-                    dto.QuestionText,
-                    dto.OptionA,
-                    dto.OptionB,
-                    dto.OptionC,
-                    dto.OptionD,
-                    dto.CorrectAnswer,
-                    dto.Marks,
-                    dto.ExamId,
-                    dto.SubjectId,
-                    dto.TopicId,
-                    dto.DifficultyLevel,
-                    dto.CreatedBy);
-                return _mapper.Map<QuestionDto>(question);
+                var requestCreateDto = new CreateQuestionRequestDto
+                {
+                    ModuleId = dto.ModuleId ?? 0,
+                    ExamId = dto.ExamId,
+                    SubjectId = dto.SubjectId,
+                    TopicId = dto.TopicId ?? 0,
+                    QuestionText = dto.QuestionText ?? "",
+                    OptionA = dto.OptionA ?? "",
+                    OptionB = dto.OptionB ?? "",
+                    OptionC = dto.OptionC ?? "",
+                    OptionD = dto.OptionD ?? "",
+                    CorrectAnswer = dto.CorrectAnswer,
+                    Explanation = dto.Explanation ?? "",
+                    Marks = (int)dto.Marks,
+                    NegativeMarks = dto.NegativeMarks,
+                    DifficultyLevel = dto.DifficultyLevel,
+                    QuestionType = dto.QuestionType ?? "MCQ",
+                    SameExplanationForAllLanguages = dto.SameExplanationForAllLanguages,
+                    Reference = dto.Reference,
+                    Tags = dto.Tags,
+                    CreatedBy = dto.CreatedBy,
+                    Translations = BuildAdminTranslations(dto)
+                };
+
+                var createdQuestionId = await _adminRepository.CreateAdminQuestionAsync(requestCreateDto);
+                var createdQuestion = await _adminRepository.GetAdminQuestionByIdAsync(createdQuestionId);
+
+                if (createdQuestion == null)
+                {
+                    throw new InvalidOperationException($"Question with ID {createdQuestionId} was created but could not be reloaded.");
+                }
+
+                return MapAdminDetailToQuestionDto(createdQuestion, dto);
             }
             catch (Exception ex)
             {
@@ -113,6 +137,41 @@ namespace QuestionService.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving paginated questions");
+                throw;
+            }
+        }
+
+        public async Task<QuestionCursorResponseDto> GetQuestionsCursorAsync(QuestionCursorRequestDto request)
+        {
+            try
+            {
+                var (questions, totalCount, nextCursor, previousCursor, hasNextPage, hasPreviousPage) = await _questionRepository.GetQuestionsCursorAsync(
+                    request.Cursor,
+                    request.PageSize,
+                    request.Direction,
+                    request.ExamId,
+                    request.SubjectId,
+                    request.TopicId,
+                    request.DifficultyLevel,
+                    request.IsPublished,
+                    request.LanguageCode);
+                
+                var questionDtos = _mapper.Map<IEnumerable<QuestionDto>>(questions);
+
+                return new QuestionCursorResponseDto
+                {
+                    Data = questionDtos.ToList(),
+                    NextCursor = nextCursor,
+                    PreviousCursor = previousCursor,
+                    HasNextPage = hasNextPage,
+                    HasPreviousPage = hasPreviousPage,
+                    TotalCount = totalCount,
+                    PageSize = request.PageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving cursor paginated questions");
                 throw;
             }
         }
@@ -292,8 +351,9 @@ namespace QuestionService.Application.Services
             return await _adminRepository.GetTopicsAsync(subjectId, null, true);
         }
 
-        public async Task<QuestionAdminDetailDto> CreateAdminQuestionAsync(CreateQuestionAdminDto dto)
+        public async Task<QuestionAdminDetailDto> CreateAdminQuestionAsync(CreateQuestionRequestDto dto)
         {
+            await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
             var createdQuestionId = await _adminRepository.CreateAdminQuestionAsync(dto);
             var createdQuestion = await _adminRepository.GetAdminQuestionByIdAsync(createdQuestionId);
             if (createdQuestion == null)
@@ -304,8 +364,134 @@ namespace QuestionService.Application.Services
             return createdQuestion;
         }
 
+        public async Task<QuestionAdminDetailDto> CreateAdminQuestionWithImagesAsync(CreateQuestionFormDataDto dto)
+        {
+            if (dto == null)
+            {
+                throw new ArgumentNullException(nameof(dto));
+            }
+
+            if (_mockTestRepository == null)
+            {
+                throw new InvalidOperationException("Mock test repository is not configured.");
+            }
+
+            if (dto.MockTestId <= 0)
+            {
+                throw new ArgumentException("A valid mock test id is required.", nameof(dto.MockTestId));
+            }
+
+            // Get ExamId from MockTestId
+            var mockTest = await _mockTestRepository.GetByIdAsync(dto.MockTestId);
+            if (mockTest == null)
+            {
+                throw new ArgumentException($"Mock test with ID {dto.MockTestId} not found.");
+            }
+            
+            await ValidateExamSubjectTopicMappingAsync(mockTest.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
+            
+            // Upload images and get URLs
+            var questionImageUrl = await UploadImageAsync(dto.QuestionImage, "question-images");
+            var optionAImageUrl = await UploadImageAsync(dto.OptionAImage, "option-images");
+            var optionBImageUrl = await UploadImageAsync(dto.OptionBImage, "option-images");
+            var optionCImageUrl = await UploadImageAsync(dto.OptionCImage, "option-images");
+            var optionDImageUrl = await UploadImageAsync(dto.OptionDImage, "option-images");
+            var explanationImageUrl = await UploadImageAsync(dto.ExplanationImage, "explanation-images");
+            
+            // Convert FormData to RequestDto with image URLs
+            var requestDto = new CreateQuestionRequestDto
+            {
+                ModuleId = dto.ModuleId,
+                ExamId = mockTest.ExamId,
+                SubjectId = dto.SubjectId,
+                TopicId = dto.TopicId ?? 0,
+                QuestionText = dto.QuestionText,
+                OptionA = dto.OptionA,
+                OptionB = dto.OptionB,
+                OptionC = dto.OptionC,
+                OptionD = dto.OptionD,
+                CorrectAnswer = dto.CorrectAnswer,
+                Explanation = dto.Explanation,
+                Marks = dto.Marks,
+                NegativeMarks = dto.NegativeMarks,
+                DifficultyLevel = dto.DifficultyLevel,
+                QuestionType = dto.QuestionType,
+                QuestionImageUrl = questionImageUrl,
+                OptionAImageUrl = optionAImageUrl,
+                OptionBImageUrl = optionBImageUrl,
+                OptionCImageUrl = optionCImageUrl,
+                OptionDImageUrl = optionDImageUrl,
+                ExplanationImageUrl = explanationImageUrl,
+                SameExplanationForAllLanguages = dto.SameExplanationForAllLanguages,
+                Reference = dto.Reference,
+                Tags = dto.Tags,
+                CreatedBy = dto.CreatedBy,
+                Translations = ParseTranslationsJson(dto.TranslationsJson)
+            };
+            
+            var createdQuestionId = await _adminRepository.CreateAdminQuestionAsync(requestDto);
+            var createdQuestion = await _adminRepository.GetAdminQuestionByIdAsync(createdQuestionId);
+            if (createdQuestion == null)
+            {
+                throw new Exception($"Question with ID {createdQuestionId} was created but could not be reloaded");
+            }
+
+            return createdQuestion;
+        }
+
+        private async Task<string?> UploadImageAsync(IFormFile? imageFile, string folder)
+        {
+            if (imageFile == null || imageFile.Length == 0)
+                return null;
+
+            try
+            {
+                // Generate unique filename
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(imageFile.FileName)}";
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", folder, fileName);
+                
+                // Ensure directory exists
+                var directory = Path.GetDirectoryName(filePath);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+                
+                // Save file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await imageFile.CopyToAsync(stream);
+                }
+                
+                // Return URL
+                return $"/images/{folder}/{fileName}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading image to folder: {Folder}", folder);
+                return null;
+            }
+        }
+
+        private List<QuestionTranslationUpsertDto> ParseTranslationsJson(string translationsJson)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(translationsJson) || translationsJson == "[]")
+                    return new List<QuestionTranslationUpsertDto>();
+                
+                return System.Text.Json.JsonSerializer.Deserialize<List<QuestionTranslationUpsertDto>>(translationsJson) ?? new List<QuestionTranslationUpsertDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing translations JSON: {Json}", translationsJson);
+                return new List<QuestionTranslationUpsertDto>();
+            }
+        }
+
         public async Task<QuestionAdminDetailDto> UpdateAdminQuestionAsync(UpdateQuestionAdminDto dto)
         {
+            await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
             var existingQuestion = await _adminRepository.GetAdminQuestionByIdAsync(dto.Id);
             if (existingQuestion == null)
                 throw new Exception($"Question with ID {dto.Id} not found");
@@ -414,6 +600,10 @@ namespace QuestionService.Application.Services
             try
             {
                 _logger.LogInformation("Starting quiz for exam: {ExamId}, user: {UserId}", dto.ExamId, dto.UserId);
+                if (dto.SubjectId.HasValue)
+                {
+                    await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId.Value, dto.TopicId);
+                }
                 
                 var quizSession = await _featureRepository.StartQuizAsync(dto);
                 return ConvertTo<QuizSessionDto>(quizSession);
@@ -527,6 +717,7 @@ namespace QuestionService.Application.Services
                 {
                     throw new ArgumentException($"Exam with ID {dto.ExamId} not found");
                 }
+                await ValidateExamSubjectTopicMappingAsync(dto.ExamId, examDetails.SubjectId, null);
 
                 var createDto = new CreateQuestionDto
                 {
@@ -624,10 +815,13 @@ namespace QuestionService.Application.Services
             }
 
             var json = JsonSerializer.Serialize(source);
-            var result = JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions
+            var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
-            });
+            };
+            options.Converters.Add(new Application.Serialization.BoolIntJsonConverter());
+
+            var result = JsonSerializer.Deserialize<T>(json, options);
 
             if (result == null)
             {
@@ -635,6 +829,296 @@ namespace QuestionService.Application.Services
             }
 
             return result;
+        }
+
+        private static List<QuestionTranslationUpsertDto> BuildAdminTranslations(CreateQuestionDto dto)
+        {
+            var translations = new List<QuestionTranslationUpsertDto>
+            {
+                new()
+                {
+                    LanguageCode = "en",
+                    QuestionText = dto.QuestionText,
+                    OptionA = dto.OptionA,
+                    OptionB = dto.OptionB,
+                    OptionC = dto.OptionC,
+                    OptionD = dto.OptionD,
+                    Explanation = dto.Explanation,
+                    QuestionImageUrl = dto.QuestionImageUrl,
+                    OptionAImageUrl = dto.OptionAImageUrl,
+                    OptionBImageUrl = dto.OptionBImageUrl,
+                    OptionCImageUrl = dto.OptionCImageUrl,
+                    OptionDImageUrl = dto.OptionDImageUrl
+                }
+            };
+
+            if (dto.Translations == null)
+            {
+                return translations;
+            }
+
+            foreach (var translation in dto.Translations)
+            {
+                if (string.IsNullOrWhiteSpace(translation.LanguageCode))
+                {
+                    continue;
+                }
+
+                translations.Add(new QuestionTranslationUpsertDto
+                {
+                    LanguageCode = translation.LanguageCode,
+                    QuestionText = translation.QuestionText,
+                    OptionA = translation.OptionA,
+                    OptionB = translation.OptionB,
+                    OptionC = translation.OptionC,
+                    OptionD = translation.OptionD,
+                    Explanation = translation.Explanation
+                });
+            }
+
+            return translations;
+        }
+
+        private static QuestionDto MapAdminDetailToQuestionDto(QuestionAdminDetailDto adminQuestion, CreateQuestionDto sourceDto)
+        {
+            var englishTranslation = adminQuestion.Translations
+                .FirstOrDefault(t => string.Equals(t.LanguageCode, "en", StringComparison.OrdinalIgnoreCase));
+
+            return new QuestionDto
+            {
+                Id = adminQuestion.Id,
+                ModuleId = adminQuestion.ModuleId,
+                ExamId = adminQuestion.ExamId,
+                SubjectId = adminQuestion.SubjectId,
+                TopicId = adminQuestion.TopicId,
+                QuestionText = englishTranslation?.QuestionText ?? sourceDto.QuestionText,
+                OptionA = englishTranslation?.OptionA ?? sourceDto.OptionA,
+                OptionB = englishTranslation?.OptionB ?? sourceDto.OptionB,
+                OptionC = englishTranslation?.OptionC ?? sourceDto.OptionC,
+                OptionD = englishTranslation?.OptionD ?? sourceDto.OptionD,
+                CorrectAnswer = adminQuestion.CorrectAnswer,
+                Explanation = englishTranslation?.Explanation ?? sourceDto.Explanation,
+                Marks = adminQuestion.Marks,
+                NegativeMarks = adminQuestion.NegativeMarks,
+                DifficultyLevel = adminQuestion.DifficultyLevel,
+                QuestionType = sourceDto.QuestionType,
+                QuestionImageUrl = sourceDto.QuestionImageUrl,
+                OptionAImageUrl = sourceDto.OptionAImageUrl,
+                OptionBImageUrl = sourceDto.OptionBImageUrl,
+                OptionCImageUrl = sourceDto.OptionCImageUrl,
+                OptionDImageUrl = sourceDto.OptionDImageUrl,
+                ExplanationImageUrl = sourceDto.ExplanationImageUrl,
+                SameExplanationForAllLanguages = adminQuestion.SameExplanationForAllLanguages,
+                Reference = sourceDto.Reference,
+                Tags = sourceDto.Tags,
+                CreatedBy = sourceDto.CreatedBy,
+                IsPublished = adminQuestion.IsPublished,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = adminQuestion.IsActive,
+                Translations = adminQuestion.Translations
+                    .Select(t => new QuestionTranslationDto
+                    {
+                        Id = t.Id,
+                        QuestionId = t.QuestionId,
+                        LanguageCode = t.LanguageCode,
+                        QuestionText = t.QuestionText,
+                        OptionA = t.OptionA,
+                        OptionB = t.OptionB,
+                        OptionC = t.OptionC,
+                        OptionD = t.OptionD,
+                        Explanation = t.Explanation,
+                        CreatedAt = t.CreatedAt,
+                        UpdatedAt = t.UpdatedAt
+                    })
+                    .ToList()
+            };
+        }
+
+        private async Task ValidateExamSubjectTopicMappingAsync(int examId, int subjectId, int? topicId, int? moduleId = null)
+        {
+            // Treat 0 / negative as "not provided" (common for form-data default ints)
+            if (topicId.HasValue && topicId.Value <= 0)
+            {
+                topicId = null;
+            }
+
+            // Check if subject is mapped to exam
+            var isSubjectMappedToExam = await _featureRepository.IsSubjectMappedToExamAsync(subjectId, examId);
+            if (!isSubjectMappedToExam)
+            {
+                throw new ArgumentException($"Subject {subjectId} is not mapped to exam {examId}.");
+            }
+
+            // Topic is only required for ModuleId 3 (Deep Practice)
+            // For ModuleId 1, 2, 4 - Topic is optional
+            if (moduleId == 3 && (!topicId.HasValue || topicId.Value <= 0))
+            {
+                throw new ArgumentException($"Topic is required for ModuleId 3 (Deep Practice).");
+            }
+
+            // Only validate topic mapping if topic is provided
+            if (topicId.HasValue)
+            {
+                var topicMapped = await _featureRepository.IsTopicMappedToExamSubjectAsync(topicId.Value, examId, subjectId);
+                if (!topicMapped)
+                {
+                    throw new ArgumentException($"Topic {topicId.Value} is not mapped to exam {examId} and subject {subjectId}.");
+                }
+            }
+        }
+
+        public async Task<QuestionDto> CreateQuestionWithImagesAsync(CreateQuestionWithImagesDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Creating question with images for exam: {ExamId}, subject: {SubjectId}", dto.ExamId, dto.SubjectId);
+                await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
+
+                // Upload images if provided
+                var questionImageUrl = dto.QuestionImageUrl;
+                var optionAImageUrl = dto.OptionAImageUrl;
+                var optionBImageUrl = dto.OptionBImageUrl;
+                var optionCImageUrl = dto.OptionCImageUrl;
+                var optionDImageUrl = dto.OptionDImageUrl;
+                var explanationImageUrl = dto.ExplanationImageUrl;
+
+                if (dto.QuestionImage != null)
+                {
+                    questionImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.QuestionImage, "question", null, "en");
+                }
+
+                if (dto.OptionAImage != null)
+                {
+                    optionAImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionAImage, "optiona", null, "en");
+                }
+
+                if (dto.OptionBImage != null)
+                {
+                    optionBImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionBImage, "optionb", null, "en");
+                }
+
+                if (dto.OptionCImage != null)
+                {
+                    optionCImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionCImage, "optionc", null, "en");
+                }
+
+                if (dto.OptionDImage != null)
+                {
+                    optionDImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionDImage, "optiond", null, "en");
+                }
+
+                if (dto.ExplanationImage != null)
+                {
+                    explanationImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.ExplanationImage, "explanation", null, "en");
+                }
+
+                var question = await _questionRepository.CreateQuestionAsync(
+                    dto.QuestionText,
+                    dto.OptionA,
+                    dto.OptionB,
+                    dto.OptionC,
+                    dto.OptionD,
+                    dto.CorrectAnswer,
+                    dto.Marks,
+                    dto.ExamId,
+                    dto.SubjectId,
+                    dto.TopicId,
+                    dto.DifficultyLevel,
+                    dto.CreatedBy);
+
+                // Update question with image URLs
+                if (!string.IsNullOrEmpty(questionImageUrl) || !string.IsNullOrEmpty(optionAImageUrl) || 
+                    !string.IsNullOrEmpty(optionBImageUrl) || !string.IsNullOrEmpty(optionCImageUrl) || 
+                    !string.IsNullOrEmpty(optionDImageUrl) || !string.IsNullOrEmpty(explanationImageUrl))
+                {
+                    await _questionRepository.UpdateQuestionAsync(question.Id, dto.QuestionText, dto.OptionA, dto.OptionB, dto.OptionC, dto.OptionD, dto.CorrectAnswer, dto.Marks, dto.DifficultyLevel);
+                    
+                    // Update image URLs using the repository
+                    await _adminRepository.UpdateQuestionImageUrlsAsync(question.Id, questionImageUrl, optionAImageUrl, optionBImageUrl, optionCImageUrl, optionDImageUrl, explanationImageUrl);
+                }
+
+                return await GetByIdAsync(question.Id) ?? throw new InvalidOperationException($"Unable to load question {question.Id} after creation.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating question with images");
+                throw;
+            }
+        }
+
+        public async Task<QuestionDto> UpdateQuestionWithImagesAsync(UpdateQuestionWithImagesDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Updating question with images: {QuestionId}", dto.Id);
+                await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
+
+                var existingQuestion = await _questionRepository.GetByIdAsync(dto.Id);
+                if (existingQuestion == null)
+                    throw new KeyNotFoundException($"Question with ID {dto.Id} not found");
+
+                // Upload new images if provided
+                var questionImageUrl = dto.QuestionImageUrl ?? existingQuestion.QuestionImageUrl;
+                var optionAImageUrl = dto.OptionAImageUrl ?? existingQuestion.OptionAImageUrl;
+                var optionBImageUrl = dto.OptionBImageUrl ?? existingQuestion.OptionBImageUrl;
+                var optionCImageUrl = dto.OptionCImageUrl ?? existingQuestion.OptionCImageUrl;
+                var optionDImageUrl = dto.OptionDImageUrl ?? existingQuestion.OptionDImageUrl;
+                var explanationImageUrl = dto.ExplanationImageUrl ?? existingQuestion.ExplanationImageUrl;
+
+                if (dto.QuestionImage != null)
+                {
+                    questionImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.QuestionImage, "question", dto.Id, "en");
+                }
+
+                if (dto.OptionAImage != null)
+                {
+                    optionAImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionAImage, "optiona", dto.Id, "en");
+                }
+
+                if (dto.OptionBImage != null)
+                {
+                    optionBImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionBImage, "optionb", dto.Id, "en");
+                }
+
+                if (dto.OptionCImage != null)
+                {
+                    optionCImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionCImage, "optionc", dto.Id, "en");
+                }
+
+                if (dto.OptionDImage != null)
+                {
+                    optionDImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionDImage, "optiond", dto.Id, "en");
+                }
+
+                if (dto.ExplanationImage != null)
+                {
+                    explanationImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.ExplanationImage, "explanation", dto.Id, "en");
+                }
+
+                var success = await _questionRepository.UpdateQuestionAsync(
+                    dto.Id,
+                    dto.QuestionText,
+                    dto.OptionA,
+                    dto.OptionB,
+                    dto.OptionC,
+                    dto.OptionD,
+                    dto.CorrectAnswer,
+                    dto.Marks,
+                    dto.DifficultyLevel);
+
+                if (!success)
+                    throw new KeyNotFoundException($"Question with ID {dto.Id} not found");
+
+                // Update image URLs using the repository
+                await _adminRepository.UpdateQuestionImageUrlsAsync(dto.Id, questionImageUrl, optionAImageUrl, optionBImageUrl, optionCImageUrl, optionDImageUrl, explanationImageUrl);
+
+                return await GetByIdAsync(dto.Id) ?? throw new InvalidOperationException($"Unable to load question {dto.Id} after update.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating question with images: {QuestionId}", dto.Id);
+                throw;
+            }
         }
     }
 
@@ -644,6 +1128,7 @@ namespace QuestionService.Application.Services
         Task<QuestionDto?> GetByIdAsync(int id);
         Task<IEnumerable<QuestionDto>> GetAllAsync();
         Task<QuestionListResponseDto> GetPagedAsync(QuestionListRequestDto request);
+        Task<QuestionCursorResponseDto> GetQuestionsCursorAsync(QuestionCursorRequestDto request);
         Task<QuestionStatisticsDto> GetStatisticsAsync();
         Task<QuestionDto> UpdateAsync(int id, UpdateQuestionDto dto);
         Task<bool> DeleteAsync(int id);
@@ -657,7 +1142,8 @@ namespace QuestionService.Application.Services
         // Admin-specific methods
         Task<TopicDto> CreateTopicAsync(CreateTopicDto dto);
         Task<IEnumerable<TopicDto>> GetTopicsAsync(int subjectId);
-        Task<QuestionAdminDetailDto> CreateAdminQuestionAsync(CreateQuestionAdminDto dto);
+        Task<QuestionAdminDetailDto> CreateAdminQuestionAsync(CreateQuestionRequestDto dto);
+        Task<QuestionAdminDetailDto> CreateAdminQuestionWithImagesAsync(CreateQuestionFormDataDto dto);
         Task<QuestionAdminDetailDto> UpdateAdminQuestionAsync(UpdateQuestionAdminDto dto);
         Task<QuestionAdminDetailDto?> GetAdminQuestionByIdAsync(int id);
         Task<QuestionPagedResponseDto> GetAdminQuestionsPagedAsync(QuestionFilterRequestDto filter);
@@ -687,6 +1173,10 @@ namespace QuestionService.Application.Services
         Task<IEnumerable<ExamTypeDto>> GetExamTypesAsync();
         Task<IEnumerable<ExamNameDto>> GetExamNamesByTypeAsync(string examType);
         Task<IEnumerable<ExamNameDto>> GetAllExamNamesAsync();
+        
+        // Create/Update Question with Images
+        Task<QuestionDto> CreateQuestionWithImagesAsync(CreateQuestionWithImagesDto dto);
+        Task<QuestionDto> UpdateQuestionWithImagesAsync(UpdateQuestionWithImagesDto dto);
     }
 
 }

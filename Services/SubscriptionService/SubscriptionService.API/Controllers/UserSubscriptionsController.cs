@@ -34,7 +34,7 @@ namespace SubscriptionService.API.Controllers
             try
             {
                 var userId = GetUserIdFromToken();
-                if (userId == 0)
+                if (userId <= 0)
                     return Unauthorized(new { success = false, message = "Invalid user token" });
 
                 var result = await _userSubscriptionService.GetMySubscriptionAsync(userId);
@@ -62,7 +62,7 @@ namespace SubscriptionService.API.Controllers
             try
             {
                 var userId = GetUserIdFromToken();
-                if (userId == 0)
+                if (userId <= 0)
                     return Unauthorized(new { success = false, message = "Invalid user token" });
 
                 var result = await _userSubscriptionService.GetUserSubscriptionHistoryAsync(userId);
@@ -86,7 +86,7 @@ namespace SubscriptionService.API.Controllers
             try
             {
                 var userId = GetUserIdFromToken();
-                if (userId == 0)
+                if (userId <= 0)
                     return Unauthorized(new { success = false, message = "Invalid user token" });
 
                 createSubscriptionDto.UserId = userId;
@@ -96,12 +96,17 @@ namespace SubscriptionService.API.Controllers
             catch (ArgumentException ex)
             {
                 _logger.LogWarning(ex, "Invalid subscription create request for user");
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = "Invalid subscription request." });
             }
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "Subscription plan not found while creating user subscription");
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new { success = false, message = "Subscription plan not found." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Razorpay order creation failed while creating user subscription");
+                return StatusCode(502, new { success = false, message = "Unable to initiate payment order." });
             }
             catch (Exception ex)
             {
@@ -141,7 +146,7 @@ namespace SubscriptionService.API.Controllers
             try
             {
                 var userId = GetUserIdFromToken();
-                if (userId == 0)
+                if (userId <= 0)
                     return Unauthorized(new { success = false, message = "Invalid user token" });
 
                 // Verify the subscription belongs to the current user
@@ -155,7 +160,7 @@ namespace SubscriptionService.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "Subscription not found for cancellation: {SubscriptionId}", cancelSubscriptionDto.SubscriptionId);
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new { success = false, message = "Subscription not found." });
             }
             catch (Exception ex)
             {
@@ -175,7 +180,16 @@ namespace SubscriptionService.API.Controllers
             try
             {
                 var currentLanguage = language ?? "en";
-                var result = await _userSubscriptionService.GetActivePlansAsync(currentLanguage);
+                
+                // Filter plans by user's selected ExamId (set during profile completion)
+                int? examId = null;
+                var examIdClaim = User.FindFirst("ExamId");
+                if (examIdClaim != null && int.TryParse(examIdClaim.Value, out var parsedExamId))
+                {
+                    examId = parsedExamId;
+                }
+
+                var result = await _userSubscriptionService.GetActivePlansAsync(currentLanguage, examId);
                 return Ok(new
                 {
                     success = true,
@@ -203,7 +217,7 @@ namespace SubscriptionService.API.Controllers
             {
                 return userId;
             }
-            return 0;
+            return -1;
         }
     }
 }

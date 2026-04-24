@@ -111,6 +111,32 @@ namespace ExamService.Application.Services
             return BuildExamDtos(exams, isInternational);
         }
 
+        public async Task<IEnumerable<ExamDto>> GetActiveExamsByFiltersAsync(
+            int? examCategoryId = null,
+            int? subjectId = null,
+            int? examTypeId = null,
+            bool? isInternational = null)
+        {
+            var exams = await _examRepository.GetActiveAsync();
+
+            if (examCategoryId.HasValue)
+            {
+                exams = exams.Where(x => x.ExamCategoryId == examCategoryId.Value);
+            }
+
+            if (subjectId.HasValue)
+            {
+                exams = exams.Where(x => x.SubjectId == subjectId.Value);
+            }
+
+            if (examTypeId.HasValue)
+            {
+                exams = exams.Where(x => x.ExamTypeId == examTypeId.Value);
+            }
+
+            return BuildExamDtos(exams, isInternational);
+        }
+
         public async Task<IEnumerable<ExamDto>> GetAllExamsIncludingInactiveAsync(bool? isInternational = null)
         {
             var exams = await _examRepository.GetAllIncludingInactiveAsync();

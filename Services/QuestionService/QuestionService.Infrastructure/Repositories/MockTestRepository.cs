@@ -86,7 +86,7 @@ namespace QuestionService.Infrastructure.Repositories
                     PublishDateTime = dto.PublishDateTime,
                     ValidTill = dto.ValidTill,
                     ShowResultType = ((int)dto.ShowResultType).ToString(),
-                    ImageUrl = (string?)null, // Will be set separately if image is uploaded
+                    ImageUrl = dto.ImageUrl,
                     CreatedBy = dto.CreatedBy
                 };
 
@@ -109,13 +109,13 @@ namespace QuestionService.Infrastructure.Repositories
         {
             var sql = @"
                 SELECT 
-                    mt.Id, mt.Name, mt.Description, CAST(1 AS INT) AS MockTestType, mt.ExamId, mt.SubjectId, CAST(NULL AS INT) AS TopicId,
+                    mt.Id, mt.Name, mt.Description, ISNULL(mt.MockTestType, 1) AS MockTestType, mt.ExamId, mt.SubjectId, CAST(NULL AS INT) AS TopicId,
                     mt.DurationInMinutes, mt.TotalQuestions, mt.TotalMarks, mt.PassingMarks, 
-                    CAST(0 AS DECIMAL(10,2)) AS MarksPerQuestion, CAST(0 AS BIT) AS HasNegativeMarking, CAST(NULL AS DECIMAL(10,2)) AS NegativeMarkingValue,
-                    mt.SubscriptionPlanId, mt.AccessType, mt.AttemptsAllowed, CAST('Active' AS NVARCHAR(50)) AS Status,
+                    ISNULL(mt.MarksPerQuestion, 0) AS MarksPerQuestion, ISNULL(mt.HasNegativeMarking, 0) AS HasNegativeMarking, mt.NegativeMarkingValue,
+                    mt.SubscriptionPlanId, mt.AccessType, mt.AttemptsAllowed, ISNULL(mt.Status, 'Active') AS Status,
                     mt.CreatedAt, mt.UpdatedAt, mt.CreatedBy,
-                    CAST(NULL AS INT) AS [Year], CAST(NULL AS NVARCHAR(50)) AS Difficulty, CAST(NULL AS NVARCHAR(100)) AS PaperCode, CAST(NULL AS DATETIME2) AS ExamDate, CAST(NULL AS DATETIME2) AS PublishDateTime, 
-                    CAST(NULL AS DATETIME2) AS ValidTill, CAST('1' AS NVARCHAR(20)) AS ShowResultType, CAST(NULL AS NVARCHAR(500)) AS ImageUrl,
+                    mt.[Year], mt.Difficulty, mt.PaperCode, mt.ExamDate, mt.PublishDateTime, 
+                    mt.ValidTill, ISNULL(mt.ShowResultType, '1') AS ShowResultType, mt.ImageUrl,
                     e.Name AS ExamName,
                     CAST('' AS NVARCHAR(100)) AS ExamType,
                     mt.SubjectId AS SubjectId,
@@ -211,20 +211,57 @@ namespace QuestionService.Infrastructure.Repositories
             {
                 var sql = @"
                     UPDATE MockTests SET
-                        Name = @Name,
-                        Description = @Description,
-                        DurationInMinutes = @DurationInMinutes,
-                        TotalQuestions = @TotalQuestions,
-                        TotalMarks = @TotalMarks,
-                        PassingMarks = @PassingMarks,
-                        SubscriptionPlanId = @SubscriptionPlanId,
-                        AccessType = @AccessType,
-                        AttemptsAllowed = @AttemptsAllowed,
-                        IsActive = @IsActive,
+                        Name = COALESCE(@Name, Name),
+                        Description = COALESCE(@Description, Description),
+                        DurationInMinutes = COALESCE(@DurationInMinutes, DurationInMinutes),
+                        TotalQuestions = COALESCE(@TotalQuestions, TotalQuestions),
+                        TotalMarks = COALESCE(@TotalMarks, TotalMarks),
+                        PassingMarks = COALESCE(@PassingMarks, PassingMarks),
+                        MarksPerQuestion = COALESCE(@MarksPerQuestion, MarksPerQuestion),
+                        HasNegativeMarking = COALESCE(@HasNegativeMarking, HasNegativeMarking),
+                        NegativeMarkingValue = COALESCE(@NegativeMarkingValue, NegativeMarkingValue),
+                        SubscriptionPlanId = COALESCE(@SubscriptionPlanId, SubscriptionPlanId),
+                        AccessType = COALESCE(@AccessType, AccessType),
+                        AttemptsAllowed = COALESCE(@AttemptsAllowed, AttemptsAllowed),
+                        Status = COALESCE(@Status, Status),
+                        [Year] = COALESCE(@Year, [Year]),
+                        Difficulty = COALESCE(@Difficulty, Difficulty),
+                        PaperCode = COALESCE(@PaperCode, PaperCode),
+                        ExamDate = COALESCE(@ExamDate, ExamDate),
+                        PublishDateTime = COALESCE(@PublishDateTime, PublishDateTime),
+                        ValidTill = COALESCE(@ValidTill, ValidTill),
+                        ShowResultType = COALESCE(CAST(@ShowResultType AS NVARCHAR(20)), ShowResultType),
+                        ImageUrl = COALESCE(@ImageUrl, ImageUrl),
                         UpdatedAt = GETDATE()
                     WHERE Id = @Id";
 
-                await connection.ExecuteAsync(sql, dto);
+                var parameters = new
+                {
+                    Id = dto.Id,
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    DurationInMinutes = dto.DurationInMinutes,
+                    TotalQuestions = dto.TotalQuestions,
+                    TotalMarks = dto.TotalMarks,
+                    PassingMarks = dto.PassingMarks,
+                    MarksPerQuestion = dto.MarksPerQuestion,
+                    HasNegativeMarking = dto.HasNegativeMarking,
+                    NegativeMarkingValue = dto.NegativeMarkingValue,
+                    SubscriptionPlanId = dto.SubscriptionPlanId,
+                    AccessType = dto.AccessType,
+                    AttemptsAllowed = dto.AttemptsAllowed,
+                    Status = dto.Status?.ToString(),
+                    Year = dto.Year,
+                    Difficulty = dto.Difficulty,
+                    PaperCode = dto.PaperCode,
+                    ExamDate = dto.ExamDate,
+                    PublishDateTime = dto.PublishDateTime,
+                    ValidTill = dto.ValidTill,
+                    ShowResultType = dto.ShowResultType?.ToString(),
+                    ImageUrl = dto.ImageUrl
+                };
+
+                await connection.ExecuteAsync(sql, parameters);
                 return await GetByIdInternalAsync((SqlConnection)connection, dto.Id);
             });
         }
@@ -239,19 +276,38 @@ namespace QuestionService.Infrastructure.Repositories
             });
         }
 
-        public async Task<(List<MockTestDto> MockTests, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? examId = null, int? subjectId = null, bool? isActive = null)
+        public async Task<(List<MockTestDto> MockTests, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? examId = null, int? subjectId = null, bool? isActive = null, MockTestListRequestDto? request = null)
         {
             return await WithConnectionAsync(async connection =>
             {
+                var sortBy = request?.SortBy?.Trim().ToLowerInvariant();
+                var sortOrder = request?.SortOrder?.Trim().ToLowerInvariant() == "asc" ? "ASC" : "DESC";
+                var orderByClause = sortBy switch
+                {
+                    "name" => $"mt.Name {sortOrder}",
+                    "date" => $"mt.CreatedAt {sortOrder}",
+                    "mark" => $"mt.TotalMarks {sortOrder}",
+                    "marks" => $"mt.TotalMarks {sortOrder}",
+                    "difficulty" => $"mt.Difficulty {sortOrder}",
+                    "year" => $"mt.[Year] {sortOrder}",
+                    "attempts" => $"mt.AttemptsAllowed {sortOrder}",
+                    "questions" => $"mt.TotalQuestions {sortOrder}",
+                    "duration" => $"mt.DurationInMinutes {sortOrder}",
+                    "examdate" => $"mt.ExamDate {sortOrder}",
+                    "publishdate" => $"mt.PublishDateTime {sortOrder}",
+                    "status" => $"mt.Status {sortOrder}",
+                    _ => $"mt.CreatedAt {sortOrder}"
+                };
+
                 var sql = @"
                     SELECT 
-                        mt.Id, mt.Name, mt.Description, CAST(1 AS INT) AS MockTestType, mt.ExamId, mt.SubjectId, CAST(NULL AS INT) AS TopicId,
+                        mt.Id, mt.Name, mt.Description, ISNULL(mt.MockTestType, 1) AS MockTestType, mt.ExamId, mt.SubjectId, CAST(NULL AS INT) AS TopicId,
                         mt.DurationInMinutes, mt.TotalQuestions, mt.TotalMarks, mt.PassingMarks, 
-                        CAST(0 AS DECIMAL(10,2)) AS MarksPerQuestion, CAST(0 AS BIT) AS HasNegativeMarking, CAST(NULL AS DECIMAL(10,2)) AS NegativeMarkingValue,
-                        mt.SubscriptionPlanId, mt.AccessType, mt.AttemptsAllowed, CAST('Active' AS NVARCHAR(50)) AS Status,
+                        ISNULL(mt.MarksPerQuestion, 0) AS MarksPerQuestion, ISNULL(mt.HasNegativeMarking, 0) AS HasNegativeMarking, mt.NegativeMarkingValue,
+                        mt.SubscriptionPlanId, mt.AccessType, mt.AttemptsAllowed, ISNULL(mt.Status, 'Active') AS Status,
                         mt.CreatedAt, mt.UpdatedAt, mt.CreatedBy,
-                        CAST(NULL AS INT) AS [Year], CAST(NULL AS NVARCHAR(50)) AS Difficulty, CAST(NULL AS NVARCHAR(100)) AS PaperCode, CAST(NULL AS DATETIME2) AS ExamDate, CAST(NULL AS DATETIME2) AS PublishDateTime, 
-                        CAST(NULL AS DATETIME2) AS ValidTill, CAST('1' AS NVARCHAR(20)) AS ShowResultType, CAST(NULL AS NVARCHAR(500)) AS ImageUrl,
+                        mt.[Year], mt.Difficulty, mt.PaperCode, mt.ExamDate, mt.PublishDateTime, 
+                        mt.ValidTill, ISNULL(mt.ShowResultType, '1') AS ShowResultType, mt.ImageUrl,
                         e.Name AS ExamName,
                         CAST('' AS NVARCHAR(100)) AS ExamType,
                         mt.SubjectId AS SubjectId,
@@ -260,16 +316,43 @@ namespace QuestionService.Infrastructure.Repositories
                         CAST('' AS NVARCHAR(50)) AS MockTestTypeDisplay,
                         CAST(0 AS INT) AS AttemptsUsed,
                         CAST(0 AS BIT) AS IsUnlocked,
-                        CAST(NULL AS NVARCHAR(200)) AS SubscriptionPlanName
+                        CAST(NULL AS NVARCHAR(200)) AS SubscriptionPlanName,
+                        ISNULL(qc.QuestionCount, 0) AS QuestionsAdded
                     FROM MockTests mt
                     LEFT JOIN [RankUp_MasterDB].[dbo].[Exams] e ON mt.ExamId = e.Id
                     LEFT JOIN [RankUp_MasterDB].[dbo].[Subjects] s ON mt.SubjectId = s.Id
+                    LEFT JOIN (
+                        SELECT mtq.MockTestId, COUNT(*) AS QuestionCount
+                        FROM dbo.MockTestQuestions mtq
+                        INNER JOIN dbo.Questions q ON q.Id = mtq.QuestionId
+                        WHERE q.IsActive = 1
+                        GROUP BY mtq.MockTestId
+                    ) qc ON qc.MockTestId = mt.Id
                     WHERE (@ExamId IS NULL OR mt.ExamId = @ExamId)
                     AND (@SubjectId IS NULL OR mt.SubjectId = @SubjectId)
                     AND (@IsActive IS NULL OR mt.IsActive = @IsActive)
+                    AND (@SearchTerm IS NULL OR mt.Name LIKE '%' + @SearchTerm + '%' OR mt.Description LIKE '%' + @SearchTerm + '%')
+                    AND (@MockTestType IS NULL OR mt.MockTestType = @MockTestType)
+                    AND (@AccessType IS NULL OR mt.AccessType = @AccessType)
+                    AND (@Status IS NULL OR mt.Status = @Status)
+                    AND (@AttemptsAllowed IS NULL OR mt.AttemptsAllowed = @AttemptsAllowed)
+                    AND (@CreatedFrom IS NULL OR CAST(mt.CreatedAt AS DATE) >= CAST(@CreatedFrom AS DATE))
+                    AND (@CreatedTo IS NULL OR CAST(mt.CreatedAt AS DATE) <= CAST(@CreatedTo AS DATE))
+                    AND (@Difficulty IS NULL OR mt.Difficulty = @Difficulty)
+                    AND (@Year IS NULL OR mt.[Year] = @Year)
+                    AND (@ExamDateFrom IS NULL OR CAST(mt.ExamDate AS DATE) >= CAST(@ExamDateFrom AS DATE))
+                    AND (@ExamDateTo IS NULL OR CAST(mt.ExamDate AS DATE) <= CAST(@ExamDateTo AS DATE))
+                    AND (@PublishDateFrom IS NULL OR CAST(mt.PublishDateTime AS DATE) >= CAST(@PublishDateFrom AS DATE))
+                    AND (@PublishDateTo IS NULL OR CAST(mt.PublishDateTime AS DATE) <= CAST(@PublishDateTo AS DATE))
+                    AND (@ValidTillFrom IS NULL OR CAST(mt.ValidTill AS DATE) >= CAST(@ValidTillFrom AS DATE))
+                    AND (@ValidTillTo IS NULL OR CAST(mt.ValidTill AS DATE) <= CAST(@ValidTillTo AS DATE))
+                    AND (@HasNegativeMarking IS NULL OR mt.HasNegativeMarking = @HasNegativeMarking)
+                    AND (@MinTotalMarks IS NULL OR mt.TotalMarks >= @MinTotalMarks)
+                    AND (@MaxTotalMarks IS NULL OR mt.TotalMarks <= @MaxTotalMarks)
+                    AND (@MinDuration IS NULL OR mt.DurationInMinutes >= @MinDuration)
+                    AND (@MaxDuration IS NULL OR mt.DurationInMinutes <= @MaxDuration)
                     ORDER BY 
-                        CASE WHEN mt.AccessType = 'Free' THEN 0 ELSE 1 END,
-                        mt.CreatedAt ASC
+                        " + orderByClause + @"
                     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
 
                 var countSql = @"
@@ -277,13 +360,54 @@ namespace QuestionService.Infrastructure.Repositories
                     FROM MockTests mt
                     WHERE (@ExamId IS NULL OR mt.ExamId = @ExamId)
                     AND (@SubjectId IS NULL OR mt.SubjectId = @SubjectId)
-                    AND (@IsActive IS NULL OR mt.IsActive = @IsActive)";
+                    AND (@IsActive IS NULL OR mt.IsActive = @IsActive)
+                    AND (@SearchTerm IS NULL OR mt.Name LIKE '%' + @SearchTerm + '%' OR mt.Description LIKE '%' + @SearchTerm + '%')
+                    AND (@MockTestType IS NULL OR mt.MockTestType = @MockTestType)
+                    AND (@AccessType IS NULL OR mt.AccessType = @AccessType)
+                    AND (@Status IS NULL OR mt.Status = @Status)
+                    AND (@AttemptsAllowed IS NULL OR mt.AttemptsAllowed = @AttemptsAllowed)
+                    AND (@CreatedFrom IS NULL OR CAST(mt.CreatedAt AS DATE) >= CAST(@CreatedFrom AS DATE))
+                    AND (@CreatedTo IS NULL OR CAST(mt.CreatedAt AS DATE) <= CAST(@CreatedTo AS DATE))
+                    AND (@Difficulty IS NULL OR mt.Difficulty = @Difficulty)
+                    AND (@Year IS NULL OR mt.[Year] = @Year)
+                    AND (@ExamDateFrom IS NULL OR CAST(mt.ExamDate AS DATE) >= CAST(@ExamDateFrom AS DATE))
+                    AND (@ExamDateTo IS NULL OR CAST(mt.ExamDate AS DATE) <= CAST(@ExamDateTo AS DATE))
+                    AND (@PublishDateFrom IS NULL OR CAST(mt.PublishDateTime AS DATE) >= CAST(@PublishDateFrom AS DATE))
+                    AND (@PublishDateTo IS NULL OR CAST(mt.PublishDateTime AS DATE) <= CAST(@PublishDateTo AS DATE))
+                    AND (@ValidTillFrom IS NULL OR CAST(mt.ValidTill AS DATE) >= CAST(@ValidTillFrom AS DATE))
+                    AND (@ValidTillTo IS NULL OR CAST(mt.ValidTill AS DATE) <= CAST(@ValidTillTo AS DATE))
+                    AND (@HasNegativeMarking IS NULL OR mt.HasNegativeMarking = @HasNegativeMarking)
+                    AND (@MinTotalMarks IS NULL OR mt.TotalMarks >= @MinTotalMarks)
+                    AND (@MaxTotalMarks IS NULL OR mt.TotalMarks <= @MaxTotalMarks)
+                    AND (@MinDuration IS NULL OR mt.DurationInMinutes >= @MinDuration)
+                    AND (@MaxDuration IS NULL OR mt.DurationInMinutes <= @MaxDuration)";
 
                 var parameters = new
                 {
                     ExamId = examId,
                     SubjectId = subjectId,
                     IsActive = isActive,
+                    SearchTerm = request?.SearchTerm,
+                    MockTestType = request?.MockTestType.HasValue == true ? (int?)request.MockTestType.Value : null,
+                    AccessType = request?.AccessType,
+                    Status = request?.Status?.ToString(),
+                    AttemptsAllowed = request?.AttemptsAllowed,
+                    CreatedFrom = request?.CreatedFrom,
+                    CreatedTo = request?.CreatedTo,
+                    // New filters
+                    Difficulty = request?.Difficulty,
+                    Year = request?.Year,
+                    ExamDateFrom = request?.ExamDateFrom,
+                    ExamDateTo = request?.ExamDateTo,
+                    PublishDateFrom = request?.PublishDateFrom,
+                    PublishDateTo = request?.PublishDateTo,
+                    ValidTillFrom = request?.ValidTillFrom,
+                    ValidTillTo = request?.ValidTillTo,
+                    HasNegativeMarking = request?.HasNegativeMarking,
+                    MinTotalMarks = request?.MinTotalMarks,
+                    MaxTotalMarks = request?.MaxTotalMarks,
+                    MinDuration = request?.MinDuration,
+                    MaxDuration = request?.MaxDuration,
                     Offset = (pageNumber - 1) * pageSize,
                     PageSize = pageSize
                 };
@@ -331,11 +455,19 @@ namespace QuestionService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
+                // First check if the record exists
+                var checkSql = "SELECT COUNT(1) FROM MockTestQuestions WHERE MockTestId = @MockTestId AND QuestionId = @QuestionId";
+                var exists = await connection.QuerySingleAsync<int>(checkSql, new { MockTestId = mockTestId, QuestionId = questionId });
+                
+                if (exists == 0)
+                    return false;
+
                 var sql = @"
                     UPDATE MockTestQuestions SET
                         QuestionNumber = @QuestionNumber,
                         Marks = @Marks,
-                        NegativeMarks = @NegativeMarks
+                        NegativeMarks = @NegativeMarks,
+                        UpdatedAt = GETDATE()
                     WHERE MockTestId = @MockTestId AND QuestionId = @QuestionId";
 
                 var rowsAffected = await connection.ExecuteAsync(sql, new
@@ -416,6 +548,73 @@ namespace QuestionService.Infrastructure.Repositories
             });
         }
 
+        public async Task<MockTestQuestionDto?> GetQuestionByIdAsync(int mockTestId, int questionId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT 
+                        mtq.Id AS MockTestQuestionId,
+                        mtq.MockTestId,
+                        mtq.QuestionId,
+                        mtq.QuestionNumber,
+                        mtq.Marks,
+                        mtq.NegativeMarks,
+                        q.QuestionText,
+                        q.OptionA,
+                        q.OptionB,
+                        q.OptionC,
+                        q.OptionD,
+                        q.CorrectAnswer,
+                        q.Explanation,
+                        q.DifficultyLevel,
+                        q.QuestionType,
+                        q.QuestionImageUrl,
+                        q.OptionAImageUrl,
+                        q.OptionBImageUrl,
+                        q.OptionCImageUrl,
+                        q.OptionDImageUrl,
+                        q.ExplanationImageUrl
+                    FROM MockTestQuestions mtq
+                    LEFT JOIN Questions q ON mtq.QuestionId = q.Id
+                    WHERE mtq.MockTestId = @MockTestId AND mtq.QuestionId = @QuestionId AND q.IsActive = 1";
+
+                var row = await connection.QueryFirstOrDefaultAsync<MockTestQuestionFlatRow>(sql, new { MockTestId = mockTestId, QuestionId = questionId });
+
+                if (row == null)
+                    return null;
+
+                return new MockTestQuestionDto
+                {
+                    Id = row.MockTestQuestionId,
+                    MockTestId = row.MockTestId,
+                    QuestionId = row.QuestionId,
+                    QuestionNumber = row.QuestionNumber,
+                    Marks = row.Marks,
+                    NegativeMarks = row.NegativeMarks,
+                    Question = new QuestionDto
+                    {
+                        Id = row.QuestionId,
+                        QuestionText = row.QuestionText ?? string.Empty,
+                        OptionA = row.OptionA,
+                        OptionB = row.OptionB,
+                        OptionC = row.OptionC,
+                        OptionD = row.OptionD,
+                        CorrectAnswer = row.CorrectAnswer ?? string.Empty,
+                        Explanation = row.Explanation,
+                        DifficultyLevel = row.DifficultyLevel ?? "Medium",
+                        QuestionType = row.QuestionType ?? "MCQ",
+                        QuestionImageUrl = row.QuestionImageUrl,
+                        OptionAImageUrl = row.OptionAImageUrl,
+                        OptionBImageUrl = row.OptionBImageUrl,
+                        OptionCImageUrl = row.OptionCImageUrl,
+                        OptionDImageUrl = row.OptionDImageUrl,
+                        ExplanationImageUrl = row.ExplanationImageUrl
+                    }
+                };
+            });
+        }
+
         // User Specific Operations
         public async Task<List<MockTestListDto>> GetForUserAsync(int userId, int pageNumber, int pageSize, int? examId = null, int? subjectId = null)
         {
@@ -423,13 +622,13 @@ namespace QuestionService.Infrastructure.Repositories
             {
                 var sql = @"
                     SELECT 
-                        mt.Id, mt.Name, mt.Description, CAST(1 AS INT) AS MockTestType, mt.ExamId, mt.SubjectId, CAST(NULL AS INT) AS TopicId,
+                        mt.Id, mt.Name, mt.Description, ISNULL(mt.MockTestType, 1) AS MockTestType, mt.ExamId, mt.SubjectId, CAST(NULL AS INT) AS TopicId,
                         mt.DurationInMinutes, mt.TotalQuestions, mt.TotalMarks, mt.PassingMarks,
-                        CAST(0 AS DECIMAL(10,2)) AS MarksPerQuestion, CAST(0 AS BIT) AS HasNegativeMarking, CAST(NULL AS DECIMAL(10,2)) AS NegativeMarkingValue,
-                        mt.SubscriptionPlanId, mt.AccessType, mt.AttemptsAllowed, CAST('Active' AS NVARCHAR(50)) AS Status,
+                        ISNULL(mt.MarksPerQuestion, 0) AS MarksPerQuestion, ISNULL(mt.HasNegativeMarking, 0) AS HasNegativeMarking, mt.NegativeMarkingValue,
+                        mt.SubscriptionPlanId, mt.AccessType, mt.AttemptsAllowed, ISNULL(mt.Status, 'Active') AS Status,
                         mt.CreatedAt, mt.UpdatedAt, mt.CreatedBy,
-                        CAST(NULL AS INT) AS [Year], CAST(NULL AS NVARCHAR(50)) AS Difficulty, CAST(NULL AS NVARCHAR(100)) AS PaperCode, CAST(NULL AS DATETIME2) AS ExamDate, CAST(NULL AS DATETIME2) AS PublishDateTime,
-                        CAST(NULL AS DATETIME2) AS ValidTill, CAST('1' AS NVARCHAR(20)) AS ShowResultType, CAST(NULL AS NVARCHAR(500)) AS ImageUrl,
+                        mt.[Year], mt.Difficulty, mt.PaperCode, mt.ExamDate, mt.PublishDateTime,
+                        mt.ValidTill, ISNULL(mt.ShowResultType, '1') AS ShowResultType, mt.ImageUrl,
                         e.Name AS ExamName,
                         CAST('' AS NVARCHAR(100)) AS ExamType,
                         mt.SubjectId AS SubjectId,
@@ -492,13 +691,13 @@ namespace QuestionService.Infrastructure.Repositories
             {
                 var sql = @"
                     SELECT 
-                        mt.Id, mt.Name, mt.Description, CAST(1 AS INT) AS MockTestType, mt.ExamId, mt.SubjectId, CAST(NULL AS INT) AS TopicId,
+                        mt.Id, mt.Name, mt.Description, ISNULL(mt.MockTestType, 1) AS MockTestType, mt.ExamId, mt.SubjectId, CAST(NULL AS INT) AS TopicId,
                         mt.DurationInMinutes, mt.TotalQuestions, mt.TotalMarks, mt.PassingMarks,
-                        CAST(0 AS DECIMAL(10,2)) AS MarksPerQuestion, CAST(0 AS BIT) AS HasNegativeMarking, CAST(NULL AS DECIMAL(10,2)) AS NegativeMarkingValue,
-                        mt.SubscriptionPlanId, mt.AccessType, mt.AttemptsAllowed, CAST('Active' AS NVARCHAR(50)) AS Status,
+                        ISNULL(mt.MarksPerQuestion, 0) AS MarksPerQuestion, ISNULL(mt.HasNegativeMarking, 0) AS HasNegativeMarking, mt.NegativeMarkingValue,
+                        mt.SubscriptionPlanId, mt.AccessType, mt.AttemptsAllowed, ISNULL(mt.Status, 'Active') AS Status,
                         mt.CreatedAt, mt.UpdatedAt, mt.CreatedBy,
-                        CAST(NULL AS INT) AS [Year], CAST(NULL AS NVARCHAR(50)) AS Difficulty, CAST(NULL AS NVARCHAR(100)) AS PaperCode, CAST(NULL AS DATETIME2) AS ExamDate, CAST(NULL AS DATETIME2) AS PublishDateTime,
-                        CAST(NULL AS DATETIME2) AS ValidTill, CAST('1' AS NVARCHAR(20)) AS ShowResultType, CAST(NULL AS NVARCHAR(500)) AS ImageUrl,
+                        mt.[Year], mt.Difficulty, mt.PaperCode, mt.ExamDate, mt.PublishDateTime,
+                        mt.ValidTill, ISNULL(mt.ShowResultType, '1') AS ShowResultType, mt.ImageUrl,
                         e.Name AS ExamName,
                         CAST('' AS NVARCHAR(100)) AS ExamType,
                         mt.SubjectId AS SubjectId,
@@ -544,7 +743,25 @@ namespace QuestionService.Infrastructure.Repositories
                         WHERE MockTestId = @MockTestId AND UserId = @UserId
                         ORDER BY StartedAt DESC";
 
-                    mockTest.Attempts = (await connection.QueryAsync<MockTestAttemptDto>(attemptsSql, new { UserId = userId, MockTestId = mockTestId })).ToList();
+                    var attemptResults = await connection.QueryAsync<dynamic>(attemptsSql, new { UserId = userId, MockTestId = mockTestId });
+                    
+                    mockTest.Attempts = attemptResults.Select(ar => new MockTestAttemptDto
+                    {
+                        Id = ar.Id,
+                        MockTestId = ar.MockTestId,
+                        UserId = ar.UserId,
+                        StartedAt = ar.StartedAt,
+                        CompletedAt = ar.CompletedAt,
+                        Duration = TimeSpan.FromMinutes((int)ar.Duration),
+                        TotalQuestions = ar.TotalQuestions,
+                        AnsweredQuestions = ar.AnsweredQuestions,
+                        CorrectAnswers = ar.CorrectAnswers,
+                        WrongAnswers = ar.WrongAnswers,
+                        ObtainedMarks = ar.ObtainedMarks,
+                        Percentage = ar.Percentage,
+                        Status = ar.Status,
+                        Grade = ar.Grade
+                    }).ToList();
                 }
 
                 return mockTest;
@@ -915,18 +1132,18 @@ namespace QuestionService.Infrastructure.Repositories
                     TotalQuestions, AnsweredQuestions, CorrectAnswers, WrongAnswers,
                     ObtainedMarks, Percentage, Status, Grade
                 )
+                OUTPUT INSERTED.Id, INSERTED.StartedAt, INSERTED.CompletedAt,
+                       INSERTED.TotalQuestions, INSERTED.AnsweredQuestions, INSERTED.CorrectAnswers,
+                       INSERTED.WrongAnswers, INSERTED.ObtainedMarks, INSERTED.Percentage,
+                       INSERTED.Status, INSERTED.Grade
                 VALUES (
                     @MockTestId, @UserId, @StartedAt, GETDATE(), 
                     DATEDIFF(MINUTE, @StartedAt, GETDATE()),
                     @TotalQuestions, @AnsweredQuestions, @CorrectAnswers, @WrongAnswers,
                     @ObtainedMarks, @Percentage, 'Completed', @Grade
-                )
-                OUTPUT INSERTED.Id, INSERTED.StartedAt, INSERTED.CompletedAt, INSERTED.Duration,
-                       INSERTED.TotalQuestions, INSERTED.AnsweredQuestions, INSERTED.CorrectAnswers,
-                       INSERTED.WrongAnswers, INSERTED.ObtainedMarks, INSERTED.Percentage,
-                       INSERTED.Status, INSERTED.Grade";
+                )";
 
-            return await connection.QuerySingleAsync<MockTestAttemptDto>(attemptSql, new
+            var result = await connection.QuerySingleAsync<dynamic>(attemptSql, new
             {
                 MockTestId = session.MockTestId,
                 UserId = userId,
@@ -939,6 +1156,27 @@ namespace QuestionService.Infrastructure.Repositories
                 Percentage = percentage,
                 Grade = grade
             }, transaction);
+
+            // Calculate duration in minutes and convert to TimeSpan
+            var durationInMinutes = (DateTime)result.CompletedAt - session.StartedAt;
+            
+            return new MockTestAttemptDto
+            {
+                Id = result.Id,
+                MockTestId = session.MockTestId,
+                UserId = userId,
+                StartedAt = result.StartedAt,
+                CompletedAt = result.CompletedAt,
+                Duration = durationInMinutes,
+                TotalQuestions = result.TotalQuestions,
+                AnsweredQuestions = result.AnsweredQuestions,
+                CorrectAnswers = result.CorrectAnswers,
+                WrongAnswers = result.WrongAnswers,
+                ObtainedMarks = result.ObtainedMarks,
+                Percentage = result.Percentage,
+                Status = result.Status,
+                Grade = result.Grade
+            };
         }
 
         // Statistics

@@ -11,7 +11,7 @@ namespace QuestionService.Application.Interfaces
         Task<MockTestDto> UpdateMockTestAsync(UpdateMockTestDto dto);
         Task<bool> DeleteMockTestAsync(int id);
         Task<MockTestDto?> GetMockTestByIdAsync(int id);
-        Task<MockTestListResponseDto> GetMockTestsAsync(int pageNumber = 1, int pageSize = 20, int? examId = null, int? subjectId = null, bool? isActive = null);
+        Task<MockTestListResponseDto> GetMockTestsAsync(int pageNumber = 1, int pageSize = 20, int? examId = null, int? subjectId = null, bool? isActive = null, MockTestListRequestDto? request = null);
         Task<MockTestListResponseDto> GetMockTestsListAsync(MockTestListRequestDto request);
         Task<MockTestSummaryDto> GetMockTestSummaryAsync();
         Task<List<ExamListDto>> GetExamsForUserAsync(int userId);
@@ -48,6 +48,7 @@ namespace QuestionService.Application.Interfaces
         Task<bool> RemoveQuestionFromMockTestAsync(int mockTestId, int questionId);
         Task<bool> UpdateQuestionInMockTestAsync(int mockTestId, int questionId, int questionNumber, decimal marks, decimal negativeMarks);
         Task<List<MockTestQuestionDto>> GetMockTestQuestionsAsync(int mockTestId);
+        Task<MockTestQuestionDto?> GetQuestionByIdAsync(int mockTestId, int questionId);
         
         // Statistics and analytics
         Task<MockTestStatisticsDto> GetMockTestStatisticsAsync(MockTestStatisticsRequestDto? request = null);

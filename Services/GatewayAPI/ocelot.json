@@ -596,7 +596,7 @@
         { "Host": "192.168.1.23", "Port": 56925 }
       ],
       "UpstreamPathTemplate": "/api/admin/subscription-plans/durations",
-      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
       "DownstreamHeaderTransform": {
         "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}"
       },

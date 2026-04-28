@@ -21,6 +21,8 @@ namespace QuestionService.Application.Interfaces
         Task<(IEnumerable<QuestionAdminListItemDto> Items, int TotalCount)> GetAdminQuestionsPagedAsync(QuestionFilterRequestDto filter);
         Task<QuestionDashboardStatsDto> GetDashboardStatsAsync();
         Task<bool> SetPublishStatusAsync(int id, bool isPublished);
+        Task<(IEnumerable<QuestionAdminListItemDto> Items, int TotalCount)> GetAllAdminQuestionsAsync(QuestionFilterRequestDto filter);
+        Task<IEnumerable<QuestionAdminListItemDto>> GetAllAdminQuestionsGroupedByMockTestAsync(QuestionFilterRequestDto filter);
         Task<int> BulkCreateQuestionsAsync(IEnumerable<CreateQuestionAdminDto> questions);
         Task<bool> UpdateQuestionImageUrlsAsync(int questionId, string? questionImageUrl, string? optionAImageUrl, string? optionBImageUrl, string? optionCImageUrl, string? optionDImageUrl, string? explanationImageUrl);
     }

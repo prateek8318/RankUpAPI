@@ -24,5 +24,13 @@ namespace QuestionService.Application.Interfaces
         Task<IEnumerable<ExamTypeDto>> GetExamTypesAsync();
         Task<IEnumerable<ExamNameDto>> GetExamNamesByTypeAsync(string examType);
         Task<IEnumerable<ExamNameDto>> GetAllExamNamesAsync();
+        
+        // Module Integration Methods
+        Task<string?> GetModuleNameByQuestionIdAsync(int questionId);
+        Task<string?> GetModuleNameByIdAsync(int moduleId);
+        Task<SampleQuestionDto?> GetSampleQuestionByExamAndSubjectAsync(int examId, int subjectId);
+        
+        // Question Pagination Methods
+        Task<QuestionPagedResponseDto> GetQuestionsPagedAsync(QuestionFilterRequestDto filter);
     }
 }

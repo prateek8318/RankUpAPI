@@ -5,6 +5,8 @@ using QuestionService.Application.Services;
 using QuestionService.Application.Interfaces;
 using QuestionService.API.Helpers;
 using System.Security.Claims;
+using System.Text;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuestionService.API.Controllers
 {
@@ -29,6 +31,68 @@ namespace QuestionService.API.Controllers
 
         #region Admin Endpoints
 
+        private async Task<string?> SaveMockTestImageAsync(IFormFile? imageFile)
+        {
+            if (imageFile == null || imageFile.Length == 0)
+                return null;
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(fileExtension))
+                throw new ArgumentException("Only image files (jpg, jpeg, png, gif, webp) are allowed");
+
+            if (imageFile.Length > 5 * 1024 * 1024)
+                throw new ArgumentException("Image size must be less than 5MB");
+
+            var fileName = $"{Guid.NewGuid()}{fileExtension}";
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "mock-tests");
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            await using var stream = new FileStream(filePath, FileMode.Create);
+            await imageFile.CopyToAsync(stream);
+
+            return $"/images/mock-tests/{fileName}";
+        }
+
+        private static FileContentResult BuildMockTestsCsv(IReadOnlyList<MockTestListDto> items)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Id,Name,ExamName,SubjectName,MockTestType,Status,AccessType,AttemptsAllowed,TotalQuestions,TotalMarks,CreatedAt,ImageUrl");
+
+            static string CsvEscape(string? value)
+            {
+                if (string.IsNullOrEmpty(value)) return string.Empty;
+                var escaped = value.Replace("\"", "\"\"");
+                return $"\"{escaped}\"";
+            }
+
+            foreach (var item in items)
+            {
+                sb.AppendLine(string.Join(",",
+                    item.Id,
+                    CsvEscape(item.Name),
+                    CsvEscape(item.ExamName),
+                    CsvEscape(item.SubjectName),
+                    CsvEscape(item.MockTestTypeDisplay),
+                    CsvEscape(item.Status),
+                    CsvEscape(item.AccessType),
+                    item.AttemptsAllowed,
+                    item.TotalQuestions,
+                    item.TotalMarks,
+                    item.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                    CsvEscape(item.ImageUrl)));
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+            var fileName = $"mock-tests-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv";
+            return new FileContentResult(bytes, "text/csv")
+            {
+                FileDownloadName = fileName
+            };
+        }
+
         /// <summary>
         /// Create a new mock test with image upload support
         /// </summary>
@@ -44,6 +108,7 @@ namespace QuestionService.API.Controllers
                     return Unauthorized(new { success = false, message = "Invalid user" });
 
                 dto.CreatedBy = userId;
+                dto.ImageUrl = await SaveMockTestImageAsync(dto.ImageFile);
                 var mockTest = await _mockTestService.CreateMockTestWithImageAsync(dto);
                 return Ok(new { success = true, data = mockTest, message = "Mock test created successfully" });
             }
@@ -73,6 +138,7 @@ namespace QuestionService.API.Controllers
                     return Unauthorized(new { success = false, message = "Invalid user" });
 
                 dto.CreatedBy = userId;
+                dto.ImageUrl = await SaveMockTestImageAsync(dto.ImageFile);
                 var mockTest = await _mockTestService.CreateMockTestDraftAsync(dto);
                 return Ok(new { success = true, data = mockTest, message = "Mock test saved as draft successfully" });
             }
@@ -119,9 +185,9 @@ namespace QuestionService.API.Controllers
         /// <summary>
         /// Get comprehensive list of mock tests with filtering and pagination (Admin View)
         /// </summary>
-        [HttpPost("admin/mock-tests/list")]
+        [HttpGet("admin/mock-tests")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<object>> GetMockTestsList([FromBody] MockTestListRequestDto request)
+        public async Task<ActionResult<object>> GetMockTestsList([FromQuery] MockTestListRequestDto request)
         {
             try
             {
@@ -187,7 +253,35 @@ namespace QuestionService.API.Controllers
         /// </summary>
         [HttpPut("admin/mock-tests/{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<object>> UpdateMockTest(int id, [FromBody] UpdateMockTestDto dto)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<object>> UpdateMockTest(int id, [FromForm] UpdateMockTestWithImageDto dto)
+        {
+            try
+            {
+                dto.Id = id;
+                var uploadedImagePath = await SaveMockTestImageAsync(dto.ImageFile);
+                if (!string.IsNullOrWhiteSpace(uploadedImagePath))
+                {
+                    dto.ImageUrl = uploadedImagePath;
+                }
+                var mockTest = await _mockTestService.UpdateMockTestAsync(dto);
+                return Ok(new { success = true, data = mockTest, message = "Mock test updated successfully" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating mock test: {Id}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        [HttpPut("admin/mock-tests/{id}")]
+        [Authorize(Roles = "Admin")]
+        [Consumes("application/json")]
+        public async Task<ActionResult<object>> UpdateMockTestJson(int id, [FromBody] UpdateMockTestDto dto)
         {
             try
             {
@@ -202,6 +296,41 @@ namespace QuestionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating mock test: {Id}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        [HttpPatch("admin/mock-tests/{id}/status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> UpdateMockTestStatus(int id, [FromBody] UpdateMockTestStatusRequestDto request)
+        {
+            try
+            {
+                var status = request.Status switch
+                {
+                    0 => MockTestStatus.Inactive,
+                    1 => MockTestStatus.Active,
+                    2 => MockTestStatus.Scheduled,
+                    3 => MockTestStatus.Draft,
+                    _ => MockTestStatus.Active
+                };
+
+                var dto = new UpdateMockTestDto
+                {
+                    Id = id,
+                    Status = status
+                };
+
+                var mockTest = await _mockTestService.UpdateMockTestAsync(dto);
+                return Ok(new { success = true, data = mockTest, message = "Mock test status updated successfully" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating status for mock test: {Id}", id);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
@@ -253,18 +382,58 @@ namespace QuestionService.API.Controllers
         /// <summary>
         /// Get all mock tests with pagination and filters (admin view)
         /// </summary>
-        [HttpGet("admin/mock-tests")]
+        [HttpGet("admin/mock-tests/list")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<object>> GetMockTests(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20,
+            [FromQuery] string? language = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 20,
             [FromQuery] int? examId = null,
             [FromQuery] int? subjectId = null,
-            [FromQuery] bool? isActive = null)
+            [FromQuery] bool? isActive = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = null,
+            [FromQuery] MockTestType? categories = null,
+            [FromQuery] string? type = null,
+            [FromQuery] string? status = null,
+            [FromQuery] string? attempt = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] string? export = null)
         {
             try
             {
-                var result = await _mockTestService.GetMockTestsAsync(pageNumber, pageSize, examId, subjectId, isActive);
+                var request = new MockTestListRequestDto
+                {
+                    PageNumber = page <= 0 ? 1 : page,
+                    PageSize = limit <= 0 ? 20 : Math.Min(limit, 100),
+                    ExamId = examId,
+                    SubjectId = subjectId,
+                    IsActive = isActive,
+                    SearchTerm = search,
+                    SortBy = sortBy,
+                    SortOrder = sortOrder,
+                    MockTestType = categories,
+                    AccessType = string.IsNullOrWhiteSpace(type) ? null : type,
+                    AttemptsAllowed = string.Equals(attempt, "single", StringComparison.OrdinalIgnoreCase) ? 1 :
+                                      string.Equals(attempt, "multiple", StringComparison.OrdinalIgnoreCase) ? 2 : null,
+                    CreatedFrom = fromDate,
+                    CreatedTo = toDate
+                };
+
+                if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<MockTestStatus>(status, true, out var parsedStatus))
+                {
+                    request.Status = parsedStatus;
+                }
+
+                var result = await _mockTestService.GetMockTestsListAsync(request);
+
+                if (string.Equals(export, "excel", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BuildMockTestsCsv(result.MockTests);
+                }
+
                 return Ok(new { success = true, data = result });
             }
             catch (Exception ex)
@@ -336,6 +505,60 @@ namespace QuestionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving mock test questions: {MockTestId}", mockTestId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get specific question from mock test
+        /// </summary>
+        [HttpGet("admin/mock-tests/{mockTestId}/questions/{questionId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> GetMockTestQuestion(int mockTestId, int questionId)
+        {
+            try
+            {
+                var question = await _mockTestService.GetQuestionByIdAsync(mockTestId, questionId);
+                
+                if (question == null)
+                {
+                    return NotFound(new { success = false, message = "Question not found in mock test" });
+                }
+                
+                return Ok(new { success = true, data = question });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving mock test question: {MockTestId}, {QuestionId}", mockTestId, questionId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Update mock test question properties
+        /// </summary>
+        [HttpPut("admin/mock-tests/{mockTestId}/questions/{questionId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> UpdateMockTestQuestion(
+            int mockTestId, 
+            int questionId, 
+            [FromBody] UpdateMockTestQuestionDto dto)
+        {
+            try
+            {
+                var result = await _mockTestService.UpdateQuestionInMockTestAsync(
+                    mockTestId, questionId, dto.QuestionNumber, dto.Marks, dto.NegativeMarks);
+                
+                return Ok(new { success = true, message = "Mock test question updated successfully" });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input for mock test question update: {MockTestId}, {QuestionId}", mockTestId, questionId);
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating mock test question: {MockTestId}, {QuestionId}", mockTestId, questionId);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
@@ -685,7 +908,7 @@ namespace QuestionService.API.Controllers
         /// Submit mock test from already saved answers
         /// </summary>
         [HttpPost("{sessionId:int}/submit")]
-        public async Task<ActionResult<object>> SubmitMockTestSession(int sessionId, [FromBody] SubmitMockTestSessionDto? _ = null)
+        public async Task<ActionResult<object>> SubmitMockTestSession(int sessionId)
         {
             try
             {
@@ -892,6 +1115,18 @@ namespace QuestionService.API.Controllers
         public decimal NegativeMarks { get; set; }
     }
 
+    public class UpdateMockTestQuestionDto
+    {
+        [Range(1, int.MaxValue, ErrorMessage = "Question number must be greater than 0")]
+        public int QuestionNumber { get; set; }
+        
+        [Range(0.01, 100, ErrorMessage = "Marks must be between 0.01 and 100")]
+        public decimal Marks { get; set; }
+        
+        [Range(0, 100, ErrorMessage = "Negative marks must be between 0 and 100")]
+        public decimal NegativeMarks { get; set; }
+    }
+
     public class SubmitMockTestDto
     {
         public int SessionId { get; set; }
@@ -907,5 +1142,10 @@ namespace QuestionService.API.Controllers
     public class StartMockTestLanguageRequestDto
     {
         public string? LanguageCode { get; set; }
+    }
+
+    public class UpdateMockTestStatusRequestDto
+    {
+        public int Status { get; set; }
     }
 }

@@ -10,9 +10,13 @@ namespace QuestionService.Application.DTOs
     {
         public int Id { get; set; }
         public int? ModuleId { get; set; }
+        public string? ModuleName { get; set; }
         public int ExamId { get; set; }
+        public string? ExamName { get; set; }
         public int SubjectId { get; set; }
+        public string? SubjectName { get; set; }
         public int? TopicId { get; set; }
+        public string? TopicName { get; set; }
         public string QuestionText { get; set; } = string.Empty;
         public string? OptionA { get; set; }
         public string? OptionB { get; set; }
@@ -40,6 +44,15 @@ namespace QuestionService.Application.DTOs
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public bool IsActive { get; set; }
+        public int? MockTestId { get; set; }
+        public string? MockTestName { get; set; }
+        
+        // Translation fields for multi-language support
+        public string? TranslatedOptionA { get; set; }
+        public string? TranslatedOptionB { get; set; }
+        public string? TranslatedOptionC { get; set; }
+        public string? TranslatedOptionD { get; set; }
+        public string? TranslatedExplanation { get; set; }
         
         // Navigation properties
         public TopicDto? Topic { get; set; }
@@ -429,6 +442,7 @@ namespace QuestionService.Application.DTOs
         public string? Reference { get; set; }
         public string? Tags { get; set; }
         public int CreatedBy { get; set; }
+        public int? MockTestId { get; set; }
         public List<QuestionTranslationUpsertDto> Translations { get; set; } = new();
     }
 
@@ -438,13 +452,16 @@ namespace QuestionService.Application.DTOs
         public int MockTestId { get; set; }
         public int SubjectId { get; set; }
         public int? TopicId { get; set; }
-        public string QuestionText { get; set; } = string.Empty;
-        public string OptionA { get; set; } = string.Empty;
-        public string OptionB { get; set; } = string.Empty;
-        public string OptionC { get; set; } = string.Empty;
-        public string OptionD { get; set; } = string.Empty;
-        public string CorrectAnswer { get; set; } = string.Empty;
-        public string Explanation { get; set; } = string.Empty;
+        // NOTE: These are nullable to avoid ASP.NET Core implicit "required" validation
+        // for non-nullable reference types when using [ApiController] + [FromForm].
+        // We validate/normalize them in the service layer.
+        public string? QuestionText { get; set; }
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string? CorrectAnswer { get; set; }
+        public string? Explanation { get; set; }
         public decimal Marks { get; set; } = 1;
         public decimal NegativeMarks { get; set; } = 0;
         public string DifficultyLevel { get; set; } = "Medium";
@@ -484,15 +501,20 @@ namespace QuestionService.Application.DTOs
     {
         public int Id { get; set; }
         public bool IsActive { get; set; } = true;
+        public int? MockTestId { get; set; }
     }
 
     public class QuestionAdminListItemDto
     {
         public int Id { get; set; }
         public int ModuleId { get; set; }
+        public string? ModuleName { get; set; }
         public int ExamId { get; set; }
+        public string? ExamName { get; set; }
         public int SubjectId { get; set; }
+        public string? SubjectName { get; set; }
         public int TopicId { get; set; }
+        public string? TopicName { get; set; }
         public string DifficultyLevel { get; set; } = "Medium";
         public int Marks { get; set; }
         public decimal NegativeMarks { get; set; }
@@ -501,6 +523,39 @@ namespace QuestionService.Application.DTOs
         public DateTime CreatedAt { get; set; }
         public string? DisplayQuestionText { get; set; }
         public string? LanguageCode { get; set; }
+        
+        // Additional fields for complete question data
+        public string QuestionText { get; set; } = string.Empty;
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public string? Explanation { get; set; }
+        public string QuestionType { get; set; } = "MCQ";
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
+        public bool SameExplanationForAllLanguages { get; set; }
+        public string? Reference { get; set; }
+        public string? Tags { get; set; }
+        public int CreatedBy { get; set; }
+        public int? ReviewedBy { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public DateTime? PublishDate { get; set; }
+        public int? MockTestId { get; set; }
+        public string? MockTestName { get; set; }
+        public int? MockTestTypeId { get; set; }
+        
+        // Translation fields for multi-language support
+        public string? TranslatedOptionA { get; set; }
+        public string? TranslatedOptionB { get; set; }
+        public string? TranslatedOptionC { get; set; }
+        public string? TranslatedOptionD { get; set; }
+        public string? TranslatedExplanation { get; set; }
     }
 
     public class QuestionAdminDetailDto
@@ -537,6 +592,7 @@ namespace QuestionService.Application.DTOs
         public int? ExamId { get; set; }
         public int? TopicId { get; set; }
         public int? MockTestId { get; set; }
+        public string? GroupBy { get; set; } // "module"(default), "mocktest"
         public string? DifficultyLevel { get; set; }
         public string? LanguageCode { get; set; }
         public bool? IsPublished { get; set; }
@@ -889,7 +945,10 @@ namespace QuestionService.Application.DTOs
     public class ExcelQuestionRowDto
     {
         public int RowNumber { get; set; }
+        public int? QuestionId { get; set; }
+        public string? ExternalQuestionCode { get; set; }
         public string? Module { get; set; }
+        public int? MockTestId { get; set; }
         public string Exam { get; set; } = string.Empty;
         public string Subject { get; set; } = string.Empty;
         public string? Topic { get; set; }
@@ -914,6 +973,48 @@ namespace QuestionService.Application.DTOs
         public string? Tags { get; set; }
         public bool SameExplanationForAllLanguages { get; set; } = false;
         public List<QuestionTranslationCreateDto>? Translations { get; set; }
+    }
+
+    public class BulkQuestionFileUploadRequestDto
+    {
+        [Required]
+        public IFormFile File { get; set; } = null!;
+
+        [Required]
+        public int ModuleId { get; set; }
+
+        public int? MockTestId { get; set; }
+        public int? ExamId { get; set; }
+
+        [Required]
+        public int SubjectId { get; set; }
+
+        public int? TopicId { get; set; }
+        public string? Mode { get; set; } = "create";
+        public bool ContinueOnError { get; set; } = true;
+        public string? LanguageCode { get; set; } = "en";
+    }
+
+    public class BulkQuestionRowResultDto
+    {
+        public int RowNumber { get; set; }
+        public bool Success { get; set; }
+        public int? QuestionId { get; set; }
+        public string? Action { get; set; }
+        public string? Error { get; set; }
+    }
+
+    public class BulkQuestionFileUploadResultDto
+    {
+        public int TotalRows { get; set; }
+        public int SuccessCount { get; set; }
+        public int FailedCount { get; set; }
+        public int? MockTestId { get; set; }
+        public int ModuleId { get; set; }
+        public int ExamId { get; set; }
+        public int SubjectId { get; set; }
+        public int? TopicId { get; set; }
+        public List<BulkQuestionRowResultDto> Rows { get; set; } = new();
     }
 
     // Simple Question Creation DTO with Exam Integration

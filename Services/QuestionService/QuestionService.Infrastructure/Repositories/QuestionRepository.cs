@@ -225,6 +225,51 @@ namespace QuestionService.Infrastructure.Repositories
             });
         }
 
+        public async Task<QuestionPagedResponseDto> GetQuestionsPagedAsync(QuestionFilterRequestDto filter)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var result = await GetQuestionsPagedAsync(
+                    filter.PageNumber, 
+                    filter.PageSize, 
+                    filter.ExamId, 
+                    filter.SubjectId, 
+                    filter.TopicId, 
+                    filter.DifficultyLevel, 
+                    filter.IsPublished, 
+                    filter.LanguageCode ?? "en"
+                );
+                
+                return new QuestionPagedResponseDto
+                {
+                    Items = result.Questions.Select(q => new QuestionDto
+                    {
+                        Id = q.Id,
+                        QuestionText = q.QuestionText,
+                        OptionA = q.OptionA,
+                        OptionB = q.OptionB,
+                        OptionC = q.OptionC,
+                        OptionD = q.OptionD,
+                        CorrectAnswer = q.CorrectAnswer,
+                        Explanation = q.Explanation,
+                        Marks = q.Marks,
+                        NegativeMarks = q.NegativeMarks,
+                        DifficultyLevel = q.DifficultyLevel,
+                        ExamId = q.ExamId,
+                        SubjectId = q.SubjectId,
+                        TopicId = q.TopicId,
+                        ModuleId = q.ModuleId,
+                        IsActive = q.IsActive,
+                        CreatedAt = q.CreatedAt
+                    }).ToList(),
+                    TotalCount = result.TotalCount,
+                    PageNumber = filter.PageNumber,
+                    PageSize = filter.PageSize,
+                    TotalPages = (int)Math.Ceiling((double)result.TotalCount / filter.PageSize)
+                };
+            });
+        }
+
         public async Task<(IEnumerable<Question> Questions, int TotalCount)> GetQuestionsPagedAsync(int pageNumber, int pageSize, int? examId = null, int? subjectId = null, int? topicId = null, string? difficultyLevel = null, bool? isPublished = null, string languageCode = "en")
         {
             return await WithConnectionAsync(async connection =>
@@ -276,72 +321,30 @@ namespace QuestionService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                // Cursor format: "<createdAtTicks>|<id>" (keyset cursor; stable even when new rows are inserted)
-                static bool TryParseKeysetCursor(string? raw, out long createdAtTicks, out int id)
+                // For simplicity, use the existing stored procedure and convert to cursor-based pagination
+                // Calculate page number from cursor
+                int pageNumber = 1;
+                if (!string.IsNullOrEmpty(cursor))
                 {
-                    createdAtTicks = 0;
-                    id = 0;
-                    if (string.IsNullOrWhiteSpace(raw)) return false;
-
-                    var parts = raw.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    if (parts.Length != 2) return false;
-
-                    return long.TryParse(parts[0], out createdAtTicks) && int.TryParse(parts[1], out id);
+                    // Extract page number from cursor or default to 1
+                    if (int.TryParse(cursor, out int pageNum))
+                    {
+                        pageNumber = pageNum;
+                    }
                 }
 
-                var hasCursor = TryParseKeysetCursor(cursor, out var cursorTicks, out var cursorId);
-                var cursorCreatedAtUtc = hasCursor ? new DateTime(cursorTicks, DateTimeKind.Utc) : (DateTime?)null;
+                // Adjust page number based on direction
+                if (direction == "prev" && pageNumber > 1)
+                {
+                    pageNumber--;
+                }
+                else if (direction == "next")
+                {
+                    pageNumber++;
+                }
 
-                // Keyset pagination:
-                // - next page (older): (CreatedAt,Id) < cursor
-                // - prev page (newer): (CreatedAt,Id) > cursor
-                var sql = @"
-                    SELECT TOP (@PageSize + 1)
-                        q.Id, q.ModuleId, q.ExamId, q.SubjectId, q.TopicId, q.QuestionText, 
-                        q.OptionA, q.OptionB, q.OptionC, q.OptionD, q.CorrectAnswer, q.Explanation,
-                        q.Marks, q.NegativeMarks, q.DifficultyLevel, q.QuestionType, q.QuestionImageUrl,
-                        q.OptionAImageUrl, q.OptionBImageUrl, q.OptionCImageUrl, q.OptionDImageUrl,
-                        q.ExplanationImageUrl, q.SameExplanationForAllLanguages, q.Reference, q.Tags,
-                        q.CreatedBy, q.ReviewedBy, q.IsPublished, q.PublishDate, q.CreatedAt, 
-                        q.UpdatedAt, q.IsActive
-                    FROM Questions q
-                    WHERE q.IsActive = 1
-                      AND (@ExamId IS NULL OR q.ExamId = @ExamId)
-                      AND (@SubjectId IS NULL OR q.SubjectId = @SubjectId)
-                      AND (@TopicId IS NULL OR q.TopicId = @TopicId)
-                      AND (@DifficultyLevel IS NULL OR q.DifficultyLevel = @DifficultyLevel)
-                      AND (@IsPublished IS NULL OR q.IsPublished = @IsPublished)
-                      AND (
-                           @HasCursor = 0
-                           OR (
-                                @Direction = 'next'
-                                AND (
-                                     q.CreatedAt < @CursorCreatedAt
-                                     OR (q.CreatedAt = @CursorCreatedAt AND q.Id < @CursorId)
-                                )
-                           )
-                           OR (
-                                @Direction = 'prev'
-                                AND (
-                                     q.CreatedAt > @CursorCreatedAt
-                                     OR (q.CreatedAt = @CursorCreatedAt AND q.Id > @CursorId)
-                                )
-                           )
-                      )
-                    ORDER BY
-                      CASE WHEN @Direction = 'prev' THEN q.CreatedAt END ASC,
-                      CASE WHEN @Direction = 'prev' THEN q.Id END ASC,
-                      CASE WHEN @Direction = 'next' THEN q.CreatedAt END DESC,
-                      CASE WHEN @Direction = 'next' THEN q.Id END DESC;
-
-                    SELECT COUNT(1)
-                    FROM Questions q
-                    WHERE q.IsActive = 1
-                      AND (@ExamId IS NULL OR q.ExamId = @ExamId)
-                      AND (@SubjectId IS NULL OR q.SubjectId = @SubjectId)
-                      AND (@TopicId IS NULL OR q.TopicId = @TopicId)
-                      AND (@DifficultyLevel IS NULL OR q.DifficultyLevel = @DifficultyLevel)
-                      AND (@IsPublished IS NULL OR q.IsPublished = @IsPublished);";
+                // Use the existing stored procedure which properly handles translations
+                var sql = "EXEC [dbo].[GetQuestionsWithFilters] @ExamId, @SubjectId, @TopicId, @DifficultyLevel, @IsPublished, @LanguageCode, @PageNumber, @PageSize";
 
                 var parameters = new
                 {
@@ -350,96 +353,55 @@ namespace QuestionService.Infrastructure.Repositories
                     TopicId = topicId,
                     DifficultyLevel = difficultyLevel,
                     IsPublished = isPublished,
-                    Direction = direction,
-                    PageSize = pageSize,
-                    HasCursor = hasCursor ? 1 : 0,
-                    CursorCreatedAt = cursorCreatedAtUtc ?? DateTime.UtcNow,
-                    CursorId = cursorId
+                    LanguageCode = languageCode,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize
                 };
 
                 using var multi = await connection.QueryMultipleAsync(sql, parameters);
-                var rows = multi.Read<dynamic>().ToList();
+
+                var questionLookup = new Dictionary<int, Question>();
+                var questions = multi.Read<Question, Topic, QuestionTranslation, Question>(
+                    (question, topic, translation) =>
+                    {
+                        if (!questionLookup.TryGetValue(question.Id, out var existingQuestion))
+                        {
+                            existingQuestion = question;
+                            existingQuestion.Topic = topic;
+                            questionLookup[existingQuestion.Id] = existingQuestion;
+                        }
+
+                        if (translation != null)
+                        {
+                            existingQuestion.Translations.Add(translation);
+                        }
+
+                        return existingQuestion;
+                    },
+                    splitOn: "Id,Id"
+                );
+
                 var totalCount = await multi.ReadSingleAsync<int>();
 
-                static int? ToNullableInt(object? value) => value is null ? null : Convert.ToInt32(value);
+                var questionList = questions.ToList();
 
-                var mapped = rows.Select(r => new Question
-                {
-                    Id = Convert.ToInt32(r.Id),
-                    ModuleId = ToNullableInt(r.ModuleId),
-                    ExamId = Convert.ToInt32(r.ExamId),
-                    SubjectId = Convert.ToInt32(r.SubjectId),
-                    TopicId = ToNullableInt(r.TopicId),
-                    QuestionText = r.QuestionText,
-                    OptionA = r.OptionA,
-                    OptionB = r.OptionB,
-                    OptionC = r.OptionC,
-                    OptionD = r.OptionD,
-                    CorrectAnswer = r.CorrectAnswer,
-                    Explanation = r.Explanation,
-                    Marks = r.Marks,
-                    NegativeMarks = r.NegativeMarks,
-                    DifficultyLevel = r.DifficultyLevel,
-                    QuestionType = r.QuestionType,
-                    QuestionImageUrl = r.QuestionImageUrl,
-                    OptionAImageUrl = r.OptionAImageUrl,
-                    OptionBImageUrl = r.OptionBImageUrl,
-                    OptionCImageUrl = r.OptionCImageUrl,
-                    OptionDImageUrl = r.OptionDImageUrl,
-                    ExplanationImageUrl = r.ExplanationImageUrl,
-                    SameExplanationForAllLanguages = r.SameExplanationForAllLanguages,
-                    Reference = r.Reference,
-                    Tags = r.Tags,
-                    CreatedBy = Convert.ToInt32(r.CreatedBy),
-                    ReviewedBy = ToNullableInt(r.ReviewedBy),
-                    IsPublished = r.IsPublished,
-                    PublishDate = r.PublishDate,
-                    CreatedAt = r.CreatedAt,
-                    UpdatedAt = r.UpdatedAt,
-                    IsActive = r.IsActive
-                }).ToList();
-
-                // For prev direction we ordered ASC to fetch newer; flip to keep response always newest->oldest
-                if (direction == "prev")
-                {
-                    mapped.Reverse();
-                }
-
-                var hasMore = mapped.Count > pageSize;
-                var pageItems = mapped.Take(pageSize).ToList();
-
+                // Generate cursors
                 string? nextCursor = null;
                 string? previousCursor = null;
-                bool hasNextPage;
-                bool hasPreviousPage;
+                bool hasNextPage = false;
+                bool hasPreviousPage = false;
 
-                if (pageItems.Count == 0)
+                if (questionList.Count > 0)
                 {
-                    return (pageItems, totalCount, null, null, false, false);
+                    var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+                    hasNextPage = pageNumber < totalPages;
+                    hasPreviousPage = pageNumber > 1;
+
+                    nextCursor = hasNextPage ? (pageNumber + 1).ToString() : null;
+                    previousCursor = hasPreviousPage ? (pageNumber - 1).ToString() : null;
                 }
 
-                // Cursors are based on boundary items
-                var last = pageItems.Last();
-                var first = pageItems.First();
-                var lastCursor = $"{last.CreatedAt.ToUniversalTime().Ticks}|{last.Id}";
-                var firstCursor = $"{first.CreatedAt.ToUniversalTime().Ticks}|{first.Id}";
-
-                if (direction == "next")
-                {
-                    hasNextPage = hasMore;
-                    hasPreviousPage = hasCursor;
-                    nextCursor = hasNextPage ? lastCursor : null;
-                    previousCursor = hasPreviousPage ? firstCursor : null;
-                }
-                else
-                {
-                    hasPreviousPage = hasMore;
-                    hasNextPage = hasCursor;
-                    previousCursor = hasPreviousPage ? firstCursor : null;
-                    nextCursor = hasNextPage ? lastCursor : null;
-                }
-
-                return (pageItems, totalCount, nextCursor, previousCursor, hasNextPage, hasPreviousPage);
+                return (questionList, totalCount, nextCursor, previousCursor, hasNextPage, hasPreviousPage);
             });
         }
 
@@ -1271,7 +1233,10 @@ namespace QuestionService.Infrastructure.Repositories
             return new ExcelQuestionRowDto
             {
                 RowNumber = rowNumber,
+                QuestionId = ParseNullableInt(Get("questionid", "id")),
+                ExternalQuestionCode = Get("externalquestioncode", "externalcode", "questioncode"),
                 Module = Get("module"),
+                MockTestId = ParseNullableInt(Get("mocktestid")),
                 Exam = Get("exam", "examname", "examtype") ?? string.Empty,
                 Subject = Get("subject", "subjectname") ?? string.Empty,
                 Topic = Get("topic", "topicname"),
@@ -1303,6 +1268,13 @@ namespace QuestionService.Infrastructure.Repositories
             return decimal.TryParse(input, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed)
                 ? parsed
                 : defaultValue;
+        }
+
+        private static int? ParseNullableInt(string? input)
+        {
+            return int.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+                ? parsed
+                : null;
         }
 
         private static int FindHeaderIndex(IReadOnlyList<string> headers, string name)
@@ -1465,6 +1437,52 @@ namespace QuestionService.Infrastructure.Repositories
                     ORDER BY e.Name";
 
                 return await connection.QueryAsync<ExamNameDto>(sql);
+            });
+        }
+
+        // Module Integration Methods
+        public async Task<string?> GetModuleNameByQuestionIdAsync(int questionId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT m.Name AS ModuleName
+                    FROM Questions q
+                    LEFT JOIN [RankUp_MasterDB].[dbo].[Modules] m ON q.ModuleId = m.Id
+                    WHERE q.Id = @QuestionId";
+
+                return await connection.QueryFirstOrDefaultAsync<string>(sql, new { QuestionId = questionId });
+            });
+        }
+
+        public async Task<string?> GetModuleNameByIdAsync(int moduleId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT Name AS ModuleName
+                    FROM [RankUp_MasterDB].[dbo].[Modules]
+                    WHERE Id = @ModuleId";
+
+                return await connection.QueryFirstOrDefaultAsync<string>(sql, new { ModuleId = moduleId });
+            });
+        }
+
+        public async Task<SampleQuestionDto?> GetSampleQuestionByExamAndSubjectAsync(int examId, int subjectId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sql = @"
+                    SELECT TOP 1 
+                        q.Id AS QuestionId,
+                        q.ModuleId
+                    FROM Questions q
+                    WHERE q.ExamId = @ExamId 
+                      AND q.SubjectId = @SubjectId
+                      AND q.IsActive = 1
+                    ORDER BY q.CreatedAt DESC";
+
+                return await connection.QueryFirstOrDefaultAsync<SampleQuestionDto>(sql, new { ExamId = examId, SubjectId = subjectId });
             });
         }
     }

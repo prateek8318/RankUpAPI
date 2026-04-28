@@ -9,13 +9,14 @@ namespace QuestionService.Application.Interfaces
         Task<MockTestDto?> GetByIdAsync(int id);
         Task<MockTestDto> UpdateAsync(UpdateMockTestDto dto);
         Task<bool> DeleteAsync(int id);
-        Task<(List<MockTestDto> MockTests, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? examId = null, int? subjectId = null, bool? isActive = null);
+        Task<(List<MockTestDto> MockTests, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? examId = null, int? subjectId = null, bool? isActive = null, MockTestListRequestDto? request = null);
         
         // Question management
         Task<bool> AddQuestionAsync(int mockTestId, int questionId, int questionNumber, decimal marks, decimal negativeMarks);
         Task<bool> RemoveQuestionAsync(int mockTestId, int questionId);
         Task<bool> UpdateQuestionAsync(int mockTestId, int questionId, int questionNumber, decimal marks, decimal negativeMarks);
         Task<List<MockTestQuestionDto>> GetQuestionsAsync(int mockTestId);
+        Task<MockTestQuestionDto?> GetQuestionByIdAsync(int mockTestId, int questionId);
         
         // User specific operations
         Task<List<MockTestListDto>> GetForUserAsync(int userId, int pageNumber, int pageSize, int? examId = null, int? subjectId = null);

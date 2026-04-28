@@ -48,6 +48,7 @@ namespace QuestionService.Application.Services
                 PublishDateTime = dto.PublishDateTime,
                 ValidTill = dto.ValidTill,
                 ShowResultType = dto.ShowResultType,
+                ImageUrl = dto.ImageUrl,
                 CreatedBy = dto.CreatedBy,
                 QuestionIds = dto.QuestionIds
             };
@@ -100,6 +101,7 @@ namespace QuestionService.Application.Services
                     PublishDateTime = dto.PublishDateTime,
                     ValidTill = dto.ValidTill,
                     ShowResultType = dto.ShowResultType,
+                    ImageUrl = dto.ImageUrl,
                     CreatedBy = dto.CreatedBy,
                     QuestionIds = dto.QuestionIds,
                     Status = MockTestStatus.Draft // Force draft status
@@ -132,7 +134,7 @@ namespace QuestionService.Application.Services
         }
 
         public Task<MockTestListResponseDto> GetMockTestsListAsync(MockTestListRequestDto request)
-            => GetMockTestsAsync(request.PageNumber, request.PageSize, request.ExamId, request.SubjectId, request.IsActive);
+            => GetMockTestsAsync(request.PageNumber, request.PageSize, request.ExamId, request.SubjectId, request.IsActive, request);
 
         public async Task<MockTestSummaryDto> GetMockTestSummaryAsync()
         {
@@ -338,6 +340,14 @@ namespace QuestionService.Application.Services
                     throw new ArgumentException($"Exam with ID {dto.ExamId} not found");
                 }
 
+                // Set mock test name dynamically when mockTestType = 1 (Mock Test)
+                if (dto.MockTestType == MockTestType.MockTest && string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    // Get module name from the first question's module if available, otherwise use default
+                    var moduleName = await GetModuleNameForMockTestAsync(dto);
+                    dto.Name = moduleName ?? "Mock Test";
+                }
+
                 // Set default values based on mock test type and scheduling
                 SetDefaultsForMockTestType(dto, examDetails);
                 
@@ -347,7 +357,7 @@ namespace QuestionService.Application.Services
                     SetMockTestStatus(dto);
                 }
 
-                // Create the mock test
+                // Create mock test
                 var mockTest = await _mockTestRepository.CreateAsync(dto);
 
                 // If specific questions are provided, add them to the mock test
@@ -375,6 +385,98 @@ namespace QuestionService.Application.Services
             {
                 _logger.LogError(ex, "Error creating {MockTestType}: {Name}", dto.MockTestType, dto.Name);
                 throw;
+            }
+        }
+
+        private async Task<IEnumerable<object>> GetQuestionsForSubjectAsync(int subjectId, int totalQuestions)
+        {
+            try
+            {
+                // Get questions from QuestionService using the existing repository
+                var questionFilter = new QuestionFilterRequestDto
+                {
+                    SubjectId = subjectId,
+                    ModuleId = 1, // Mock Test questions
+                    PageNumber = 1,
+                    PageSize = totalQuestions * 2, // Get more than needed for random selection
+                    IncludeInactive = false
+                };
+
+                // Use the existing QuestionDapperRepository through the question feature repository
+                var questions = await _questionFeatureRepository.GetQuestionsPagedAsync(questionFilter);
+                
+                return questions.Items.Select(q => new { 
+                    q.Id, 
+                    q.QuestionText, 
+                    q.Marks, 
+                    q.NegativeMarks,
+                    q.DifficultyLevel 
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting questions for subject: {SubjectId}", subjectId);
+                return new List<object>();
+            }
+        }
+
+        private async Task<IEnumerable<object>> GetQuestionsForExamAsync(int examId, int totalQuestions)
+        {
+            try
+            {
+                var questionFilter = new QuestionFilterRequestDto
+                {
+                    ExamId = examId,
+                    ModuleId = 1, // Mock Test questions
+                    PageNumber = 1,
+                    PageSize = totalQuestions * 2,
+                    IncludeInactive = false
+                };
+
+                var questions = await _questionFeatureRepository.GetQuestionsPagedAsync(questionFilter);
+                
+                return questions.Items.Select(q => new { 
+                    q.Id, 
+                    q.QuestionText, 
+                    q.Marks, 
+                    q.NegativeMarks,
+                    q.DifficultyLevel 
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting questions for exam: {ExamId}", examId);
+                return new List<object>();
+            }
+        }
+
+        private async Task<IEnumerable<object>> GetQuestionsForTopicAsync(int topicId, int totalQuestions)
+        {
+            try
+            {
+                var questionFilter = new QuestionFilterRequestDto
+                {
+                    TopicId = topicId,
+                    ModuleId = 1, // Mock Test questions
+                    PageNumber = 1,
+                    PageSize = totalQuestions * 2,
+                    IncludeInactive = false
+                };
+
+                var questions = await _questionFeatureRepository.GetQuestionsPagedAsync(questionFilter);
+                
+                return questions.Items.Select(q => new { 
+                    q.Id, 
+                    q.QuestionText, 
+                    q.Marks, 
+                    q.NegativeMarks,
+                    q.DifficultyLevel 
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting questions for topic: {TopicId}", topicId);
+                return new List<object>();
             }
         }
 
@@ -427,11 +529,11 @@ namespace QuestionService.Application.Services
             }
         }
 
-        public async Task<MockTestListResponseDto> GetMockTestsAsync(int pageNumber = 1, int pageSize = 20, int? examId = null, int? subjectId = null, bool? isActive = null)
+        public async Task<MockTestListResponseDto> GetMockTestsAsync(int pageNumber = 1, int pageSize = 20, int? examId = null, int? subjectId = null, bool? isActive = null, MockTestListRequestDto? request = null)
         {
             try
             {
-                var (mockTests, totalCount) = await _mockTestRepository.GetPagedAsync(pageNumber, pageSize, examId, subjectId, isActive);
+                var (mockTests, totalCount) = await _mockTestRepository.GetPagedAsync(pageNumber, pageSize, examId, subjectId, isActive, request);
 
                 return new MockTestListResponseDto
                 {
@@ -675,11 +777,38 @@ namespace QuestionService.Application.Services
         {
             try
             {
+                // Validate inputs
+                if (mockTestId <= 0)
+                    throw new ArgumentException("Mock test ID must be greater than 0");
+                
+                if (questionId <= 0)
+                    throw new ArgumentException("Question ID must be greater than 0");
+                
+                if (questionNumber <= 0)
+                    throw new ArgumentException("Question number must be greater than 0");
+                
+                if (marks <= 0)
+                    throw new ArgumentException("Marks must be greater than 0");
+                
+                if (negativeMarks < 0)
+                    throw new ArgumentException("Negative marks cannot be less than 0");
+                
+                // Check if mock test exists
+                var mockTest = await _mockTestRepository.GetByIdAsync(mockTestId);
+                if (mockTest == null)
+                    throw new ArgumentException($"Mock test with ID {mockTestId} not found");
+                
+                // Check if question exists in mock test
+                var questions = await _mockTestRepository.GetQuestionsAsync(mockTestId);
+                var existingQuestion = questions.FirstOrDefault(q => q.QuestionId == questionId);
+                if (existingQuestion == null)
+                    throw new ArgumentException($"Question {questionId} not found in mock test {mockTestId}");
+                
                 return await _mockTestRepository.UpdateQuestionAsync(mockTestId, questionId, questionNumber, marks, negativeMarks);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating question in mock test: {MockTestId}", mockTestId);
+                _logger.LogError(ex, "Error updating question in mock test: {MockTestId}, {QuestionId}", mockTestId, questionId);
                 throw;
             }
         }
@@ -693,6 +822,19 @@ namespace QuestionService.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving mock test questions: {MockTestId}", mockTestId);
+                throw;
+            }
+        }
+
+        public async Task<MockTestQuestionDto?> GetQuestionByIdAsync(int mockTestId, int questionId)
+        {
+            try
+            {
+                return await _mockTestRepository.GetQuestionByIdAsync(mockTestId, questionId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving mock test question: {MockTestId}, {QuestionId}", mockTestId, questionId);
                 throw;
             }
         }
@@ -871,22 +1013,25 @@ namespace QuestionService.Application.Services
                 {
                     case MockTestType.MockTest:
                         // Get questions for specific subject
-                        questions = new List<object>(); // TODO: Implement question retrieval logic
+                        questions = await GetQuestionsForSubjectAsync(dto.SubjectId ?? 0, dto.TotalQuestions);
                         break;
 
                     case MockTestType.TestSeries:
                         // Get questions for full exam (all subjects)
-                        questions = new List<object>(); // TODO: Implement question retrieval logic
+                        questions = await GetQuestionsForExamAsync(dto.ExamId, dto.TotalQuestions);
                         break;
 
                     case MockTestType.DeepPractice:
                         // Get questions for specific topic
-                        questions = new List<object>(); // TODO: Implement question retrieval logic
+                        if (dto.TopicId.HasValue)
+                            questions = await GetQuestionsForTopicAsync(dto.TopicId.Value, dto.TotalQuestions);
+                        else
+                            questions = await GetQuestionsForSubjectAsync(dto.SubjectId ?? 0, dto.TotalQuestions);
                         break;
 
                     case MockTestType.PreviousYear:
                         // Get questions for exam (can be filtered by year if needed)
-                        questions = new List<object>(); // TODO: Implement question retrieval logic
+                        questions = await GetQuestionsForExamAsync(dto.ExamId, dto.TotalQuestions);
                         break;
                 }
 
@@ -952,6 +1097,40 @@ namespace QuestionService.Application.Services
         private string GeneratePreviousYearCode(string examType, int year)
         {
             return $"{examType.ToUpper()}-{year}-ACT";
+        }
+
+        private async Task<string?> GetModuleNameForMockTestAsync(CreateMockTestDto dto)
+        {
+            try
+            {
+                // If we have specific question IDs, get module name from first question
+                if (dto.QuestionIds != null && dto.QuestionIds.Any())
+                {
+                    var firstQuestionId = dto.QuestionIds.First();
+                    var moduleName = await _questionFeatureRepository.GetModuleNameByQuestionIdAsync(firstQuestionId);
+                    return moduleName;
+                }
+                
+                // If no specific questions, try to get module name from exam/subject combination
+                // For MockTest type (1), we can use a default module name or derive from context
+                if (dto.SubjectId.HasValue)
+                {
+                    // Try to get a question from this subject/exam to determine module
+                    var sampleQuestion = await _questionFeatureRepository.GetSampleQuestionByExamAndSubjectAsync(dto.ExamId, dto.SubjectId.Value);
+                    if (sampleQuestion?.ModuleId.HasValue == true)
+                    {
+                        var moduleName = await _questionFeatureRepository.GetModuleNameByIdAsync(sampleQuestion.ModuleId.Value);
+                        return moduleName;
+                    }
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting module name for mock test");
+                return null;
+            }
         }
 
         private static (bool CanAccess, string Reason) EvaluateAccess(MockTestDto mockTest, UserSubscriptionDto? userSubscription)

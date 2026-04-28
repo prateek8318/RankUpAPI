@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Interfaces;
 using QuestionService.Domain.Entities;
+using System.Globalization;
 using System.Text.Json;
 using DomainQuestionRepository = QuestionService.Domain.Interfaces.IQuestionRepository;
 
@@ -355,6 +356,7 @@ namespace QuestionService.Application.Services
         {
             await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
             var createdQuestionId = await _adminRepository.CreateAdminQuestionAsync(dto);
+            await AttachQuestionToMockTestIfRequiredAsync(createdQuestionId, dto.MockTestId, dto.Marks, dto.NegativeMarks);
             var createdQuestion = await _adminRepository.GetAdminQuestionByIdAsync(createdQuestionId);
             if (createdQuestion == null)
             {
@@ -405,13 +407,13 @@ namespace QuestionService.Application.Services
                 ExamId = mockTest.ExamId,
                 SubjectId = dto.SubjectId,
                 TopicId = dto.TopicId ?? 0,
-                QuestionText = dto.QuestionText,
-                OptionA = dto.OptionA,
-                OptionB = dto.OptionB,
-                OptionC = dto.OptionC,
-                OptionD = dto.OptionD,
-                CorrectAnswer = dto.CorrectAnswer,
-                Explanation = dto.Explanation,
+                QuestionText = dto.QuestionText ?? string.Empty,
+                OptionA = dto.OptionA ?? string.Empty,
+                OptionB = dto.OptionB ?? string.Empty,
+                OptionC = dto.OptionC ?? string.Empty,
+                OptionD = dto.OptionD ?? string.Empty,
+                CorrectAnswer = dto.CorrectAnswer ?? string.Empty,
+                Explanation = dto.Explanation ?? string.Empty,
                 Marks = dto.Marks,
                 NegativeMarks = dto.NegativeMarks,
                 DifficultyLevel = dto.DifficultyLevel,
@@ -430,6 +432,7 @@ namespace QuestionService.Application.Services
             };
             
             var createdQuestionId = await _adminRepository.CreateAdminQuestionAsync(requestDto);
+            await AttachQuestionToMockTestIfRequiredAsync(createdQuestionId, dto.MockTestId, dto.Marks, dto.NegativeMarks);
             var createdQuestion = await _adminRepository.GetAdminQuestionByIdAsync(createdQuestionId);
             if (createdQuestion == null)
             {
@@ -500,6 +503,8 @@ namespace QuestionService.Application.Services
             if (!updated)
                 throw new Exception($"Failed to update question with ID {dto.Id}");
 
+            await AttachQuestionToMockTestIfRequiredAsync(dto.Id, dto.MockTestId, dto.Marks, dto.NegativeMarks);
+
             var updatedQuestion = await _adminRepository.GetAdminQuestionByIdAsync(dto.Id);
             if (updatedQuestion == null)
             {
@@ -523,21 +528,292 @@ namespace QuestionService.Application.Services
                 {
                     Id = question.Id,
                     ModuleId = question.ModuleId,
+                    ModuleName = question.ModuleName,
                     ExamId = question.ExamId,
+                    ExamName = question.ExamName,
                     SubjectId = question.SubjectId,
+                    SubjectName = question.SubjectName,
                     TopicId = question.TopicId,
-                    DifficultyLevel = question.DifficultyLevel,
+                    TopicName = question.TopicName,
+                    QuestionText = string.IsNullOrWhiteSpace(question.QuestionText) ? (question.DisplayQuestionText ?? string.Empty) : question.QuestionText,
+                    OptionA = question.OptionA,
+                    OptionB = question.OptionB,
+                    OptionC = question.OptionC,
+                    OptionD = question.OptionD,
+                    CorrectAnswer = string.IsNullOrWhiteSpace(question.CorrectAnswer) ? string.Empty : question.CorrectAnswer,
+                    Explanation = question.Explanation,
                     Marks = question.Marks,
                     NegativeMarks = question.NegativeMarks,
+                    DifficultyLevel = question.DifficultyLevel,
+                    QuestionType = question.QuestionType,
+                    QuestionImageUrl = question.QuestionImageUrl,
+                    OptionAImageUrl = question.OptionAImageUrl,
+                    OptionBImageUrl = question.OptionBImageUrl,
+                    OptionCImageUrl = question.OptionCImageUrl,
+                    OptionDImageUrl = question.OptionDImageUrl,
+                    ExplanationImageUrl = question.ExplanationImageUrl,
+                    SameExplanationForAllLanguages = question.SameExplanationForAllLanguages,
+                    Reference = question.Reference,
+                    Tags = question.Tags,
+                    CreatedBy = question.CreatedBy,
+                    ReviewedBy = question.ReviewedBy,
                     IsPublished = question.IsPublished,
+                    PublishDate = question.PublishDate,
                     IsActive = question.IsActive,
                     CreatedAt = question.CreatedAt,
-                    QuestionText = question.DisplayQuestionText ?? string.Empty
+                    UpdatedAt = question.UpdatedAt,
+                    MockTestId = question.MockTestId,
+                    TranslatedOptionA = question.TranslatedOptionA,
+                    TranslatedOptionB = question.TranslatedOptionB,
+                    TranslatedOptionC = question.TranslatedOptionC,
+                    TranslatedOptionD = question.TranslatedOptionD,
+                    TranslatedExplanation = question.TranslatedExplanation
                 }).ToList(),
                 PageNumber = filter.PageNumber,
                 PageSize = filter.PageSize,
                 TotalCount = totalCount,
                 TotalPages = (int)Math.Ceiling((double)totalCount / filter.PageSize)
+            };
+        }
+
+        public async Task<ModuleGroupedQuestionResponseDto> GetAdminQuestionsGroupedByModuleAsync(QuestionFilterRequestDto filter)
+        {
+            // Get ALL questions without pagination first
+            var (allQuestions, totalCount) = await _adminRepository.GetAllAdminQuestionsAsync(filter);
+            
+            // Apply pagination AFTER grouping
+            var groupedQuestions = allQuestions
+                .GroupBy(q => q.ModuleId)
+                .SelectMany(group => group.Select(q => new { Question = q, ModuleId = group.Key }))
+                .ToList();
+
+            // Apply pagination to the flattened list
+            var pagedQuestions = groupedQuestions
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .ToList();
+
+            // Group the paginated questions by module and then by subject for drill-down UI
+            var moduleGroups = pagedQuestions
+                .GroupBy(x => x.ModuleId)
+                .Select(group => new ModuleQuestionGroupDto
+                {
+                    ModuleId = group.Key,
+                    ModuleName = group.FirstOrDefault()?.Question.ModuleName ?? string.Empty,
+                    QuestionCount = group.Count(),
+                    Questions = group.Select(x => new QuestionDto
+                    {
+                        Id = x.Question.Id,
+                        ModuleId = x.Question.ModuleId,
+                        ModuleName = x.Question.ModuleName,
+                        ExamId = x.Question.ExamId,
+                        ExamName = x.Question.ExamName,
+                        SubjectId = x.Question.SubjectId,
+                        SubjectName = x.Question.SubjectName,
+                        TopicId = x.Question.TopicId,
+                        TopicName = x.Question.TopicName,
+                        QuestionText = string.IsNullOrWhiteSpace(x.Question.QuestionText) ? (x.Question.DisplayQuestionText ?? string.Empty) : x.Question.QuestionText,
+                        OptionA = x.Question.OptionA,
+                        OptionB = x.Question.OptionB,
+                        OptionC = x.Question.OptionC,
+                        OptionD = x.Question.OptionD,
+                        CorrectAnswer = string.IsNullOrWhiteSpace(x.Question.CorrectAnswer) ? string.Empty : x.Question.CorrectAnswer,
+                        Explanation = x.Question.Explanation,
+                        Marks = x.Question.Marks,
+                        NegativeMarks = x.Question.NegativeMarks,
+                        DifficultyLevel = x.Question.DifficultyLevel,
+                        QuestionType = x.Question.QuestionType,
+                        QuestionImageUrl = x.Question.QuestionImageUrl,
+                        OptionAImageUrl = x.Question.OptionAImageUrl,
+                        OptionBImageUrl = x.Question.OptionBImageUrl,
+                        OptionCImageUrl = x.Question.OptionCImageUrl,
+                        OptionDImageUrl = x.Question.OptionDImageUrl,
+                        ExplanationImageUrl = x.Question.ExplanationImageUrl,
+                        SameExplanationForAllLanguages = x.Question.SameExplanationForAllLanguages,
+                        Reference = x.Question.Reference,
+                        Tags = x.Question.Tags,
+                        CreatedBy = x.Question.CreatedBy,
+                        ReviewedBy = x.Question.ReviewedBy,
+                        IsPublished = x.Question.IsPublished,
+                        PublishDate = x.Question.PublishDate,
+                        UpdatedAt = x.Question.UpdatedAt,
+                        MockTestId = x.Question.MockTestId,
+                        MockTestName = x.Question.MockTestName,
+                        TranslatedOptionA = x.Question.TranslatedOptionA,
+                        TranslatedOptionB = x.Question.TranslatedOptionB,
+                        TranslatedOptionC = x.Question.TranslatedOptionC,
+                        TranslatedOptionD = x.Question.TranslatedOptionD,
+                        TranslatedExplanation = x.Question.TranslatedExplanation
+                    }).ToList(),
+                    Subjects = group
+                        .GroupBy(x => x.Question.SubjectId)
+                        .Select(subjectGroup => new SubjectQuestionGroupDto
+                        {
+                            SubjectId = subjectGroup.Key,
+                            SubjectName = subjectGroup.FirstOrDefault()?.Question.SubjectName ?? $"Subject {subjectGroup.Key}",
+                            QuestionCount = subjectGroup.Count(),
+                            Questions = subjectGroup.Select(x => new QuestionDto
+                            {
+                                Id = x.Question.Id,
+                                ModuleId = x.Question.ModuleId,
+                                ModuleName = x.Question.ModuleName,
+                                ExamId = x.Question.ExamId,
+                                ExamName = x.Question.ExamName,
+                                SubjectId = x.Question.SubjectId,
+                                SubjectName = x.Question.SubjectName,
+                                TopicId = x.Question.TopicId,
+                                TopicName = x.Question.TopicName,
+                                QuestionText = string.IsNullOrWhiteSpace(x.Question.QuestionText) ? (x.Question.DisplayQuestionText ?? string.Empty) : x.Question.QuestionText,
+                                OptionA = x.Question.OptionA,
+                                OptionB = x.Question.OptionB,
+                                OptionC = x.Question.OptionC,
+                                OptionD = x.Question.OptionD,
+                                CorrectAnswer = string.IsNullOrWhiteSpace(x.Question.CorrectAnswer) ? string.Empty : x.Question.CorrectAnswer,
+                                Explanation = x.Question.Explanation,
+                                Marks = x.Question.Marks,
+                                NegativeMarks = x.Question.NegativeMarks,
+                                DifficultyLevel = x.Question.DifficultyLevel,
+                                QuestionType = x.Question.QuestionType,
+                                QuestionImageUrl = x.Question.QuestionImageUrl,
+                                OptionAImageUrl = x.Question.OptionAImageUrl,
+                                OptionBImageUrl = x.Question.OptionBImageUrl,
+                                OptionCImageUrl = x.Question.OptionCImageUrl,
+                                OptionDImageUrl = x.Question.OptionDImageUrl,
+                                ExplanationImageUrl = x.Question.ExplanationImageUrl,
+                                SameExplanationForAllLanguages = x.Question.SameExplanationForAllLanguages,
+                                Reference = x.Question.Reference,
+                                Tags = x.Question.Tags,
+                                CreatedBy = x.Question.CreatedBy,
+                                ReviewedBy = x.Question.ReviewedBy,
+                                IsPublished = x.Question.IsPublished,
+                                PublishDate = x.Question.PublishDate,
+                                UpdatedAt = x.Question.UpdatedAt,
+                                MockTestId = x.Question.MockTestId,
+                                MockTestName = x.Question.MockTestName,
+                                TranslatedOptionA = x.Question.TranslatedOptionA,
+                                TranslatedOptionB = x.Question.TranslatedOptionB,
+                                TranslatedOptionC = x.Question.TranslatedOptionC,
+                                TranslatedOptionD = x.Question.TranslatedOptionD,
+                                TranslatedExplanation = x.Question.TranslatedExplanation
+                            }).ToList()
+                        }).ToList()
+                }).ToList();
+
+            return new ModuleGroupedQuestionResponseDto
+            {
+                ModuleGroups = moduleGroups,
+                PageNumber = filter.PageNumber,
+                PageSize = filter.PageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling((double)totalCount / filter.PageSize)
+            };
+        }
+
+        public async Task<MockTestGroupedQuestionResponseDto> GetAdminQuestionsGroupedByMockTestAsync(QuestionFilterRequestDto filter)
+        {
+            var rows = (await _adminRepository.GetAllAdminQuestionsGroupedByMockTestAsync(filter)).ToList();
+
+            static string GetMockTestTypeName(int mockTestTypeId)
+            {
+                return mockTestTypeId switch
+                {
+                    1 => "Mock Test",
+                    2 => "Test Series",
+                    3 => "Deep Practice",
+                    4 => "Previous Year",
+                    _ => "Unknown"
+                };
+            }
+
+            var groups = rows
+                .Where(r => r.MockTestId.HasValue && r.MockTestId.Value > 0)
+                .GroupBy(r => new
+                {
+                    MockTestId = r.MockTestId!.Value,
+                    r.MockTestName,
+                    MockTestTypeId = r.MockTestTypeId ?? 0,
+                    r.ExamId,
+                    r.ExamName,
+                    r.SubjectId,
+                    r.SubjectName
+                })
+                .Select(g => new MockTestQuestionGroupDto
+                {
+                    MockTestId = g.Key.MockTestId,
+                    MockTestName = g.Key.MockTestName ?? $"MockTest {g.Key.MockTestId}",
+                    MockTestTypeId = g.Key.MockTestTypeId,
+                    MockTestTypeName = GetMockTestTypeName(g.Key.MockTestTypeId),
+                    ExamId = g.Key.ExamId,
+                    ExamName = g.Key.ExamName,
+                    SubjectId = g.Key.SubjectId,
+                    SubjectName = g.Key.SubjectName,
+                    QuestionCount = g.Select(x => x.Id).Distinct().Count(),
+                    Questions = g
+                        .GroupBy(x => x.Id)
+                        .Select(x => x.First())
+                        .Select(q => new QuestionDto
+                        {
+                            Id = q.Id,
+                            ModuleId = q.ModuleId,
+                            ModuleName = q.ModuleName,
+                            ExamId = q.ExamId,
+                            ExamName = q.ExamName,
+                            SubjectId = q.SubjectId,
+                            SubjectName = q.SubjectName,
+                            TopicId = q.TopicId,
+                            TopicName = q.TopicName,
+                            QuestionText = string.IsNullOrWhiteSpace(q.QuestionText) ? (q.DisplayQuestionText ?? string.Empty) : q.QuestionText,
+                            OptionA = q.OptionA,
+                            OptionB = q.OptionB,
+                            OptionC = q.OptionC,
+                            OptionD = q.OptionD,
+                            CorrectAnswer = string.IsNullOrWhiteSpace(q.CorrectAnswer) ? string.Empty : q.CorrectAnswer,
+                            Explanation = q.Explanation,
+                            Marks = q.Marks,
+                            NegativeMarks = q.NegativeMarks,
+                            DifficultyLevel = q.DifficultyLevel,
+                            QuestionType = q.QuestionType,
+                            QuestionImageUrl = q.QuestionImageUrl,
+                            OptionAImageUrl = q.OptionAImageUrl,
+                            OptionBImageUrl = q.OptionBImageUrl,
+                            OptionCImageUrl = q.OptionCImageUrl,
+                            OptionDImageUrl = q.OptionDImageUrl,
+                            ExplanationImageUrl = q.ExplanationImageUrl,
+                            SameExplanationForAllLanguages = q.SameExplanationForAllLanguages,
+                            Reference = q.Reference,
+                            Tags = q.Tags,
+                            CreatedBy = q.CreatedBy,
+                            ReviewedBy = q.ReviewedBy,
+                            IsPublished = q.IsPublished,
+                            PublishDate = q.PublishDate,
+                            UpdatedAt = q.UpdatedAt,
+                            IsActive = q.IsActive,
+                            MockTestId = q.MockTestId,
+                            MockTestName = q.MockTestName,
+                            TranslatedOptionA = q.TranslatedOptionA,
+                            TranslatedOptionB = q.TranslatedOptionB,
+                            TranslatedOptionC = q.TranslatedOptionC,
+                            TranslatedOptionD = q.TranslatedOptionD,
+                            TranslatedExplanation = q.TranslatedExplanation
+                        })
+                        .ToList()
+                })
+                .OrderByDescending(g => g.MockTestId)
+                .ToList();
+
+            var total = groups.Count;
+            var pagedGroups = groups
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .ToList();
+
+            return new MockTestGroupedQuestionResponseDto
+            {
+                MockTestGroups = pagedGroups,
+                PageNumber = filter.PageNumber,
+                PageSize = filter.PageSize,
+                TotalCount = total,
+                TotalPages = (int)Math.Ceiling((double)total / filter.PageSize)
             };
         }
 
@@ -564,6 +840,128 @@ namespace QuestionService.Application.Services
             {
                 _logger.LogError(ex, "Error during bulk upload");
                 throw;
+            }
+        }
+
+        public async Task<BulkQuestionFileUploadResultDto> BulkUploadQuestionsFromFileAsync(BulkQuestionFileUploadRequestDto dto, int uploadedBy)
+        {
+            if (dto == null)
+            {
+                throw new ArgumentNullException(nameof(dto));
+            }
+
+            if (dto.File == null || dto.File.Length == 0)
+            {
+                throw new ArgumentException("Bulk upload file is required.", nameof(dto.File));
+            }
+
+            var mode = (dto.Mode ?? "create").Trim().ToLowerInvariant();
+            if (mode != "create" && mode != "update" && mode != "upsert")
+            {
+                throw new ArgumentException("Mode must be one of: create, update, upsert.");
+            }
+
+            var resolvedExamId = await ResolveExamIdAsync(dto);
+            await ValidateExamSubjectTopicMappingAsync(resolvedExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
+
+            var extension = Path.GetExtension(dto.File.FileName);
+            var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}{extension}");
+            try
+            {
+                await using (var stream = new FileStream(tempPath, FileMode.Create))
+                {
+                    await dto.File.CopyToAsync(stream);
+                }
+
+                var parsedRows = await ParseBulkUploadFileAsync(tempPath);
+                var result = new BulkQuestionFileUploadResultDto
+                {
+                    TotalRows = parsedRows.Count,
+                    ModuleId = dto.ModuleId,
+                    MockTestId = dto.MockTestId,
+                    ExamId = resolvedExamId,
+                    SubjectId = dto.SubjectId,
+                    TopicId = dto.TopicId
+                };
+
+                foreach (var row in parsedRows)
+                {
+                    var rowResult = new BulkQuestionRowResultDto { RowNumber = row.RowNumber };
+                    try
+                    {
+                        if (string.IsNullOrWhiteSpace(row.QuestionText))
+                        {
+                            throw new ArgumentException("QuestionText is required.");
+                        }
+
+                        if (string.IsNullOrWhiteSpace(row.CorrectAnswer))
+                        {
+                            throw new ArgumentException("CorrectAnswer is required.");
+                        }
+
+                        switch (mode)
+                        {
+                            case "create":
+                                {
+                                    var created = await CreateRowQuestionAsync(row, dto, uploadedBy, resolvedExamId);
+                                    rowResult.Success = true;
+                                    rowResult.QuestionId = created;
+                                    rowResult.Action = "created";
+                                    break;
+                                }
+                            case "update":
+                                {
+                                    var updated = await UpdateRowQuestionAsync(row, dto, resolvedExamId);
+                                    rowResult.Success = true;
+                                    rowResult.QuestionId = updated;
+                                    rowResult.Action = "updated";
+                                    break;
+                                }
+                            default:
+                                {
+                                    if (row.QuestionId.HasValue && row.QuestionId.Value > 0)
+                                    {
+                                        var updated = await UpdateRowQuestionAsync(row, dto, resolvedExamId);
+                                        rowResult.Success = true;
+                                        rowResult.QuestionId = updated;
+                                        rowResult.Action = "updated";
+                                    }
+                                    else
+                                    {
+                                        var created = await CreateRowQuestionAsync(row, dto, uploadedBy, resolvedExamId);
+                                        rowResult.Success = true;
+                                        rowResult.QuestionId = created;
+                                        rowResult.Action = "created";
+                                    }
+                                    break;
+                                }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        rowResult.Success = false;
+                        rowResult.Error = ex.Message;
+                        _logger.LogWarning(ex, "Bulk question row failed. RowNumber: {RowNumber}", row.RowNumber);
+                        if (!dto.ContinueOnError)
+                        {
+                            result.Rows.Add(rowResult);
+                            break;
+                        }
+                    }
+
+                    result.Rows.Add(rowResult);
+                }
+
+                result.SuccessCount = result.Rows.Count(x => x.Success);
+                result.FailedCount = result.Rows.Count(x => !x.Success);
+                return result;
+            }
+            finally
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
             }
         }
 
@@ -602,7 +1000,7 @@ namespace QuestionService.Application.Services
                 _logger.LogInformation("Starting quiz for exam: {ExamId}, user: {UserId}", dto.ExamId, dto.UserId);
                 if (dto.SubjectId.HasValue)
                 {
-                    await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId.Value, dto.TopicId);
+                    await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId.Value, dto.TopicId, 1); // Default to Mock Test module to skip topic validation
                 }
                 
                 var quizSession = await _featureRepository.StartQuizAsync(dto);
@@ -717,7 +1115,7 @@ namespace QuestionService.Application.Services
                 {
                     throw new ArgumentException($"Exam with ID {dto.ExamId} not found");
                 }
-                await ValidateExamSubjectTopicMappingAsync(dto.ExamId, examDetails.SubjectId, null);
+                await ValidateExamSubjectTopicMappingAsync(dto.ExamId, examDetails.SubjectId, null, 1); // Default to Mock Test module to skip topic validation
 
                 var createDto = new CreateQuestionDto
                 {
@@ -805,6 +1203,164 @@ namespace QuestionService.Application.Services
                 _logger.LogError(ex, "Error parsing bulk upload file");
                 throw;
             }
+        }
+
+        private async Task<int> ResolveExamIdAsync(BulkQuestionFileUploadRequestDto dto)
+        {
+            if (dto.MockTestId.HasValue && dto.MockTestId.Value > 0)
+            {
+                var mockTest = await _mockTestRepository.GetByIdAsync(dto.MockTestId.Value);
+                if (mockTest == null)
+                {
+                    throw new ArgumentException($"Mock test with ID {dto.MockTestId.Value} not found.");
+                }
+
+                return mockTest.ExamId;
+            }
+
+            if (dto.ExamId.HasValue && dto.ExamId.Value > 0)
+            {
+                return dto.ExamId.Value;
+            }
+
+            throw new ArgumentException("Either ExamId or MockTestId is required.");
+        }
+
+        private async Task<int> CreateRowQuestionAsync(
+            ExcelQuestionRowDto row,
+            BulkQuestionFileUploadRequestDto request,
+            int uploadedBy,
+            int resolvedExamId)
+        {
+            var createDto = new CreateQuestionRequestDto
+            {
+                ModuleId = request.ModuleId,
+                ExamId = resolvedExamId,
+                SubjectId = request.SubjectId,
+                TopicId = request.TopicId ?? 0,
+                QuestionText = row.QuestionText.Trim(),
+                OptionA = row.OptionA ?? string.Empty,
+                OptionB = row.OptionB ?? string.Empty,
+                OptionC = row.OptionC ?? string.Empty,
+                OptionD = row.OptionD ?? string.Empty,
+                CorrectAnswer = NormalizeCorrectAnswer(row.CorrectAnswer),
+                Explanation = row.Explanation ?? string.Empty,
+                Marks = row.Marks <= 0 ? 1 : row.Marks,
+                NegativeMarks = row.NegativeMarks,
+                DifficultyLevel = NormalizeDifficulty(row.DifficultyLevel),
+                QuestionType = string.IsNullOrWhiteSpace(row.QuestionType) ? "MCQ" : row.QuestionType,
+                QuestionImageUrl = row.QuestionImageUrl,
+                OptionAImageUrl = row.OptionAImageUrl,
+                OptionBImageUrl = row.OptionBImageUrl,
+                OptionCImageUrl = row.OptionCImageUrl,
+                OptionDImageUrl = row.OptionDImageUrl,
+                ExplanationImageUrl = row.ExplanationImageUrl,
+                SameExplanationForAllLanguages = row.SameExplanationForAllLanguages,
+                Reference = row.Reference,
+                Tags = row.Tags,
+                CreatedBy = uploadedBy,
+                MockTestId = request.MockTestId,
+                Translations = new List<QuestionTranslationUpsertDto>
+                {
+                    new()
+                    {
+                        LanguageCode = string.IsNullOrWhiteSpace(request.LanguageCode) ? "en" : request.LanguageCode,
+                        QuestionText = row.QuestionText.Trim(),
+                        OptionA = row.OptionA,
+                        OptionB = row.OptionB,
+                        OptionC = row.OptionC,
+                        OptionD = row.OptionD,
+                        Explanation = row.Explanation
+                    }
+                }
+            };
+
+            var created = await CreateAdminQuestionAsync(createDto);
+            return created.Id;
+        }
+
+        private async Task<int> UpdateRowQuestionAsync(
+            ExcelQuestionRowDto row,
+            BulkQuestionFileUploadRequestDto request,
+            int resolvedExamId)
+        {
+            if (!row.QuestionId.HasValue || row.QuestionId.Value <= 0)
+            {
+                throw new ArgumentException("QuestionId is required for update mode.");
+            }
+
+            var questionId = row.QuestionId.Value;
+            var existing = await _adminRepository.GetAdminQuestionByIdAsync(questionId);
+            if (existing == null)
+            {
+                throw new ArgumentException($"Question with ID {questionId} not found.");
+            }
+
+            var updateDto = new UpdateQuestionAdminDto
+            {
+                Id = questionId,
+                ModuleId = request.ModuleId,
+                ExamId = resolvedExamId,
+                SubjectId = request.SubjectId,
+                TopicId = request.TopicId ?? 0,
+                Marks = Convert.ToInt32(Math.Round(row.Marks <= 0 ? (decimal)existing.Marks : row.Marks, MidpointRounding.AwayFromZero)),
+                NegativeMarks = row.NegativeMarks,
+                DifficultyLevel = NormalizeDifficulty(row.DifficultyLevel),
+                CorrectAnswer = NormalizeCorrectAnswer(row.CorrectAnswer),
+                SameExplanationForAllLanguages = row.SameExplanationForAllLanguages,
+                IsPublished = existing.IsPublished,
+                IsActive = existing.IsActive,
+                MockTestId = request.MockTestId,
+                CreatedBy = 0,
+                Translations = new List<QuestionTranslationUpsertDto>
+                {
+                    new()
+                    {
+                        LanguageCode = string.IsNullOrWhiteSpace(request.LanguageCode) ? "en" : request.LanguageCode,
+                        QuestionText = row.QuestionText.Trim(),
+                        OptionA = row.OptionA,
+                        OptionB = row.OptionB,
+                        OptionC = row.OptionC,
+                        OptionD = row.OptionD,
+                        Explanation = row.Explanation
+                    }
+                }
+            };
+
+            var updated = await UpdateAdminQuestionAsync(updateDto);
+            return updated.Id;
+        }
+
+        private static string NormalizeCorrectAnswer(string answer)
+        {
+            if (string.IsNullOrWhiteSpace(answer))
+            {
+                throw new ArgumentException("CorrectAnswer is required.");
+            }
+
+            var normalized = answer.Trim().ToUpperInvariant();
+            if (normalized is "A" or "B" or "C" or "D")
+            {
+                return normalized;
+            }
+
+            throw new ArgumentException("CorrectAnswer must be one of A, B, C, D.");
+        }
+
+        private static string NormalizeDifficulty(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "Medium";
+            }
+
+            var normalized = value.Trim();
+            return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(normalized.ToLowerInvariant()) switch
+            {
+                "Easy" => "Easy",
+                "Hard" => "Hard",
+                _ => "Medium"
+            };
         }
 
         private static T ConvertTo<T>(object source)
@@ -950,14 +1506,15 @@ namespace QuestionService.Application.Services
             }
 
             // Topic is only required for ModuleId 3 (Deep Practice)
-            // For ModuleId 1, 2, 4 - Topic is optional
+            // For ModuleId 1 (Mock Test), 2, 4 - Topic is optional and not validated
             if (moduleId == 3 && (!topicId.HasValue || topicId.Value <= 0))
             {
                 throw new ArgumentException($"Topic is required for ModuleId 3 (Deep Practice).");
             }
 
-            // Only validate topic mapping if topic is provided
-            if (topicId.HasValue)
+            // Only validate topic mapping if topic is provided AND moduleId is 3 (Deep Practice)
+            // For mock tests and previous year questions, topic validation is skipped
+            if (topicId.HasValue && moduleId == 3)
             {
                 var topicMapped = await _featureRepository.IsTopicMappedToExamSubjectAsync(topicId.Value, examId, subjectId);
                 if (!topicMapped)
@@ -965,6 +1522,50 @@ namespace QuestionService.Application.Services
                     throw new ArgumentException($"Topic {topicId.Value} is not mapped to exam {examId} and subject {subjectId}.");
                 }
             }
+        }
+
+        private async Task AttachQuestionToMockTestIfRequiredAsync(
+            int questionId,
+            int? mockTestId,
+            decimal marks,
+            decimal negativeMarks)
+        {
+            if (!mockTestId.HasValue || mockTestId.Value <= 0)
+            {
+                return;
+            }
+
+            var resolvedMockTestId = mockTestId.Value;
+            var mockTest = await _mockTestRepository.GetByIdAsync(resolvedMockTestId);
+            if (mockTest == null)
+            {
+                throw new ArgumentException($"Mock test with ID {resolvedMockTestId} not found.");
+            }
+
+            var existingMappings = await _mockTestRepository.GetQuestionsAsync(resolvedMockTestId);
+            var existingMapping = existingMappings.FirstOrDefault(x => x.QuestionId == questionId);
+
+            if (existingMapping != null)
+            {
+                await _mockTestRepository.UpdateQuestionAsync(
+                    resolvedMockTestId,
+                    questionId,
+                    existingMapping.QuestionNumber,
+                    marks,
+                    negativeMarks);
+                return;
+            }
+
+            var questionNumber = existingMappings.Count == 0
+                ? 1
+                : existingMappings.Max(x => x.QuestionNumber) + 1;
+
+            await _mockTestRepository.AddQuestionAsync(
+                resolvedMockTestId,
+                questionId,
+                questionNumber,
+                marks,
+                negativeMarks);
         }
 
         public async Task<QuestionDto> CreateQuestionWithImagesAsync(CreateQuestionWithImagesDto dto)
@@ -1147,9 +1748,11 @@ namespace QuestionService.Application.Services
         Task<QuestionAdminDetailDto> UpdateAdminQuestionAsync(UpdateQuestionAdminDto dto);
         Task<QuestionAdminDetailDto?> GetAdminQuestionByIdAsync(int id);
         Task<QuestionPagedResponseDto> GetAdminQuestionsPagedAsync(QuestionFilterRequestDto filter);
+        Task<MockTestGroupedQuestionResponseDto> GetAdminQuestionsGroupedByMockTestAsync(QuestionFilterRequestDto filter);
         Task<bool> SetPublishStatusAsync(PublishQuestionRequestDto dto);
         Task<QuestionDashboardStatsDto> GetDashboardStatsAsync();
         Task<object> BulkCreateQuestionsAsync(BulkQuestionUploadRequestDto dto);
+        Task<BulkQuestionFileUploadResultDto> BulkUploadQuestionsFromFileAsync(BulkQuestionFileUploadRequestDto dto, int uploadedBy);
         
         // Image upload methods
         Task<ImageUploadResponseDto> UploadQuestionImageAsync(QuestionImageUploadDto dto);

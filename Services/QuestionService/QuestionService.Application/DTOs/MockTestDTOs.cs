@@ -134,6 +134,7 @@ namespace QuestionService.Application.DTOs
         public DateTime? PublishDateTime { get; set; }
         public DateTime? ValidTill { get; set; }
         public ShowResultType ShowResultType { get; set; } = ShowResultType.Immediate;
+        public string? ImageUrl { get; set; }
         
         // Status field for draft/active/inactive management
         public MockTestStatus Status { get; set; } = MockTestStatus.Active;
@@ -174,6 +175,12 @@ namespace QuestionService.Application.DTOs
         public DateTime? PublishDateTime { get; set; }
         public DateTime? ValidTill { get; set; }
         public ShowResultType? ShowResultType { get; set; }
+        public string? ImageUrl { get; set; }
+    }
+
+    public class UpdateMockTestWithImageDto : UpdateMockTestDto
+    {
+        public IFormFile? ImageFile { get; set; }
     }
 
     public class MockTestListDto
@@ -216,6 +223,9 @@ namespace QuestionService.Application.DTOs
         public DateTime? ValidTill { get; set; }
         public ShowResultType ShowResultType { get; set; }
         public string? ImageUrl { get; set; }
+        
+        // Question count for display
+        public int QuestionsAdded { get; set; }
     }
 
     public class MockTestDetailDto : MockTestListDto
@@ -356,6 +366,29 @@ namespace QuestionService.Application.DTOs
         public int? SubjectId { get; set; }
         public bool? IsActive { get; set; }
         public string? SearchTerm { get; set; }
+        public string? SortBy { get; set; } // name, date, mark, difficulty, year, attempts, questions
+        public string? SortOrder { get; set; } // asc, desc
+        public MockTestType? MockTestType { get; set; }
+        public string? AccessType { get; set; } // Free, Paid
+        public int? AttemptsAllowed { get; set; } // 1 single, >1 multiple
+        public MockTestStatus? Status { get; set; } // Active, Inactive, Draft, Scheduled
+        public DateTime? CreatedFrom { get; set; }
+        public DateTime? CreatedTo { get; set; }
+        
+        // Additional filters
+        public string? Difficulty { get; set; } // Easy, Medium, Hard
+        public int? Year { get; set; } // For Previous Year papers
+        public DateTime? ExamDateFrom { get; set; }
+        public DateTime? ExamDateTo { get; set; }
+        public DateTime? PublishDateFrom { get; set; }
+        public DateTime? PublishDateTo { get; set; }
+        public DateTime? ValidTillFrom { get; set; }
+        public DateTime? ValidTillTo { get; set; }
+        public bool? HasNegativeMarking { get; set; }
+        public decimal? MinTotalMarks { get; set; }
+        public decimal? MaxTotalMarks { get; set; }
+        public int? MinDuration { get; set; } // in minutes
+        public int? MaxDuration { get; set; } // in minutes
     }
 
     public class MockTestSummaryDto
@@ -430,5 +463,12 @@ namespace QuestionService.Application.DTOs
     {
         public int? ExamId { get; set; }
         public int? SubjectId { get; set; }
+    }
+
+    // Sample Question DTO for module name retrieval
+    public class SampleQuestionDto
+    {
+        public int QuestionId { get; set; }
+        public int? ModuleId { get; set; }
     }
 }

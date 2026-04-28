@@ -197,6 +197,20 @@ namespace QuestionService.API.Controllers
             return Ok(new { success = true, data = result });
         }
 
+        [HttpGet("admin/paged/grouped")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> GetAdminQuestionsGroupedByModule([FromQuery] QuestionFilterRequestDto filter)
+        {
+            if (string.Equals(filter.GroupBy, "mocktest", StringComparison.OrdinalIgnoreCase))
+            {
+                var result = await _service.GetAdminQuestionsGroupedByMockTestAsync(filter);
+                return Ok(new { success = true, data = result });
+            }
+
+            var moduleResult = await _service.GetAdminQuestionsGroupedByModuleAsync(filter);
+            return Ok(new { success = true, data = moduleResult });
+        }
+
         [HttpGet("admin/mock-test/{mockTestId}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<QuestionPagedResponseDto>> GetQuestionsByMockTest(int mockTestId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, [FromQuery] bool includeInactive = true)
@@ -239,6 +253,31 @@ namespace QuestionService.API.Controllers
         public async Task<ActionResult<object>> BulkUpload([FromBody] BulkQuestionUploadRequestDto request)
         {
             var result = await _service.BulkCreateQuestionsAsync(request);
+            return Ok(new { success = true, data = result });
+        }
+
+        [HttpPost("admin/bulk/upload")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> BulkUploadWithFile([FromForm] BulkQuestionFileUploadRequestDto request)
+        {
+            var userId = GetAuthenticatedUserId();
+            if (userId <= 0)
+                return Unauthorized(new { success = false, message = "Invalid user" });
+
+            var result = await _service.BulkUploadQuestionsFromFileAsync(request, userId);
+            return Ok(new { success = true, data = result });
+        }
+
+        [HttpPost("admin/bulk/update")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> BulkUpdateWithFile([FromForm] BulkQuestionFileUploadRequestDto request)
+        {
+            var userId = GetAuthenticatedUserId();
+            if (userId <= 0)
+                return Unauthorized(new { success = false, message = "Invalid user" });
+
+            request.Mode = "update";
+            var result = await _service.BulkUploadQuestionsFromFileAsync(request, userId);
             return Ok(new { success = true, data = result });
         }
 

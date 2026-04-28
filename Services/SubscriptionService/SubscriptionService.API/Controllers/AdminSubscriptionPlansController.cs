@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using System.Globalization;
 using SubscriptionService.Application.DTOs;
 using SubscriptionService.Application.Interfaces;
 using Common.Services;
@@ -618,14 +619,83 @@ namespace SubscriptionService.API.Controllers
         public async Task<ActionResult<IEnumerable<PlanWithDurationOptionsDto>>> GetAllPlansWithDurations(
             [FromQuery] string? language = null,
             [FromQuery] int? cursor = null,
-            [FromQuery] int limit = 20)
+            [FromQuery] int limit = 20,
+            [FromQuery] int? examId = null,
+            [FromQuery] string? popular = null,
+            [FromQuery] string? priceSort = null,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? order = null,
+            [FromQuery] string? status = null)
         {
             try
             {
                 var currentLanguage = language ?? _languageService.GetCurrentLanguage();
                 var result = (await _subscriptionPlanService.GetAllPlansWithDurationsAsync(currentLanguage, includeInactive: true))
-                    .OrderByDescending(p => p.Id)
                     .ToList();
+
+                // Apply filters
+                if (examId.HasValue)
+                {
+                    result = result.Where(p => p.ExamId == examId.Value).ToList();
+                }
+
+                if (!string.IsNullOrWhiteSpace(popular))
+                {
+                    var isPopular = popular.ToLowerInvariant() switch
+                    {
+                        "yes" => true,
+                        "no" => false,
+                        _ => (bool?)null
+                    };
+                    if (isPopular.HasValue)
+                    {
+                        result = result.Where(p => p.IsPopular == isPopular.Value).ToList();
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    var isActive = status.ToLowerInvariant() switch
+                    {
+                        "active" => true,
+                        "inactive" => false,
+                        _ => (bool?)null
+                    };
+                    if (isActive.HasValue)
+                    {
+                        result = result.Where(p => p.IsActive == isActive.Value).ToList();
+                    }
+                }
+
+                // Apply price sorting - handle both priceSort and sort/order parameters
+                string? actualPriceSort = null;
+                
+                if (!string.IsNullOrWhiteSpace(priceSort))
+                {
+                    actualPriceSort = priceSort.ToLowerInvariant();
+                }
+                else if (!string.IsNullOrWhiteSpace(sort) && sort.ToLowerInvariant() == "price")
+                {
+                    if (!string.IsNullOrWhiteSpace(order))
+                    {
+                        actualPriceSort = order.ToLowerInvariant();
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(actualPriceSort))
+                {
+                    if (actualPriceSort == "asc")
+                    {
+                        result = result.OrderBy(p => p.DurationOptions.FirstOrDefault()?.Price ?? decimal.MaxValue).ToList();
+                    }
+                    else if (actualPriceSort == "desc")
+                    {
+                        result = result.OrderByDescending(p => p.DurationOptions.FirstOrDefault()?.Price ?? 0).ToList();
+                    }
+                }
+
+                // Default sort by ID descending
+                result = result.OrderByDescending(p => p.Id).ToList();
 
                 if (limit <= 0) limit = 20;
                 if (limit > 100) limit = 100;
@@ -647,7 +717,17 @@ namespace SubscriptionService.API.Controllers
                         cursor,
                         limit,
                         nextCursor,
-                        hasMore
+                        hasMore,
+                        totalCount = filtered.Count
+                    },
+                    filters = new
+                    {
+                        examId,
+                        popular,
+                        priceSort,
+                        sort,
+                        order,
+                        status
                     },
                     language = currentLanguage,
                     message = "Subscription plans with duration options fetched successfully"
@@ -667,7 +747,7 @@ namespace SubscriptionService.API.Controllers
         /// <returns>Created/updated plan details with duration options</returns>
         [HttpPost("durations")]
         [Consumes("multipart/form-data")]
-        public async Task<ActionResult<PlanWithDurationOptionsDto>> CreateOrUpdatePlanWithDurations([FromForm] CreatePlanWithDurationsFormDataDto? request)
+        public async Task<ActionResult<PlanWithDurationOptionsDto>> CreatePlanWithDurationsMain([FromForm] CreatePlanWithDurationsFormDataDto? request)
         {
             var createPlanDto = ParseCreatePlanWithDurationsRequest(request);
             if (createPlanDto == null && Request.HasFormContentType)
@@ -676,6 +756,12 @@ namespace SubscriptionService.API.Controllers
             }
             if (createPlanDto == null)
                 return BadRequest(new { success = false, message = "Invalid multipart payload. Expected FormData with 'data' JSON and optional 'ImageFile'." });
+            
+            // For POST, ensure it's create only (no id)
+            if (createPlanDto.Id.HasValue)
+            {
+                return BadRequest(new { success = false, message = "For create operation, do not include 'id' field. Use PUT method for updates." });
+            }
             
             try
             {
@@ -696,6 +782,183 @@ namespace SubscriptionService.API.Controllers
             {
                 _logger.LogError(ex, "Error creating subscription plan with durations");
                 return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
+            }
+        }
+
+        [HttpPut("durations")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<PlanWithDurationOptionsDto>> UpdatePlanWithDurations([FromForm] CreatePlanWithDurationsFormDataDto? request, [FromQuery] int? planId = null)
+        {
+            var createPlanDto = ParseCreatePlanWithDurationsRequest(request);
+            if (createPlanDto == null && Request.HasFormContentType)
+            {
+                createPlanDto = ParseCreatePlanWithDurationsFlatForm(Request.Form);
+            }
+            if (createPlanDto == null)
+                return BadRequest(new { success = false, message = "Invalid multipart payload. Expected FormData with 'data' JSON and optional 'ImageFile'." });
+            
+            // Backward compatibility: support clients still sending planId as query param.
+            if (!createPlanDto.Id.HasValue && planId.HasValue)
+            {
+                createPlanDto.Id = planId.Value;
+            }
+
+            // Backward compatibility: some clients send planId/id as separate form-data fields.
+            if (!createPlanDto.Id.HasValue && Request.HasFormContentType)
+            {
+                var form = Request.Form;
+                if (int.TryParse(form["planId"], out var formPlanId))
+                {
+                    createPlanDto.Id = formPlanId;
+                }
+                else if (int.TryParse(form["id"], out var formId))
+                {
+                    createPlanDto.Id = formId;
+                }
+            }
+
+            // For PUT, ensure it's update only (must have id)
+            if (!createPlanDto.Id.HasValue)
+            {
+                return BadRequest(new { success = false, message = "For update operation, 'id' field is required. Use POST method for create." });
+            }
+            
+            try
+            {
+                var result = await _subscriptionPlanService.UpsertPlanWithDurationsAsync(createPlanDto);
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    message = "Subscription plan with duration options updated successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Subscription plan not found for update: {PlanId}", createPlanDto.Id);
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating subscription plan with durations");
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
+            }
+        }
+
+        [HttpPut("durations")]
+        [Consumes("application/json")]
+        public async Task<ActionResult<PlanWithDurationOptionsDto>> UpdatePlanWithDurationsJson([FromBody] JsonElement payload, [FromQuery] int? planId = null)
+        {
+            var request = TryParsePlanWithDurationsPayload(payload, out var parseError, out var rootPlanId);
+            if (request == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = parseError ?? "Invalid request payload."
+                });
+            }
+
+            // Backward compatibility: support clients still sending planId as query param.
+            if (!request.Id.HasValue && planId.HasValue)
+            {
+                request.Id = planId.Value;
+            }
+
+            // Backward compatibility: support wrapped JSON where planId exists at root.
+            if (!request.Id.HasValue && rootPlanId.HasValue)
+            {
+                request.Id = rootPlanId.Value;
+            }
+
+            // For PUT, ensure it's update only (must have id)
+            if (!request.Id.HasValue)
+            {
+                return BadRequest(new { success = false, message = "For update operation, 'id' field is required. Use POST method for create." });
+            }
+            
+            try
+            {
+                var result = await _subscriptionPlanService.UpsertPlanWithDurationsAsync(request);
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    message = "Subscription plan with duration options updated successfully"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Subscription plan not found for update: {PlanId}", request.Id);
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating subscription plan with durations");
+                return StatusCode(500, new { success = false, message = InternalServerErrorMessage });
+            }
+        }
+
+        private static CreateSubscriptionPlanWithDurationDto? TryParsePlanWithDurationsPayload(
+            JsonElement payload,
+            out string? parseError,
+            out int? rootPlanId)
+        {
+            parseError = null;
+            rootPlanId = null;
+
+            try
+            {
+                if (payload.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+                {
+                    parseError = "Request body is required.";
+                    return null;
+                }
+
+                if (payload.ValueKind != JsonValueKind.Object)
+                {
+                    parseError = "Invalid request payload format.";
+                    return null;
+                }
+
+                if (TryGetIntFromJsonProperty(payload, "planId", out var extractedPlanId))
+                {
+                    rootPlanId = extractedPlanId;
+                }
+                else if (TryGetIntFromJsonProperty(payload, "id", out var extractedId))
+                {
+                    rootPlanId = extractedId;
+                }
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                // Accept wrapped payload: { "data": { ...dto... }, "planId": 1 }
+                if (payload.TryGetProperty("data", out var dataNode) && dataNode.ValueKind == JsonValueKind.Object)
+                {
+                    var wrappedDto = JsonSerializer.Deserialize<CreateSubscriptionPlanWithDurationDto>(dataNode.GetRawText(), options);
+                    if (wrappedDto != null)
+                    {
+                        return wrappedDto;
+                    }
+                }
+
+                // Accept direct payload: { ...dto... }
+                var directDto = JsonSerializer.Deserialize<CreateSubscriptionPlanWithDurationDto>(payload.GetRawText(), options);
+                if (directDto != null)
+                {
+                    return directDto;
+                }
+
+                parseError = "Invalid request payload.";
+                return null;
+            }
+            catch
+            {
+                parseError = "Invalid request payload.";
+                return null;
             }
         }
 
@@ -825,6 +1088,16 @@ namespace SubscriptionService.API.Controllers
                 if (dto == null)
                     return null;
 
+                // Backward compatibility: accept planId in "data" JSON when id is missing.
+                if (!dto.Id.HasValue)
+                {
+                    var fallbackPlanId = TryExtractPlanIdFromJson(request.Data);
+                    if (fallbackPlanId.HasValue)
+                    {
+                        dto.Id = fallbackPlanId.Value;
+                    }
+                }
+
                 // For this form-data flow, recommended is controlled via dedicated toggle endpoint.
                 dto.IsRecommended = false;
                 dto.ImageFile = request.ImageFile;
@@ -854,6 +1127,7 @@ namespace SubscriptionService.API.Controllers
                 };
 
                 if (int.TryParse(form["id"], out var id)) dto.Id = id;
+                if (!dto.Id.HasValue && int.TryParse(form["planId"], out var planId)) dto.Id = planId;
                 if (int.TryParse(form["type"], out var type)) dto.Type = (SubscriptionService.Domain.Entities.PlanType)type;
                 if (decimal.TryParse(form["basePrice"], out var basePrice)) dto.BasePrice = basePrice;
                 if (int.TryParse(form["testPapersCount"], out var testPapersCount)) dto.TestPapersCount = testPapersCount;
@@ -898,6 +1172,44 @@ namespace SubscriptionService.API.Controllers
             {
                 return null;
             }
+        }
+
+        private static int? TryExtractPlanIdFromJson(string rawJson)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(rawJson);
+                var root = document.RootElement;
+
+                if (TryGetIntFromJsonProperty(root, "planId", out var planId))
+                    return planId;
+                if (TryGetIntFromJsonProperty(root, "planID", out planId))
+                    return planId;
+                if (TryGetIntFromJsonProperty(root, "plan_id", out planId))
+                    return planId;
+            }
+            catch
+            {
+                // Ignore parsing issues and fallback to regular validation.
+            }
+
+            return null;
+        }
+
+        private static bool TryGetIntFromJsonProperty(JsonElement root, string propertyName, out int value)
+        {
+            value = default;
+            if (!root.TryGetProperty(propertyName, out var propertyValue))
+                return false;
+
+            if (propertyValue.ValueKind == JsonValueKind.Number && propertyValue.TryGetInt32(out value))
+                return true;
+
+            if (propertyValue.ValueKind == JsonValueKind.String &&
+                int.TryParse(propertyValue.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
+                return true;
+
+            return false;
         }
     }
 

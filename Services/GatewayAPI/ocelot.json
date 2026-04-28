@@ -203,6 +203,19 @@
       "UpstreamHttpMethod": [ "GET" ]
     },
     {
+      "DownstreamPathTemplate": "/images/mock-tests/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 56916 },
+        { "Host": "192.168.1.14", "Port": 56916 },
+        { "Host": "192.168.1.21", "Port": 56916 },
+        { "Host": "192.168.1.23", "Port": 56916 }
+      ],
+      "UpstreamPathTemplate": "/images/mock-tests/{everything}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 200
+    },
+    {
       "DownstreamPathTemplate": "/api/qualifications",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [

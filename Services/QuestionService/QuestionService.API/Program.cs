@@ -160,6 +160,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+app.UseStaticFiles(); // Enable static file serving
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();

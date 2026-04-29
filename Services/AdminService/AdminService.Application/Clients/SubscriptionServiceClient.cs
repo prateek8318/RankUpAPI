@@ -5,6 +5,7 @@ using Polly.Retry;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
 
 namespace AdminService.Application.Clients
 {
@@ -271,6 +272,7 @@ namespace AdminService.Application.Clients
         {
             try
             {
+                // Try subscription service API first
                 var response = await _retryPolicy.ExecuteAsync(async () =>
                     await _httpClient.GetAsync($"/api/admin/usersubscriptions/user/{userId}/active"));
 
@@ -280,12 +282,85 @@ namespace AdminService.Application.Clients
                     return JsonSerializer.Deserialize<object>(content);
                 }
 
-                _logger.LogWarning("Failed to get subscription details for user {UserId}: {StatusCode}", userId, response.StatusCode);
-                return null;
+                // Fallback to direct database query if API fails
+                _logger.LogWarning("Subscription service API failed for user {UserId}, falling back to direct database query", userId);
+                return await GetSubscriptionFromDatabaseAsync(userId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error calling SubscriptionService for user subscription details {UserId}", userId);
+                return await GetSubscriptionFromDatabaseAsync(userId);
+            }
+        }
+
+        private async Task<object?> GetSubscriptionFromDatabaseAsync(int userId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(
+                    "Server=ABHIJEET;Database=RankUp_SubscriptionDB;Trusted_Connection=True;TrustServerCertificate=True;");
+                
+                await connection.OpenAsync();
+                
+                var query = @"
+                    SELECT 
+                        us.Id,
+                        us.UserId,
+                        us.SubscriptionPlanId,
+                        us.Status,
+                        us.PurchasedDate,
+                        us.ValidTill,
+                        us.TestsUsed,
+                        us.TestsTotal,
+                        us.AmountPaid,
+                        us.Currency,
+                        sp.Name as PlanName,
+                        sp.Price as PlanPrice
+                    FROM UserSubscriptions us
+                    LEFT JOIN SubscriptionPlans sp ON us.SubscriptionPlanId = sp.Id
+                    WHERE us.UserId = @UserId AND us.Status = 'Active'
+                    ORDER BY us.CreatedAt DESC";
+
+                using var command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@UserId", userId);
+
+                using var reader = await command.ExecuteReaderAsync();
+                
+                if (await reader.ReadAsync())
+                {
+                    var validTill = reader.GetDateTime(reader.GetOrdinal("ValidTill"));
+                    var daysUntilExpiry = (int)Math.Ceiling((validTill - DateTime.UtcNow).TotalDays);
+
+                    var subscription = new
+                    {
+                        id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        userId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                        subscriptionPlanId = reader.GetInt32(reader.GetOrdinal("SubscriptionPlanId")),
+                        status = reader.GetString(reader.GetOrdinal("Status")),
+                        purchasedDate = reader.GetDateTime(reader.GetOrdinal("PurchasedDate")),
+                        validTill,
+                        testsUsed = reader.GetInt32(reader.GetOrdinal("TestsUsed")),
+                        testsTotal = reader.GetInt32(reader.GetOrdinal("TestsTotal")),
+                        amountPaid = reader.GetDecimal(reader.GetOrdinal("AmountPaid")),
+                        currency = reader.GetString(reader.GetOrdinal("Currency")),
+                        subscriptionPlan = new
+                        {
+                            name = reader.IsDBNull(reader.GetOrdinal("PlanName")) ? null : reader.GetString(reader.GetOrdinal("PlanName")),
+                            price = reader.IsDBNull(reader.GetOrdinal("PlanPrice")) ? 0 : reader.GetDecimal(reader.GetOrdinal("PlanPrice"))
+                        },
+                        daysLeft = daysUntilExpiry,
+                        daysUntilExpiry,
+                        currentStatus = validTill <= DateTime.UtcNow ? "Expired" : "Active"
+                    };
+                    
+                    return subscription;
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting subscription from database for user {UserId}", userId);
                 return null;
             }
         }

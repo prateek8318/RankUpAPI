@@ -310,6 +310,30 @@
       "Priority": 110
     },
     {
+      "DownstreamPathTemplate": "/images/question-images/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "questionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/images/question-images/{everything}",
+      "UpstreamHttpMethod": ["GET"],
+      "Priority": 200
+    },
+    {
+      "DownstreamPathTemplate": "/images/option-images/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "questionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/images/option-images/{everything}",
+      "UpstreamHttpMethod": ["GET"],
+      "Priority": 200
+    },
+    {
+      "DownstreamPathTemplate": "/images/explanation-images/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "questionservice", "Port": 80 }],
+      "UpstreamPathTemplate": "/images/explanation-images/{everything}",
+      "UpstreamHttpMethod": ["GET"],
+      "Priority": 200
+    },
+    {
       "DownstreamPathTemplate": "/api/exams",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "questionservice", "Port": 80 }],

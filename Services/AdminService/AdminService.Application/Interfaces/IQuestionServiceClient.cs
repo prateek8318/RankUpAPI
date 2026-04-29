@@ -1,3 +1,5 @@
+using System.Net.Http;
+
 namespace AdminService.Application.Interfaces
 
 {
@@ -13,6 +15,8 @@ namespace AdminService.Application.Interfaces
         Task<object?> CreateQuestionAsync(object createDto);
 
         Task<object?> UpdateQuestionAsync(int id, object updateDto);
+
+        Task<object?> UpdateQuestionWithImagesAsync(int id, MultipartFormDataContent content);
 
         Task<bool> DeleteQuestionAsync(int id);
 

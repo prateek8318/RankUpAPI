@@ -39,7 +39,11 @@ namespace QuestionService.Application.Interfaces
         Task<MockTestAccessResponseDto> CheckMockTestAccessAsync(int userId, int mockTestId);
         Task<MockTestSessionDto> StartMockTestAsync(StartMockTestDto dto);
         Task<MockTestSessionDto?> GetMockTestSessionAsync(int sessionId, int userId);
+        Task<MockTestAttemptDto?> GetMockTestSessionResultAsync(int sessionId, int userId);
+        Task<MockTestSolutionDto?> GetMockTestSolutionAsync(int sessionId, int userId);
         Task<bool> SaveMockTestAnswerAsync(int sessionId, int userId, SaveMockTestAnswerDto answer);
+        Task<MockTestQuestionActionResultDto> ReportMockTestQuestionAsync(int sessionId, int userId, ReportMockTestQuestionDto request);
+        Task<MockTestQuestionActionResultDto> BookmarkMockTestQuestionAsync(int sessionId, int userId, BookmarkMockTestQuestionDto request);
         Task<MockTestAttemptDto> SubmitMockTestAsync(int sessionId, int userId, List<QuizAnswerRequestDto> answers);
         Task<MockTestAttemptDto> SubmitMockTestAsync(int sessionId, int userId);
         

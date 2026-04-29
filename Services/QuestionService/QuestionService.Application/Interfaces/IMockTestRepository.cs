@@ -26,7 +26,11 @@ namespace QuestionService.Application.Interfaces
         // Session management
         Task<MockTestSessionDto> CreateSessionAsync(StartMockTestDto dto);
         Task<MockTestSessionDto?> GetSessionAsync(int sessionId, int userId);
+        Task<MockTestAttemptDto?> GetSessionResultAsync(int sessionId, int userId);
+        Task<MockTestSolutionDto?> GetSessionSolutionAsync(int sessionId, int userId);
         Task<bool> SaveSessionAnswerAsync(int sessionId, int userId, SaveMockTestAnswerDto answer);
+        Task<MockTestQuestionActionResultDto> ReportQuestionAsync(int sessionId, int userId, ReportMockTestQuestionDto request);
+        Task<MockTestQuestionActionResultDto> BookmarkQuestionAsync(int sessionId, int userId, BookmarkMockTestQuestionDto request);
         Task<MockTestAttemptDto> SubmitSessionAsync(int sessionId, int userId, List<QuizAnswerRequestDto> answers);
         Task<MockTestAttemptDto> SubmitSessionAsync(int sessionId, int userId);
         

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SubscriptionService.Application.DTOs;
 using SubscriptionService.Application.Services;
+using SubscriptionService.Domain.Entities;
 using System.ComponentModel.DataAnnotations;
 using SubscriptionService.Application.Interfaces;
 

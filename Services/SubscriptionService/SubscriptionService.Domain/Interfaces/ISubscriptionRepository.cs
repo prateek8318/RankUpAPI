@@ -63,7 +63,7 @@ namespace SubscriptionService.Domain.Interfaces
         Task<IEnumerable<Payment>> GetByUserIdAsync(int userId);
         Task<IEnumerable<Payment>> GetByStatusAsync(PaymentStatus status);
         Task<(IEnumerable<Payment> Payments, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize, int? userId = null, string? transactionId = null, PaymentStatus? status = null, PaymentMethod? paymentMethod = null, decimal? amountFrom = null, decimal? amountTo = null, DateTime? createdDateFrom = null, DateTime? createdDateTo = null, string? providerOrderId = null);
-        Task<(int TotalPayments, decimal TotalRevenue, decimal TodayRevenue, decimal ThisMonthRevenue, int SuccessfulPayments, int FailedPayments, int PendingPayments, decimal AverageTransactionAmount, int UniquePayingUsers)> GetStatisticsAsync();
+        Task<SubscriptionStatisticsDto> GetStatisticsAsync();
     }
 
     public interface IInvoiceRepository : ISubscriptionRepository<Invoice>

@@ -400,6 +400,22 @@ namespace QuestionService.Application.Services
             var optionDImageUrl = await UploadImageAsync(dto.OptionDImage, "option-images");
             var explanationImageUrl = await UploadImageAsync(dto.ExplanationImage, "explanation-images");
             
+            var parsedTranslations = ParseTranslationsJson(dto.TranslationsJson);
+            var mergedTranslations = BuildMergedTranslations(
+                existingTranslations: Array.Empty<QuestionTranslationDto>(),
+                incomingTranslations: parsedTranslations,
+                questionText: dto.QuestionText ?? string.Empty,
+                optionA: dto.OptionA ?? string.Empty,
+                optionB: dto.OptionB ?? string.Empty,
+                optionC: dto.OptionC ?? string.Empty,
+                optionD: dto.OptionD ?? string.Empty,
+                explanation: dto.Explanation ?? string.Empty,
+                questionImageUrl: questionImageUrl,
+                optionAImageUrl: optionAImageUrl,
+                optionBImageUrl: optionBImageUrl,
+                optionCImageUrl: optionCImageUrl,
+                optionDImageUrl: optionDImageUrl);
+
             // Convert FormData to RequestDto with image URLs
             var requestDto = new CreateQuestionRequestDto
             {
@@ -428,10 +444,18 @@ namespace QuestionService.Application.Services
                 Reference = dto.Reference,
                 Tags = dto.Tags,
                 CreatedBy = dto.CreatedBy,
-                Translations = ParseTranslationsJson(dto.TranslationsJson)
+                Translations = mergedTranslations
             };
             
             var createdQuestionId = await _adminRepository.CreateAdminQuestionAsync(requestDto);
+            await _adminRepository.UpdateQuestionImageUrlsAsync(
+                createdQuestionId,
+                questionImageUrl,
+                optionAImageUrl,
+                optionBImageUrl,
+                optionCImageUrl,
+                optionDImageUrl,
+                explanationImageUrl);
             await AttachQuestionToMockTestIfRequiredAsync(createdQuestionId, dto.MockTestId, dto.Marks, dto.NegativeMarks);
             var createdQuestion = await _adminRepository.GetAdminQuestionByIdAsync(createdQuestionId);
             if (createdQuestion == null)
@@ -492,12 +516,98 @@ namespace QuestionService.Application.Services
             }
         }
 
+        private static List<QuestionTranslationUpsertDto> BuildMergedTranslations(
+            IReadOnlyCollection<QuestionTranslationDto> existingTranslations,
+            IEnumerable<QuestionTranslationUpsertDto> incomingTranslations,
+            string questionText,
+            string? optionA,
+            string? optionB,
+            string? optionC,
+            string? optionD,
+            string? explanation,
+            string? questionImageUrl,
+            string? optionAImageUrl,
+            string? optionBImageUrl,
+            string? optionCImageUrl,
+            string? optionDImageUrl)
+        {
+            var translationsByLanguage = existingTranslations
+                .Where(t => !string.IsNullOrWhiteSpace(t.LanguageCode))
+                .ToDictionary(
+                    t => t.LanguageCode.Trim().ToLowerInvariant(),
+                    t => new QuestionTranslationUpsertDto
+                    {
+                        LanguageCode = t.LanguageCode,
+                        QuestionText = t.QuestionText,
+                        OptionA = t.OptionA,
+                        OptionB = t.OptionB,
+                        OptionC = t.OptionC,
+                        OptionD = t.OptionD,
+                        Explanation = t.Explanation
+                    },
+                    StringComparer.OrdinalIgnoreCase);
+
+            translationsByLanguage["en"] = new QuestionTranslationUpsertDto
+            {
+                LanguageCode = "en",
+                QuestionText = questionText,
+                OptionA = optionA,
+                OptionB = optionB,
+                OptionC = optionC,
+                OptionD = optionD,
+                Explanation = explanation,
+                QuestionImageUrl = questionImageUrl,
+                OptionAImageUrl = optionAImageUrl,
+                OptionBImageUrl = optionBImageUrl,
+                OptionCImageUrl = optionCImageUrl,
+                OptionDImageUrl = optionDImageUrl
+            };
+
+            foreach (var translation in incomingTranslations.Where(t => !string.IsNullOrWhiteSpace(t.LanguageCode)))
+            {
+                var key = translation.LanguageCode.Trim().ToLowerInvariant();
+                translationsByLanguage[key] = new QuestionTranslationUpsertDto
+                {
+                    LanguageCode = translation.LanguageCode.Trim(),
+                    QuestionText = string.IsNullOrWhiteSpace(translation.QuestionText)
+                        ? translationsByLanguage.GetValueOrDefault(key)?.QuestionText ?? string.Empty
+                        : translation.QuestionText,
+                    OptionA = translation.OptionA ?? translationsByLanguage.GetValueOrDefault(key)?.OptionA,
+                    OptionB = translation.OptionB ?? translationsByLanguage.GetValueOrDefault(key)?.OptionB,
+                    OptionC = translation.OptionC ?? translationsByLanguage.GetValueOrDefault(key)?.OptionC,
+                    OptionD = translation.OptionD ?? translationsByLanguage.GetValueOrDefault(key)?.OptionD,
+                    Explanation = translation.Explanation ?? translationsByLanguage.GetValueOrDefault(key)?.Explanation,
+                    QuestionImageUrl = translation.QuestionImageUrl ?? translationsByLanguage.GetValueOrDefault(key)?.QuestionImageUrl,
+                    OptionAImageUrl = translation.OptionAImageUrl ?? translationsByLanguage.GetValueOrDefault(key)?.OptionAImageUrl,
+                    OptionBImageUrl = translation.OptionBImageUrl ?? translationsByLanguage.GetValueOrDefault(key)?.OptionBImageUrl,
+                    OptionCImageUrl = translation.OptionCImageUrl ?? translationsByLanguage.GetValueOrDefault(key)?.OptionCImageUrl,
+                    OptionDImageUrl = translation.OptionDImageUrl ?? translationsByLanguage.GetValueOrDefault(key)?.OptionDImageUrl
+                };
+            }
+
+            return translationsByLanguage.Values.ToList();
+        }
+
         public async Task<QuestionAdminDetailDto> UpdateAdminQuestionAsync(UpdateQuestionAdminDto dto)
         {
-            await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
             var existingQuestion = await _adminRepository.GetAdminQuestionByIdAsync(dto.Id);
             if (existingQuestion == null)
                 throw new Exception($"Question with ID {dto.Id} not found");
+
+            var resolvedTopicId = await ResolveTopicIdForAdminUpdateAsync(
+                dto.ModuleId,
+                dto.ExamId,
+                dto.SubjectId,
+                dto.TopicId,
+                existingQuestion.TopicId);
+
+            await ValidateExamSubjectTopicMappingAsync(
+                dto.ExamId,
+                dto.SubjectId,
+                dto.ModuleId == 3 ? resolvedTopicId : null,
+                dto.ModuleId);
+
+            dto.TopicId = resolvedTopicId ?? 0;
 
             var updated = await _adminRepository.UpdateAdminQuestionAsync(dto);
             if (!updated)
@@ -1524,6 +1634,47 @@ namespace QuestionService.Application.Services
             }
         }
 
+        private async Task<int?> ResolveTopicIdForAdminUpdateAsync(
+            int moduleId,
+            int examId,
+            int subjectId,
+            int? requestedTopicId,
+            int existingTopicId)
+        {
+            if (moduleId == 3)
+            {
+                if (requestedTopicId.HasValue && requestedTopicId.Value > 0)
+                {
+                    return requestedTopicId.Value;
+                }
+
+                if (existingTopicId > 0)
+                {
+                    return existingTopicId;
+                }
+
+                throw new ArgumentException("Topic is required for ModuleId 3 (Deep Practice).");
+            }
+
+            if (requestedTopicId.HasValue && requestedTopicId.Value > 0)
+            {
+                return requestedTopicId.Value;
+            }
+
+            if (existingTopicId > 0)
+            {
+                var existingMapped = await _featureRepository.IsTopicMappedToExamSubjectAsync(existingTopicId, examId, subjectId);
+                if (existingMapped)
+                {
+                    return existingTopicId;
+                }
+            }
+
+            var mappedTopics = await _adminRepository.GetTopicsAsync(subjectId, examId, includeInactive: false);
+            var fallbackTopicId = mappedTopics.FirstOrDefault(t => t.Id > 0)?.Id;
+            return fallbackTopicId > 0 ? fallbackTopicId : null;
+        }
+
         private async Task AttachQuestionToMockTestIfRequiredAsync(
             int questionId,
             int? mockTestId,
@@ -1652,68 +1803,185 @@ namespace QuestionService.Application.Services
             try
             {
                 _logger.LogInformation("Updating question with images: {QuestionId}", dto.Id);
-                await ValidateExamSubjectTopicMappingAsync(dto.ExamId, dto.SubjectId, dto.TopicId, dto.ModuleId);
 
-                var existingQuestion = await _questionRepository.GetByIdAsync(dto.Id);
+                var existingQuestion = await _adminRepository.GetAdminQuestionByIdAsync(dto.Id);
                 if (existingQuestion == null)
                     throw new KeyNotFoundException($"Question with ID {dto.Id} not found");
+                var existingQuestionForImageUrls = await _questionRepository.GetByIdAsync(dto.Id);
 
-                // Upload new images if provided
-                var questionImageUrl = dto.QuestionImageUrl ?? existingQuestion.QuestionImageUrl;
-                var optionAImageUrl = dto.OptionAImageUrl ?? existingQuestion.OptionAImageUrl;
-                var optionBImageUrl = dto.OptionBImageUrl ?? existingQuestion.OptionBImageUrl;
-                var optionCImageUrl = dto.OptionCImageUrl ?? existingQuestion.OptionCImageUrl;
-                var optionDImageUrl = dto.OptionDImageUrl ?? existingQuestion.OptionDImageUrl;
-                var explanationImageUrl = dto.ExplanationImageUrl ?? existingQuestion.ExplanationImageUrl;
+                int? examIdForValidation = dto.ExamId ?? existingQuestion.ExamId;
+
+                // For MockTest questions (ModuleId 1), resolve exam from MockTestId.
+                // MockTestId is not ExamId and must never be passed directly to mapping validation.
+                if (dto.ModuleId == 1 && dto.MockTestId.HasValue && dto.MockTestId.Value > 0)
+                {
+                    var mockTest = await _mockTestRepository.GetByIdAsync(dto.MockTestId.Value);
+                    if (mockTest == null)
+                    {
+                        throw new ArgumentException($"Mock test with ID {dto.MockTestId.Value} not found.");
+                    }
+
+                    examIdForValidation = mockTest.ExamId;
+                }
+
+                if (!examIdForValidation.HasValue || examIdForValidation.Value <= 0)
+                {
+                    throw new ArgumentException("A valid exam id is required to validate exam-subject mapping.");
+                }
+
+                var resolvedModuleId = dto.ModuleId ?? existingQuestion.ModuleId;
+                var resolvedTopicId = await ResolveTopicIdForAdminUpdateAsync(
+                    resolvedModuleId,
+                    examIdForValidation.Value,
+                    dto.SubjectId,
+                    dto.TopicId,
+                    existingQuestion.TopicId);
+
+                await ValidateExamSubjectTopicMappingAsync(
+                    examIdForValidation.Value,
+                    dto.SubjectId,
+                    resolvedModuleId == 3 ? resolvedTopicId : null,
+                    resolvedModuleId);
+
+                var englishTranslation = existingQuestion.Translations
+                    .FirstOrDefault(t => string.Equals(t.LanguageCode, "en", StringComparison.OrdinalIgnoreCase));
+
+                var questionText = string.IsNullOrWhiteSpace(dto.QuestionText)
+                    ? englishTranslation?.QuestionText ?? string.Empty
+                    : dto.QuestionText;
+                var optionA = dto.OptionA ?? englishTranslation?.OptionA ?? string.Empty;
+                var optionB = dto.OptionB ?? englishTranslation?.OptionB ?? string.Empty;
+                var optionC = dto.OptionC ?? englishTranslation?.OptionC ?? string.Empty;
+                var optionD = dto.OptionD ?? englishTranslation?.OptionD ?? string.Empty;
+                var explanation = dto.Explanation ?? englishTranslation?.Explanation ?? string.Empty;
+
+                // Upload new images if provided using the same disk-backed flow as create.
+                var questionImageUrl = string.IsNullOrWhiteSpace(dto.QuestionImageUrl) ? existingQuestionForImageUrls?.QuestionImageUrl : dto.QuestionImageUrl;
+                var optionAImageUrl = string.IsNullOrWhiteSpace(dto.OptionAImageUrl) ? existingQuestionForImageUrls?.OptionAImageUrl : dto.OptionAImageUrl;
+                var optionBImageUrl = string.IsNullOrWhiteSpace(dto.OptionBImageUrl) ? existingQuestionForImageUrls?.OptionBImageUrl : dto.OptionBImageUrl;
+                var optionCImageUrl = string.IsNullOrWhiteSpace(dto.OptionCImageUrl) ? existingQuestionForImageUrls?.OptionCImageUrl : dto.OptionCImageUrl;
+                var optionDImageUrl = string.IsNullOrWhiteSpace(dto.OptionDImageUrl) ? existingQuestionForImageUrls?.OptionDImageUrl : dto.OptionDImageUrl;
+                var explanationImageUrl = string.IsNullOrWhiteSpace(dto.ExplanationImageUrl) ? existingQuestionForImageUrls?.ExplanationImageUrl : dto.ExplanationImageUrl;
 
                 if (dto.QuestionImage != null)
                 {
-                    questionImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.QuestionImage, "question", dto.Id, "en");
+                    questionImageUrl = await UploadImageAsync(dto.QuestionImage, "question-images");
                 }
 
                 if (dto.OptionAImage != null)
                 {
-                    optionAImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionAImage, "optiona", dto.Id, "en");
+                    optionAImageUrl = await UploadImageAsync(dto.OptionAImage, "option-images");
                 }
 
                 if (dto.OptionBImage != null)
                 {
-                    optionBImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionBImage, "optionb", dto.Id, "en");
+                    optionBImageUrl = await UploadImageAsync(dto.OptionBImage, "option-images");
                 }
 
                 if (dto.OptionCImage != null)
                 {
-                    optionCImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionCImage, "optionc", dto.Id, "en");
+                    optionCImageUrl = await UploadImageAsync(dto.OptionCImage, "option-images");
                 }
 
                 if (dto.OptionDImage != null)
                 {
-                    optionDImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.OptionDImage, "optiond", dto.Id, "en");
+                    optionDImageUrl = await UploadImageAsync(dto.OptionDImage, "option-images");
                 }
 
                 if (dto.ExplanationImage != null)
                 {
-                    explanationImageUrl = await _featureRepository.UploadQuestionImageAsync(dto.ExplanationImage, "explanation", dto.Id, "en");
+                    explanationImageUrl = await UploadImageAsync(dto.ExplanationImage, "explanation-images");
                 }
 
-                var success = await _questionRepository.UpdateQuestionAsync(
-                    dto.Id,
-                    dto.QuestionText,
-                    dto.OptionA,
-                    dto.OptionB,
-                    dto.OptionC,
-                    dto.OptionD,
-                    dto.CorrectAnswer,
-                    dto.Marks,
-                    dto.DifficultyLevel);
+                var mergedTranslations = BuildMergedTranslations(
+                    existingQuestion.Translations,
+                    ParseTranslationsJson(dto.TranslationsJson ?? "[]"),
+                    questionText,
+                    optionA,
+                    optionB,
+                    optionC,
+                    optionD,
+                    explanation,
+                    questionImageUrl,
+                    optionAImageUrl,
+                    optionBImageUrl,
+                    optionCImageUrl,
+                    optionDImageUrl);
+
+                if ((dto.SameExplanationForAllLanguages ?? existingQuestion.SameExplanationForAllLanguages) && !string.IsNullOrWhiteSpace(explanation))
+                {
+                    foreach (var translation in mergedTranslations)
+                    {
+                        translation.Explanation = explanation;
+                    }
+                }
+
+                var updateDto = new UpdateQuestionAdminDto
+                {
+                    Id = dto.Id,
+                    ModuleId = resolvedModuleId,
+                    ExamId = examIdForValidation.Value,
+                    SubjectId = dto.SubjectId,
+                    TopicId = resolvedTopicId ?? 0,
+                    Marks = Convert.ToInt32(Math.Round(dto.Marks, MidpointRounding.AwayFromZero)),
+                    NegativeMarks = dto.NegativeMarks ?? existingQuestion.NegativeMarks,
+                    DifficultyLevel = dto.DifficultyLevel ?? existingQuestion.DifficultyLevel,
+                    CorrectAnswer = dto.CorrectAnswer,
+                    SameExplanationForAllLanguages = dto.SameExplanationForAllLanguages ?? existingQuestion.SameExplanationForAllLanguages,
+                    IsPublished = existingQuestion.IsPublished,
+                    IsActive = existingQuestion.IsActive,
+                    MockTestId = dto.MockTestId,
+                    Translations = mergedTranslations
+                };
+
+                var success = await _adminRepository.UpdateAdminQuestionAsync(updateDto);
 
                 if (!success)
                     throw new KeyNotFoundException($"Question with ID {dto.Id} not found");
 
-                // Update image URLs using the repository
                 await _adminRepository.UpdateQuestionImageUrlsAsync(dto.Id, questionImageUrl, optionAImageUrl, optionBImageUrl, optionCImageUrl, optionDImageUrl, explanationImageUrl);
+                await AttachQuestionToMockTestIfRequiredAsync(dto.Id, dto.MockTestId, dto.Marks, dto.NegativeMarks ?? existingQuestion.NegativeMarks);
 
-                return await GetByIdAsync(dto.Id) ?? throw new InvalidOperationException($"Unable to load question {dto.Id} after update.");
+                var updatedQuestion = await _adminRepository.GetAdminQuestionByIdAsync(dto.Id);
+                if (updatedQuestion == null)
+                {
+                    throw new InvalidOperationException($"Unable to load question {dto.Id} after update.");
+                }
+
+                var updatedEnglishTranslation = updatedQuestion.Translations
+                    .FirstOrDefault(t => string.Equals(t.LanguageCode, "en", StringComparison.OrdinalIgnoreCase));
+
+                return new QuestionDto
+                {
+                    Id = updatedQuestion.Id,
+                    ModuleId = updatedQuestion.ModuleId,
+                    ExamId = updatedQuestion.ExamId,
+                    SubjectId = updatedQuestion.SubjectId,
+                    TopicId = updatedQuestion.TopicId,
+                    QuestionText = updatedEnglishTranslation?.QuestionText ?? questionText,
+                    OptionA = updatedEnglishTranslation?.OptionA ?? optionA,
+                    OptionB = updatedEnglishTranslation?.OptionB ?? optionB,
+                    OptionC = updatedEnglishTranslation?.OptionC ?? optionC,
+                    OptionD = updatedEnglishTranslation?.OptionD ?? optionD,
+                    CorrectAnswer = updateDto.CorrectAnswer,
+                    Explanation = updatedEnglishTranslation?.Explanation ?? explanation,
+                    Marks = updateDto.Marks,
+                    NegativeMarks = updateDto.NegativeMarks,
+                    DifficultyLevel = updateDto.DifficultyLevel,
+                    QuestionType = dto.QuestionType ?? "MCQ",
+                    QuestionImageUrl = questionImageUrl,
+                    OptionAImageUrl = optionAImageUrl,
+                    OptionBImageUrl = optionBImageUrl,
+                    OptionCImageUrl = optionCImageUrl,
+                    OptionDImageUrl = optionDImageUrl,
+                    ExplanationImageUrl = explanationImageUrl,
+                    SameExplanationForAllLanguages = updateDto.SameExplanationForAllLanguages,
+                    Reference = dto.Reference,
+                    Tags = dto.Tags,
+                    IsPublished = updatedQuestion.IsPublished,
+                    IsActive = updatedQuestion.IsActive,
+                    Translations = updatedQuestion.Translations
+                };
             }
             catch (Exception ex)
             {

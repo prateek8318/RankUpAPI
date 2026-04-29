@@ -1,4 +1,5 @@
 using SubscriptionService.Application.DTOs;
+using SubscriptionService.Domain.Entities;
 
 namespace SubscriptionService.Application.Interfaces
 {

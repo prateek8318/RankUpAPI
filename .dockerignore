@@ -8,7 +8,6 @@
 **/TestResults
 docker
 docs
-wwwroot
 README.md
 *.user
 *.suo

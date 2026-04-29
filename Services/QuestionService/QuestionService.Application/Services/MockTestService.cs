@@ -703,6 +703,32 @@ namespace QuestionService.Application.Services
             }
         }
 
+        public async Task<MockTestAttemptDto?> GetMockTestSessionResultAsync(int sessionId, int userId)
+        {
+            try
+            {
+                return await _mockTestRepository.GetSessionResultAsync(sessionId, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving mock test result for session: {SessionId}", sessionId);
+                throw;
+            }
+        }
+
+        public async Task<MockTestSolutionDto?> GetMockTestSolutionAsync(int sessionId, int userId)
+        {
+            try
+            {
+                return await _mockTestRepository.GetSessionSolutionAsync(sessionId, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving mock test solution for session: {SessionId}", sessionId);
+                throw;
+            }
+        }
+
         public async Task<bool> SaveMockTestAnswerAsync(int sessionId, int userId, SaveMockTestAnswerDto answer)
         {
             try
@@ -713,6 +739,34 @@ namespace QuestionService.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error saving answer for mock test session: {SessionId}", sessionId);
+                throw;
+            }
+        }
+
+        public async Task<MockTestQuestionActionResultDto> ReportMockTestQuestionAsync(int sessionId, int userId, ReportMockTestQuestionDto request)
+        {
+            try
+            {
+                _logger.LogInformation("Reporting question for mock test session: {SessionId}, question: {QuestionId}", sessionId, request.QuestionId);
+                return await _mockTestRepository.ReportQuestionAsync(sessionId, userId, request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reporting question for mock test session: {SessionId}", sessionId);
+                throw;
+            }
+        }
+
+        public async Task<MockTestQuestionActionResultDto> BookmarkMockTestQuestionAsync(int sessionId, int userId, BookmarkMockTestQuestionDto request)
+        {
+            try
+            {
+                _logger.LogInformation("Bookmarking question for mock test session: {SessionId}, question: {QuestionId}", sessionId, request.QuestionId);
+                return await _mockTestRepository.BookmarkQuestionAsync(sessionId, userId, request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bookmarking question for mock test session: {SessionId}", sessionId);
                 throw;
             }
         }

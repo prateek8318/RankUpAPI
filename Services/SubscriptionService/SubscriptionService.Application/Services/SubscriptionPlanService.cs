@@ -728,12 +728,83 @@ namespace SubscriptionService.Application.Services
                 if (result == null)
                     throw new InvalidOperationException("Failed to retrieve updated plan with durations");
 
+                EnsurePersistedPlanMatchesUpdate(result, dto, existing.IsActive);
+
                 return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating plan with durations: {PlanId}", planId);
                 throw;
+            }
+        }
+
+        private static void EnsurePersistedPlanMatchesUpdate(
+            PlanWithDurationOptionsDto persisted,
+            CreateSubscriptionPlanWithDurationDto request,
+            bool expectedIsActive)
+        {
+            static string Normalize(string? value) => (value ?? string.Empty).Trim();
+
+            if (!string.Equals(Normalize(persisted.Name), Normalize(request.Name), StringComparison.Ordinal))
+                throw new InvalidOperationException("Plan update verification failed: name was not persisted.");
+
+            if (!string.Equals(Normalize(persisted.Description), Normalize(request.Description), StringComparison.Ordinal))
+                throw new InvalidOperationException("Plan update verification failed: description was not persisted.");
+
+            if (persisted.Type != request.Type)
+                throw new InvalidOperationException("Plan update verification failed: type was not persisted.");
+
+            if (persisted.ExamId != request.ExamId)
+                throw new InvalidOperationException("Plan update verification failed: exam id was not persisted.");
+
+            if (!string.Equals(Normalize(persisted.ExamCategory), Normalize(request.ExamCategory), StringComparison.Ordinal))
+                throw new InvalidOperationException("Plan update verification failed: exam category was not persisted.");
+
+            if (persisted.IsPopular != request.IsPopular)
+                throw new InvalidOperationException("Plan update verification failed: popular flag was not persisted.");
+
+            if (persisted.SortOrder != request.SortOrder)
+                throw new InvalidOperationException("Plan update verification failed: sort order was not persisted.");
+
+            if (persisted.IsActive != expectedIsActive)
+                throw new InvalidOperationException("Plan update verification failed: active status changed unexpectedly.");
+
+            var persistedDurations = persisted.DurationOptions
+                .OrderBy(x => x.SortOrder)
+                .Select(x => new
+                {
+                    x.DurationMonths,
+                    x.Price,
+                    x.DiscountPercentage,
+                    DisplayLabel = Normalize(x.DisplayLabel),
+                    x.IsPopular,
+                    x.SortOrder,
+                    x.IsActive
+                })
+                .ToList();
+
+            var requestedDurations = request.DurationOptions
+                .OrderBy(x => x.SortOrder)
+                .Select(x => new
+                {
+                    x.DurationMonths,
+                    x.Price,
+                    x.DiscountPercentage,
+                    DisplayLabel = Normalize(x.DisplayLabel),
+                    x.IsPopular,
+                    x.SortOrder,
+                    IsActive = true
+                })
+                .ToList();
+
+            if (persistedDurations.Count != requestedDurations.Count)
+                throw new InvalidOperationException("Plan update verification failed: duration options count mismatch.");
+
+            for (var index = 0; index < requestedDurations.Count; index++)
+            {
+                if (!Equals(persistedDurations[index], requestedDurations[index]))
+                    throw new InvalidOperationException("Plan update verification failed: duration options were not fully persisted.");
             }
         }
 

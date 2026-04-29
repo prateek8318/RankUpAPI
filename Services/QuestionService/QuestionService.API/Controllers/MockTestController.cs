@@ -897,9 +897,86 @@ namespace QuestionService.API.Controllers
 
                 return Ok(new { success = true, message = "Answer saved" });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error saving answer for session {SessionId}", sessionId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Report a question during an in-progress mock test session
+        /// </summary>
+        [HttpPost("report/{sessionId:int}")]
+        public async Task<ActionResult<object>> ReportMockTestQuestion(int sessionId, [FromBody] ReportMockTestQuestionDto request)
+        {
+            try
+            {
+                if (sessionId <= 0)
+                    return BadRequest(new { success = false, message = "Invalid sessionId. Start mock test first and pass returned sessionId." });
+
+                if (request == null || request.QuestionId <= 0)
+                    return BadRequest(new { success = false, message = "Invalid questionId. Pass a valid questionId from session questions list." });
+
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
+                var result = await _mockTestService.ReportMockTestQuestionAsync(sessionId, userId, request);
+                return Ok(new { success = true, data = result, message = "Question reported successfully" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reporting question for session {SessionId}", sessionId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Bookmark or unbookmark a question during an in-progress mock test session
+        /// </summary>
+        [HttpPost("bookmark/{sessionId:int}")]
+        public async Task<ActionResult<object>> BookmarkMockTestQuestion(int sessionId, [FromBody] BookmarkMockTestQuestionDto request)
+        {
+            try
+            {
+                if (sessionId <= 0)
+                    return BadRequest(new { success = false, message = "Invalid sessionId. Start mock test first and pass returned sessionId." });
+
+                if (request == null || request.QuestionId <= 0)
+                    return BadRequest(new { success = false, message = "Invalid questionId. Pass a valid questionId from session questions list." });
+
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
+                var result = await _mockTestService.BookmarkMockTestQuestionAsync(sessionId, userId, request);
+                var message = request.IsBookmarked ? "Question bookmarked successfully" : "Question bookmark removed successfully";
+                return Ok(new { success = true, data = result, message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bookmarking question for session {SessionId}", sessionId);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
@@ -925,6 +1002,70 @@ namespace QuestionService.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error submitting mock test session {SessionId}", sessionId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get submitted mock test result by session id
+        /// </summary>
+        [HttpGet("result/{sessionId:int}")]
+        public async Task<ActionResult<object>> GetMockTestSessionResult(int sessionId)
+        {
+            try
+            {
+                if (sessionId <= 0)
+                    return BadRequest(new { success = false, message = "Invalid sessionId. Start mock test first and pass returned sessionId." });
+
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
+                var result = await _mockTestService.GetMockTestSessionResultAsync(sessionId, userId);
+                if (result == null)
+                    return NotFound(new { success = false, message = "Submitted result not found for this session" });
+
+                return Ok(new { success = true, data = result, message = "Mock test result fetched successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching mock test result for session {SessionId}", sessionId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get solution for submitted mock test session
+        /// </summary>
+        [HttpGet("solution/{sessionId:int}")]
+        public async Task<ActionResult<object>> GetMockTestSolution(int sessionId)
+        {
+            try
+            {
+                if (sessionId <= 0)
+                    return BadRequest(new { success = false, message = "Invalid sessionId. Start mock test first and pass returned sessionId." });
+
+                var userId = GetAuthenticatedUserId();
+                if (userId <= 0)
+                    return Unauthorized(new { success = false, message = "Invalid user" });
+
+                var solution = await _mockTestService.GetMockTestSolutionAsync(sessionId, userId);
+                if (solution == null)
+                    return NotFound(new { success = false, message = "Session not found" });
+
+                if (!string.Equals(solution.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest(new { success = false, message = "Please submit the mock test first to view solution" });
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Mock test solution fetched successfully",
+                    data = solution
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving mock test solution for session {SessionId}", sessionId);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }

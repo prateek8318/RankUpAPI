@@ -8,6 +8,8 @@ namespace QuestionService.Infrastructure.Repositories
 {
     public class MockTestRepository : BaseDapperRepository, IMockTestRepository
     {
+        private const int DefaultPerQuestionTimeInSeconds = 45;
+
         public MockTestRepository(string connectionString) : base(connectionString)
         {
         }
@@ -20,6 +22,9 @@ namespace QuestionService.Infrastructure.Repositories
             public int QuestionNumber { get; set; }
             public decimal Marks { get; set; }
             public decimal NegativeMarks { get; set; }
+            public int ExamId { get; set; }
+            public int SubjectId { get; set; }
+            public int? TopicId { get; set; }
 
             public string? QuestionText { get; set; }
             public string? OptionA { get; set; }
@@ -36,6 +41,68 @@ namespace QuestionService.Infrastructure.Repositories
             public string? OptionCImageUrl { get; set; }
             public string? OptionDImageUrl { get; set; }
             public string? ExplanationImageUrl { get; set; }
+        }
+
+        private sealed class QuestionTranslationFlatRow
+        {
+            public int QuestionId { get; set; }
+            public int Id { get; set; }
+            public string LanguageCode { get; set; } = string.Empty;
+            public string QuestionText { get; set; } = string.Empty;
+            public string? OptionA { get; set; }
+            public string? OptionB { get; set; }
+            public string? OptionC { get; set; }
+            public string? OptionD { get; set; }
+            public string? Explanation { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime? UpdatedAt { get; set; }
+        }
+
+        private static async Task<Dictionary<int, List<QuestionTranslationDto>>> LoadTranslationsByQuestionIdAsync(
+            System.Data.IDbConnection connection,
+            IEnumerable<int> questionIds)
+        {
+            var ids = questionIds.Distinct().ToArray();
+            if (ids.Length == 0)
+            {
+                return new Dictionary<int, List<QuestionTranslationDto>>();
+            }
+
+            var rows = await connection.QueryAsync<QuestionTranslationFlatRow>(
+                @"SELECT
+                      qt.QuestionId,
+                      qt.Id,
+                      qt.LanguageCode,
+                      qt.QuestionText,
+                      qt.OptionA,
+                      qt.OptionB,
+                      qt.OptionC,
+                      qt.OptionD,
+                      qt.Explanation,
+                      qt.CreatedAt,
+                      qt.UpdatedAt
+                  FROM QuestionTranslations qt
+                  WHERE qt.QuestionId IN @QuestionIds",
+                new { QuestionIds = ids });
+
+            return rows
+                .GroupBy(x => x.QuestionId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => new QuestionTranslationDto
+                    {
+                        Id = x.Id,
+                        QuestionId = x.QuestionId,
+                        LanguageCode = x.LanguageCode,
+                        QuestionText = x.QuestionText,
+                        OptionA = x.OptionA,
+                        OptionB = x.OptionB,
+                        OptionC = x.OptionC,
+                        OptionD = x.OptionD,
+                        Explanation = x.Explanation,
+                        CreatedAt = x.CreatedAt,
+                        UpdatedAt = x.UpdatedAt
+                    }).ToList());
         }
 
         // Mock Test CRUD Operations
@@ -150,7 +217,10 @@ namespace QuestionService.Infrastructure.Repositories
                         mtq.QuestionNumber,
                         mtq.Marks,
                         mtq.NegativeMarks,
-                        q.QuestionText,
+                        q.ExamId,
+                        q.SubjectId,
+                        q.TopicId,
+                        COALESCE(NULLIF(qt.QuestionText, ''), q.QuestionText, '') AS QuestionText,
                         q.OptionA,
                         q.OptionB,
                         q.OptionC,
@@ -167,10 +237,17 @@ namespace QuestionService.Infrastructure.Repositories
                         q.ExplanationImageUrl
                     FROM MockTestQuestions mtq
                     LEFT JOIN Questions q ON mtq.QuestionId = q.Id
+                    OUTER APPLY (
+                        SELECT TOP 1 t.QuestionText
+                        FROM QuestionTranslations t
+                        WHERE t.QuestionId = q.Id
+                        ORDER BY CASE WHEN t.LanguageCode = 'en' THEN 0 ELSE 1 END, t.Id
+                    ) qt
                     WHERE mtq.MockTestId = @MockTestId AND q.IsActive = 1
                     ORDER BY mtq.QuestionNumber";
 
                 var rows = (await connection.QueryAsync<MockTestQuestionFlatRow>(questionsSql, new { MockTestId = id })).ToList();
+                var translationsByQuestionId = await LoadTranslationsByQuestionIdAsync(connection, rows.Select(x => x.QuestionId));
 
                 mockTest.Questions = rows.Select(r => new MockTestQuestionDto
                 {
@@ -183,6 +260,9 @@ namespace QuestionService.Infrastructure.Repositories
                     Question = new QuestionDto
                     {
                         Id = r.QuestionId,
+                        ExamId = r.ExamId,
+                        SubjectId = r.SubjectId,
+                        TopicId = r.TopicId,
                         QuestionText = r.QuestionText ?? string.Empty,
                         OptionA = r.OptionA,
                         OptionB = r.OptionB,
@@ -197,7 +277,8 @@ namespace QuestionService.Infrastructure.Repositories
                         OptionBImageUrl = r.OptionBImageUrl,
                         OptionCImageUrl = r.OptionCImageUrl,
                         OptionDImageUrl = r.OptionDImageUrl,
-                        ExplanationImageUrl = r.ExplanationImageUrl
+                        ExplanationImageUrl = r.ExplanationImageUrl,
+                        Translations = translationsByQuestionId.GetValueOrDefault(r.QuestionId) ?? new List<QuestionTranslationDto>()
                     }
                 }).ToList();
             }
@@ -286,8 +367,9 @@ namespace QuestionService.Infrastructure.Repositories
                 {
                     "name" => $"mt.Name {sortOrder}",
                     "date" => $"mt.CreatedAt {sortOrder}",
-                    "mark" => $"mt.TotalMarks {sortOrder}",
-                    "marks" => $"mt.TotalMarks {sortOrder}",
+                    "mark" => $"ISNULL(sp.Price, 0) {sortOrder}",
+                    "marks" => $"ISNULL(sp.Price, 0) {sortOrder}",
+                    "price" => $"ISNULL(sp.Price, 0) {sortOrder}",
                     "difficulty" => $"mt.Difficulty {sortOrder}",
                     "year" => $"mt.[Year] {sortOrder}",
                     "attempts" => $"mt.AttemptsAllowed {sortOrder}",
@@ -321,6 +403,7 @@ namespace QuestionService.Infrastructure.Repositories
                     FROM MockTests mt
                     LEFT JOIN [RankUp_MasterDB].[dbo].[Exams] e ON mt.ExamId = e.Id
                     LEFT JOIN [RankUp_MasterDB].[dbo].[Subjects] s ON mt.SubjectId = s.Id
+                    LEFT JOIN [RankUp_SubscriptionDB].[dbo].[SubscriptionPlans] sp ON mt.SubscriptionPlanId = sp.Id
                     LEFT JOIN (
                         SELECT mtq.MockTestId, COUNT(*) AS QuestionCount
                         FROM dbo.MockTestQuestions mtq
@@ -358,6 +441,7 @@ namespace QuestionService.Infrastructure.Repositories
                 var countSql = @"
                     SELECT COUNT(*)
                     FROM MockTests mt
+                    LEFT JOIN [RankUp_SubscriptionDB].[dbo].[SubscriptionPlans] sp ON mt.SubscriptionPlanId = sp.Id
                     WHERE (@ExamId IS NULL OR mt.ExamId = @ExamId)
                     AND (@SubjectId IS NULL OR mt.SubjectId = @SubjectId)
                     AND (@IsActive IS NULL OR mt.IsActive = @IsActive)
@@ -466,8 +550,7 @@ namespace QuestionService.Infrastructure.Repositories
                     UPDATE MockTestQuestions SET
                         QuestionNumber = @QuestionNumber,
                         Marks = @Marks,
-                        NegativeMarks = @NegativeMarks,
-                        UpdatedAt = GETDATE()
+                        NegativeMarks = @NegativeMarks
                     WHERE MockTestId = @MockTestId AND QuestionId = @QuestionId";
 
                 var rowsAffected = await connection.ExecuteAsync(sql, new
@@ -495,7 +578,10 @@ namespace QuestionService.Infrastructure.Repositories
                         mtq.QuestionNumber,
                         mtq.Marks,
                         mtq.NegativeMarks,
-                        q.QuestionText,
+                        q.ExamId,
+                        q.SubjectId,
+                        q.TopicId,
+                        COALESCE(NULLIF(qt.QuestionText, ''), q.QuestionText, '') AS QuestionText,
                         q.OptionA,
                         q.OptionB,
                         q.OptionC,
@@ -512,10 +598,17 @@ namespace QuestionService.Infrastructure.Repositories
                         q.ExplanationImageUrl
                     FROM MockTestQuestions mtq
                     LEFT JOIN Questions q ON mtq.QuestionId = q.Id
+                    OUTER APPLY (
+                        SELECT TOP 1 t.QuestionText
+                        FROM QuestionTranslations t
+                        WHERE t.QuestionId = q.Id
+                        ORDER BY CASE WHEN t.LanguageCode = 'en' THEN 0 ELSE 1 END, t.Id
+                    ) qt
                     WHERE mtq.MockTestId = @MockTestId AND q.IsActive = 1
                     ORDER BY mtq.QuestionNumber";
 
                 var rows = (await connection.QueryAsync<MockTestQuestionFlatRow>(sql, new { MockTestId = mockTestId })).ToList();
+                var translationsByQuestionId = await LoadTranslationsByQuestionIdAsync(connection, rows.Select(x => x.QuestionId));
 
                 return rows.Select(r => new MockTestQuestionDto
                 {
@@ -528,6 +621,9 @@ namespace QuestionService.Infrastructure.Repositories
                     Question = new QuestionDto
                     {
                         Id = r.QuestionId,
+                        ExamId = r.ExamId,
+                        SubjectId = r.SubjectId,
+                        TopicId = r.TopicId,
                         QuestionText = r.QuestionText ?? string.Empty,
                         OptionA = r.OptionA,
                         OptionB = r.OptionB,
@@ -542,7 +638,8 @@ namespace QuestionService.Infrastructure.Repositories
                         OptionBImageUrl = r.OptionBImageUrl,
                         OptionCImageUrl = r.OptionCImageUrl,
                         OptionDImageUrl = r.OptionDImageUrl,
-                        ExplanationImageUrl = r.ExplanationImageUrl
+                        ExplanationImageUrl = r.ExplanationImageUrl,
+                        Translations = translationsByQuestionId.GetValueOrDefault(r.QuestionId) ?? new List<QuestionTranslationDto>()
                     }
                 }).ToList();
             });
@@ -560,7 +657,10 @@ namespace QuestionService.Infrastructure.Repositories
                         mtq.QuestionNumber,
                         mtq.Marks,
                         mtq.NegativeMarks,
-                        q.QuestionText,
+                        q.ExamId,
+                        q.SubjectId,
+                        q.TopicId,
+                        COALESCE(NULLIF(qt.QuestionText, ''), q.QuestionText, '') AS QuestionText,
                         q.OptionA,
                         q.OptionB,
                         q.OptionC,
@@ -577,12 +677,20 @@ namespace QuestionService.Infrastructure.Repositories
                         q.ExplanationImageUrl
                     FROM MockTestQuestions mtq
                     LEFT JOIN Questions q ON mtq.QuestionId = q.Id
+                    OUTER APPLY (
+                        SELECT TOP 1 t.QuestionText
+                        FROM QuestionTranslations t
+                        WHERE t.QuestionId = q.Id
+                        ORDER BY CASE WHEN t.LanguageCode = 'en' THEN 0 ELSE 1 END, t.Id
+                    ) qt
                     WHERE mtq.MockTestId = @MockTestId AND mtq.QuestionId = @QuestionId AND q.IsActive = 1";
 
                 var row = await connection.QueryFirstOrDefaultAsync<MockTestQuestionFlatRow>(sql, new { MockTestId = mockTestId, QuestionId = questionId });
 
                 if (row == null)
                     return null;
+
+                var translationsByQuestionId = await LoadTranslationsByQuestionIdAsync(connection, new[] { row.QuestionId });
 
                 return new MockTestQuestionDto
                 {
@@ -595,6 +703,9 @@ namespace QuestionService.Infrastructure.Repositories
                     Question = new QuestionDto
                     {
                         Id = row.QuestionId,
+                        ExamId = row.ExamId,
+                        SubjectId = row.SubjectId,
+                        TopicId = row.TopicId,
                         QuestionText = row.QuestionText ?? string.Empty,
                         OptionA = row.OptionA,
                         OptionB = row.OptionB,
@@ -609,7 +720,8 @@ namespace QuestionService.Infrastructure.Repositories
                         OptionBImageUrl = row.OptionBImageUrl,
                         OptionCImageUrl = row.OptionCImageUrl,
                         OptionDImageUrl = row.OptionDImageUrl,
-                        ExplanationImageUrl = row.ExplanationImageUrl
+                        ExplanationImageUrl = row.ExplanationImageUrl,
+                        Translations = translationsByQuestionId.GetValueOrDefault(row.QuestionId) ?? new List<QuestionTranslationDto>()
                     }
                 };
             });
@@ -842,34 +954,48 @@ namespace QuestionService.Infrastructure.Repositories
                 // Create session
                 var sessionSql = @"
                     INSERT INTO MockTestSessions (MockTestId, UserId, StartedAt, Status, LanguageCode)
-                    OUTPUT INSERTED.Id
+                    OUTPUT INSERTED.Id, INSERTED.StartedAt
                     VALUES (@MockTestId, @UserId, GETDATE(), 'InProgress', @LanguageCode)";
 
-                var sessionId = await connection.QuerySingleAsync<int>(sessionSql, dto);
+                var sessionRow = await connection.QuerySingleAsync<(int Id, DateTime StartedAt)>(sessionSql, dto);
+                var sessionId = sessionRow.Id;
 
                 // Get questions for the session
                 var questions = await GetQuestionsAsync(dto.MockTestId);
+                var startedAt = sessionRow.StartedAt;
+                var totalDurationInSeconds = GetTotalDurationInSeconds(questions.Count);
+                var totalMarks = questions.Sum(q => q.Marks);
+                var hasNegativeMarking = questions.Any(q => q.NegativeMarks > 0);
+                var negativeMarksPerQuestion = questions.Count > 0 ? questions.Max(q => q.NegativeMarks) : 0;
                 
                 // Convert to QuizQuestionDto format
-                var quizQuestions = questions.Select((q, index) => new QuizQuestionDto
+                var quizQuestions = questions.Select((q, index) =>
                 {
-                    Id = q.QuestionId,
-                    QuestionText = q.Question?.QuestionText ?? string.Empty,
-                    OptionA = q.Question?.OptionA,
-                    OptionB = q.Question?.OptionB,
-                    OptionC = q.Question?.OptionC,
-                    OptionD = q.Question?.OptionD,
-                    QuestionImageUrl = q.Question?.QuestionImageUrl,
-                    OptionAImageUrl = q.Question?.OptionAImageUrl,
-                    OptionBImageUrl = q.Question?.OptionBImageUrl,
-                    OptionCImageUrl = q.Question?.OptionCImageUrl,
-                    OptionDImageUrl = q.Question?.OptionDImageUrl,
-                    Marks = q.Marks,
-                    NegativeMarks = q.NegativeMarks,
-                    DifficultyLevel = q.Question?.DifficultyLevel ?? "Medium",
-                    QuestionNumber = index + 1,
-                    IsMarkedForReview = false,
-                    IsAnswered = false
+                    var window = GetQuestionWindow(startedAt, index);
+                    return new QuizQuestionDto
+                    {
+                        Id = q.QuestionId,
+                        QuestionText = q.Question?.QuestionText ?? string.Empty,
+                        OptionA = q.Question?.OptionA,
+                        OptionB = q.Question?.OptionB,
+                        OptionC = q.Question?.OptionC,
+                        OptionD = q.Question?.OptionD,
+                        QuestionImageUrl = q.Question?.QuestionImageUrl,
+                        OptionAImageUrl = q.Question?.OptionAImageUrl,
+                        OptionBImageUrl = q.Question?.OptionBImageUrl,
+                        OptionCImageUrl = q.Question?.OptionCImageUrl,
+                        OptionDImageUrl = q.Question?.OptionDImageUrl,
+                        Marks = q.Marks,
+                        NegativeMarks = q.NegativeMarks,
+                        DifficultyLevel = q.Question?.DifficultyLevel ?? "Medium",
+                        QuestionNumber = index + 1,
+                        IsMarkedForReview = false,
+                        IsAnswered = false,
+                        TimeLimitInSeconds = DefaultPerQuestionTimeInSeconds,
+                        AvailableFrom = window.Start,
+                        AvailableUntil = window.End,
+                        CanAnswer = true
+                    };
                 }).ToList();
 
                 return new MockTestSessionDto
@@ -880,15 +1006,20 @@ namespace QuestionService.Infrastructure.Repositories
                     UserId = dto.UserId,
                     ExamName = mockTest.ExamName,
                     SubjectName = mockTest.SubjectName,
-                    StartedAt = DateTime.UtcNow,
+                    StartedAt = startedAt,
                     DurationInMinutes = mockTest.DurationInMinutes,
-                    TotalQuestions = mockTest.TotalQuestions,
+                    TotalDurationInSeconds = totalDurationInSeconds,
+                    PerQuestionTimeInSeconds = DefaultPerQuestionTimeInSeconds,
+                    CurrentQuestionNumber = quizQuestions.Count > 0 ? 1 : 0,
+                    CurrentQuestionId = quizQuestions.FirstOrDefault()?.Id,
+                    RemainingTimeInSeconds = totalDurationInSeconds,
+                    TotalQuestions = quizQuestions.Count,
                     AnsweredQuestions = 0,
                     MarkedForReview = 0,
-                    TotalMarks = mockTest.TotalMarks,
+                    TotalMarks = totalMarks,
                     ObtainedMarks = 0,
-                    HasNegativeMarking = mockTest.HasNegativeMarking,
-                    NegativeMarksPerQuestion = mockTest.NegativeMarkingValue ?? 0,
+                    HasNegativeMarking = hasNegativeMarking,
+                    NegativeMarksPerQuestion = negativeMarksPerQuestion,
                     Status = "InProgress",
                     Questions = quizQuestions
                 };
@@ -899,6 +1030,7 @@ namespace QuestionService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
+                var sessionAnswerColumns = await GetSessionAnswerFeatureColumnsAsync(connection);
                 var sql = @"
                     SELECT 
                         mts.Id AS SessionId, mts.MockTestId, mts.UserId, mts.StartedAt, mts.CompletedAt,
@@ -917,41 +1049,243 @@ namespace QuestionService.Infrastructure.Repositories
                 
                 if (session != null)
                 {
+                    var now = DateTime.Now;
                     // Get questions and answers for this session
-                    var questionsSql = @"
+                    var questionsSql = $@"
                         SELECT 
                             mtq.QuestionId, mtq.QuestionNumber, mtq.Marks, mtq.NegativeMarks,
                             q.QuestionText, q.OptionA, q.OptionB, q.OptionC, q.OptionD, q.CorrectAnswer,
                             q.Explanation, q.DifficultyLevel, q.QuestionType, q.QuestionImageUrl, q.OptionAImageUrl,
                             q.OptionBImageUrl, q.OptionCImageUrl, q.OptionDImageUrl, q.ExplanationImageUrl,
-                            mtsa.SelectedAnswer, mtsa.IsMarkedForReview, mtsa.IsAnswered
+                            mtsa.SelectedAnswer, mtsa.IsMarkedForReview, mtsa.IsAnswered,
+                            {(sessionAnswerColumns.HasIsReported ? "ISNULL(mtsa.IsReported, 0)" : "CAST(0 AS BIT)")} AS IsReported,
+                            {(sessionAnswerColumns.HasIsBookmarked ? "ISNULL(mtsa.IsBookmarked, 0)" : "CAST(0 AS BIT)")} AS IsBookmarked
                         FROM MockTestQuestions mtq
                         LEFT JOIN Questions q ON mtq.QuestionId = q.Id
                         LEFT JOIN MockTestSessionAnswers mtsa ON mtq.QuestionId = mtsa.QuestionId AND mtsa.SessionId = @SessionId
                         WHERE mtq.MockTestId = @MockTestId
                         ORDER BY mtq.QuestionNumber";
 
-                    var questions = await connection.QueryAsync<QuizQuestionDto, string?, bool?, bool?, QuizQuestionDto>(
-                        questionsSql,
-                        (question, selectedAnswer, isMarkedForReview, isAnswered) =>
+                    var questionRows = await connection.QueryAsync(questionsSql, new { SessionId = sessionId, MockTestId = session.MockTestId });
+                    session.Questions = questionRows.Select(row =>
+                    {
+                        var question = new QuizQuestionDto
                         {
-                            question.SelectedAnswer = selectedAnswer;
-                            question.IsMarkedForReview = isMarkedForReview ?? false;
-                            question.IsAnswered = isAnswered ?? false;
-                            return question;
-                        },
-                        new { SessionId = sessionId, MockTestId = session.MockTestId },
-                        splitOn: "SelectedAnswer"
-                    );
+                            Id = row.QuestionId,
+                            QuestionNumber = row.QuestionNumber,
+                            Marks = row.Marks,
+                            NegativeMarks = row.NegativeMarks,
+                            QuestionText = row.QuestionText ?? string.Empty,
+                            OptionA = row.OptionA,
+                            OptionB = row.OptionB,
+                            OptionC = row.OptionC,
+                            OptionD = row.OptionD,
+                            QuestionImageUrl = row.QuestionImageUrl,
+                            OptionAImageUrl = row.OptionAImageUrl,
+                            OptionBImageUrl = row.OptionBImageUrl,
+                            OptionCImageUrl = row.OptionCImageUrl,
+                            OptionDImageUrl = row.OptionDImageUrl,
+                            DifficultyLevel = row.DifficultyLevel ?? "Medium",
+                            SelectedAnswer = row.SelectedAnswer,
+                            IsMarkedForReview = row.IsMarkedForReview ?? false,
+                            IsAnswered = row.IsAnswered ?? false,
+                            IsReported = row.IsReported ?? false,
+                            IsBookmarked = row.IsBookmarked ?? false
+                        };
 
-                    session.Questions = questions.ToList();
+                        var questionIndex = Math.Max(question.QuestionNumber - 1, 0);
+                        var window = GetQuestionWindow(session.StartedAt, questionIndex);
+                        question.TimeLimitInSeconds = DefaultPerQuestionTimeInSeconds;
+                        question.AvailableFrom = window.Start;
+                        question.AvailableUntil = window.End;
+                        question.CanAnswer = now <= window.End;
+                        return question;
+                    }).ToList();
+                    session.PerQuestionTimeInSeconds = DefaultPerQuestionTimeInSeconds;
+                    session.TotalDurationInSeconds = GetTotalDurationInSeconds(session.Questions.Count);
+                    session.TotalMarks = session.Questions.Sum(q => q.Marks);
+                    session.HasNegativeMarking = session.Questions.Any(q => q.NegativeMarks > 0);
+                    session.NegativeMarksPerQuestion = session.Questions.Count > 0 ? session.Questions.Max(q => q.NegativeMarks) : 0;
                     
                     // Calculate answered questions
-                    session.AnsweredQuestions = questions.Count(q => q.IsAnswered);
-                    session.MarkedForReview = questions.Count(q => q.IsMarkedForReview);
+                    session.AnsweredQuestions = session.Questions.Count(q => q.IsAnswered);
+                    session.MarkedForReview = session.Questions.Count(q => q.IsMarkedForReview);
+                    var elapsedSeconds = Math.Max(0, (int)(now - session.StartedAt).TotalSeconds);
+                    session.RemainingTimeInSeconds = Math.Max(0, session.TotalDurationInSeconds - elapsedSeconds);
+                    session.CurrentQuestionNumber = session.RemainingTimeInSeconds == 0 || session.Questions.Count == 0
+                        ? 0
+                        : Math.Min(session.Questions.Count, (elapsedSeconds / DefaultPerQuestionTimeInSeconds) + 1);
+                    session.CurrentQuestionId = session.CurrentQuestionNumber > 0
+                        ? session.Questions.FirstOrDefault(q => q.QuestionNumber == session.CurrentQuestionNumber)?.Id
+                        : null;
                 }
 
                 return session;
+            });
+        }
+
+        public async Task<MockTestAttemptDto?> GetSessionResultAsync(int sessionId, int userId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sessionInfo = await connection.QuerySingleOrDefaultAsync(
+                    @"SELECT Id, MockTestId, UserId, StartedAt, Status
+                      FROM MockTestSessions
+                      WHERE Id = @SessionId AND UserId = @UserId",
+                    new { SessionId = sessionId, UserId = userId });
+
+                if (sessionInfo == null)
+                {
+                    return null;
+                }
+
+                var attempt = await connection.QuerySingleOrDefaultAsync<dynamic>(
+                    @"SELECT TOP 1
+                        Id,
+                        MockTestId,
+                        UserId,
+                        StartedAt,
+                        CompletedAt,
+                        Duration,
+                        TotalQuestions,
+                        AnsweredQuestions,
+                        CorrectAnswers,
+                        WrongAnswers,
+                        ObtainedMarks,
+                        Percentage,
+                        Status,
+                        Grade
+                      FROM MockTestAttempts
+                      WHERE MockTestId = @MockTestId
+                        AND UserId = @UserId
+                        AND StartedAt = @StartedAt
+                      ORDER BY Id DESC",
+                    new
+                    {
+                        MockTestId = (int)sessionInfo.MockTestId,
+                        UserId = userId,
+                        StartedAt = (DateTime)sessionInfo.StartedAt
+                    });
+
+                if (attempt == null)
+                {
+                    return null;
+                }
+
+                var reportedQuestionIds = (await connection.QueryAsync<int>(
+                    @"SELECT QuestionId
+                      FROM MockTestSessionAnswers
+                      WHERE SessionId = @SessionId AND ISNULL(IsReported, 0) = 1
+                      ORDER BY QuestionId",
+                    new { SessionId = sessionId })).ToList();
+                var bookmarkedQuestionIds = (await connection.QueryAsync<int>(
+                    @"SELECT QuestionId
+                      FROM MockTestSessionAnswers
+                      WHERE SessionId = @SessionId AND ISNULL(IsBookmarked, 0) = 1
+                      ORDER BY QuestionId",
+                    new { SessionId = sessionId })).ToList();
+                var negativeMarksDeducted = await connection.QuerySingleAsync<decimal>(
+                    @"SELECT ISNULL(SUM(ISNULL(mtq.NegativeMarks, 0)), 0)
+                      FROM MockTestSessionAnswers mtsa
+                      INNER JOIN MockTestSessions mts ON mts.Id = mtsa.SessionId
+                      INNER JOIN MockTestQuestions mtq
+                          ON mtq.MockTestId = mts.MockTestId
+                         AND mtq.QuestionId = mtsa.QuestionId
+                      WHERE mtsa.SessionId = @SessionId
+                        AND ISNULL(mtsa.IsAnswered, 0) = 1
+                        AND ISNULL(mtsa.SelectedAnswer, '') <> ''
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM Questions q
+                            WHERE q.Id = mtsa.QuestionId
+                              AND q.CorrectAnswer = mtsa.SelectedAnswer
+                        )",
+                    new { SessionId = sessionId });
+
+                return new MockTestAttemptDto
+                {
+                    Id = attempt.Id,
+                    MockTestId = attempt.MockTestId,
+                    UserId = attempt.UserId,
+                    StartedAt = attempt.StartedAt,
+                    CompletedAt = attempt.CompletedAt,
+                    Duration = attempt.Duration != null ? TimeSpan.FromMinutes((int)attempt.Duration) : null,
+                    TotalQuestions = attempt.TotalQuestions,
+                    AnsweredQuestions = attempt.AnsweredQuestions,
+                    CorrectAnswers = attempt.CorrectAnswers,
+                    WrongAnswers = attempt.WrongAnswers,
+                    ObtainedMarks = attempt.ObtainedMarks,
+                    NegativeMarksDeducted = negativeMarksDeducted,
+                    ReportedQuestionsCount = reportedQuestionIds.Count,
+                    BookmarkedQuestionsCount = bookmarkedQuestionIds.Count,
+                    ReportedQuestionIds = reportedQuestionIds,
+                    BookmarkedQuestionIds = bookmarkedQuestionIds,
+                    Percentage = attempt.Percentage,
+                    Status = attempt.Status,
+                    Grade = attempt.Grade
+                };
+            });
+        }
+
+        public async Task<MockTestSolutionDto?> GetSessionSolutionAsync(int sessionId, int userId)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sessionSql = @"
+                    SELECT
+                        mts.Id AS SessionId,
+                        mts.MockTestId,
+                        mt.Name AS MockTestName,
+                        ISNULL(s.Name, '') AS SubjectName,
+                        ISNULL(mts.Status, 'InProgress') AS Status
+                    FROM MockTestSessions mts
+                    INNER JOIN MockTests mt ON mts.MockTestId = mt.Id
+                    LEFT JOIN [RankUp_MasterDB].[dbo].[Subjects] s ON mt.SubjectId = s.Id
+                    WHERE mts.Id = @SessionId AND mts.UserId = @UserId";
+
+                var solution = await connection.QuerySingleOrDefaultAsync<MockTestSolutionDto>(
+                    sessionSql,
+                    new { SessionId = sessionId, UserId = userId });
+
+                if (solution == null)
+                {
+                    return null;
+                }
+
+                var questionsSql = @"
+                    SELECT
+                        mtq.QuestionId,
+                        mtq.QuestionNumber,
+                        q.QuestionText,
+                        q.OptionA,
+                        q.OptionB,
+                        q.OptionC,
+                        q.OptionD,
+                        q.CorrectAnswer,
+                        mtsa.SelectedAnswer,
+                        q.Explanation,
+                        q.ExplanationImageUrl
+                    FROM MockTestQuestions mtq
+                    INNER JOIN Questions q ON mtq.QuestionId = q.Id
+                    LEFT JOIN MockTestSessionAnswers mtsa
+                        ON mtq.QuestionId = mtsa.QuestionId
+                        AND mtsa.SessionId = @SessionId
+                    WHERE mtq.MockTestId = @MockTestId
+                    ORDER BY mtq.QuestionNumber";
+
+                var questions = (await connection.QueryAsync<MockTestSolutionQuestionDto>(
+                    questionsSql,
+                    new { SessionId = sessionId, MockTestId = solution.MockTestId })).ToList();
+
+                foreach (var question in questions)
+                {
+                    question.CorrectOptionText = GetOptionText(question.CorrectAnswer, question);
+                    question.IsCorrect = !string.IsNullOrWhiteSpace(question.SelectedAnswer) &&
+                                         string.Equals(question.SelectedAnswer, question.CorrectAnswer, StringComparison.OrdinalIgnoreCase);
+                }
+
+                solution.Questions = questions;
+                return solution;
             });
         }
 
@@ -959,29 +1293,76 @@ namespace QuestionService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                var validateSql = @"
-                    SELECT COUNT(1)
-                    FROM MockTestSessions
-                    WHERE Id = @SessionId AND UserId = @UserId AND Status = 'InProgress'";
-
-                var isValidSession = await connection.QuerySingleAsync<int>(validateSql, new { SessionId = sessionId, UserId = userId });
-                if (isValidSession == 0)
+                var session = await GetActiveSessionForActionAsync(connection, sessionId, userId);
+                if (session == null)
                 {
                     return false;
                 }
 
+                var sessionQuestions = (await connection.QueryAsync<(int QuestionId, int QuestionNumber)>(
+                    @"SELECT QuestionId, QuestionNumber
+                      FROM MockTestQuestions
+                      WHERE MockTestId = @MockTestId
+                      ORDER BY QuestionNumber",
+                    new { MockTestId = (int)session.MockTestId })).ToList();
+
+                var questionEntry = sessionQuestions.FirstOrDefault(q => q.QuestionId == answer.QuestionId);
+                if (questionEntry == default)
+                {
+                    throw new InvalidOperationException("Question does not belong to this mock test session.");
+                }
+
+                var totalDurationInSeconds = GetTotalDurationInSeconds(sessionQuestions.Count);
+                var elapsedSeconds = Math.Max(0, (int)(DateTime.Now - (DateTime)session.StartedAt).TotalSeconds);
+                if (elapsedSeconds >= totalDurationInSeconds)
+                {
+                    throw new InvalidOperationException("Mock test time is over. This session can no longer accept answers.");
+                }
+
+                var questionExpiryInSeconds = questionEntry.QuestionNumber * DefaultPerQuestionTimeInSeconds;
+                if (elapsedSeconds >= questionExpiryInSeconds)
+                {
+                    throw new InvalidOperationException("This question's time is over. Please move to the next question.");
+                }
+
                 var upsertSql = @"
-                    IF EXISTS (SELECT 1 FROM MockTestSessionAnswers WHERE SessionId = @SessionId AND QuestionId = @QuestionId)
-                        UPDATE MockTestSessionAnswers
-                        SET SelectedAnswer = @SelectedAnswer,
-                            IsMarkedForReview = @IsMarkedForReview,
-                            IsAnswered = @IsAnswered
-                        WHERE SessionId = @SessionId AND QuestionId = @QuestionId
-                    ELSE
-                        INSERT INTO MockTestSessionAnswers (SessionId, QuestionId, SelectedAnswer, IsMarkedForReview, IsAnswered)
-                        VALUES (@SessionId, @QuestionId, @SelectedAnswer, @IsMarkedForReview, @IsAnswered)";
+                    UPDATE MockTestSessionAnswers
+                    SET SelectedAnswer = @SelectedAnswer,
+                        IsMarkedForReview = @IsMarkedForReview,
+                        IsAnswered = @IsAnswered,
+                        TimeSpent = @TimeSpent,
+                        AnsweredAt = CASE WHEN @IsAnswered = 1 THEN GETDATE() ELSE AnsweredAt END
+                    WHERE SessionId = @SessionId AND QuestionId = @QuestionId;
+
+                    IF @@ROWCOUNT = 0
+                    BEGIN
+                        BEGIN TRY
+                            INSERT INTO MockTestSessionAnswers (SessionId, QuestionId, SelectedAnswer, IsMarkedForReview, IsAnswered, TimeSpent, AnsweredAt)
+                            VALUES (@SessionId, @QuestionId, @SelectedAnswer, @IsMarkedForReview, @IsAnswered, @TimeSpent,
+                                CASE WHEN @IsAnswered = 1 THEN GETDATE() ELSE NULL END);
+                        END TRY
+                        BEGIN CATCH
+                            IF ERROR_NUMBER() IN (2601, 2627)
+                            BEGIN
+                                UPDATE MockTestSessionAnswers
+                                SET SelectedAnswer = @SelectedAnswer,
+                                    IsMarkedForReview = @IsMarkedForReview,
+                                    IsAnswered = @IsAnswered,
+                                    TimeSpent = @TimeSpent,
+                                    AnsweredAt = CASE WHEN @IsAnswered = 1 THEN GETDATE() ELSE AnsweredAt END
+                                WHERE SessionId = @SessionId AND QuestionId = @QuestionId;
+                            END
+                            ELSE
+                            BEGIN
+                                THROW;
+                            END
+                        END CATCH
+                    END";
 
                 var isAnswered = !string.IsNullOrWhiteSpace(answer.SelectedAnswer);
+                var timeSpent = Math.Min(
+                    DefaultPerQuestionTimeInSeconds,
+                    Math.Max(0, answer.TimeTakenInSeconds ?? (elapsedSeconds - ((questionEntry.QuestionNumber - 1) * DefaultPerQuestionTimeInSeconds))));
 
                 await connection.ExecuteAsync(upsertSql, new
                 {
@@ -989,10 +1370,87 @@ namespace QuestionService.Infrastructure.Repositories
                     QuestionId = answer.QuestionId,
                     SelectedAnswer = answer.SelectedAnswer,
                     IsMarkedForReview = answer.IsMarkedForReview,
-                    IsAnswered = isAnswered
+                    IsAnswered = isAnswered,
+                    TimeSpent = timeSpent
                 });
 
                 return true;
+            });
+        }
+
+        public async Task<MockTestQuestionActionResultDto> ReportQuestionAsync(int sessionId, int userId, ReportMockTestQuestionDto request)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sessionAnswerColumns = await GetSessionAnswerFeatureColumnsAsync(connection);
+                if (!sessionAnswerColumns.HasIsReported)
+                    throw new InvalidOperationException("Mock test report support is not available in the current database schema. Apply database/Alter_MockTestSessionAnswers_AddReportBookmark.sql.");
+
+                var session = await GetActiveSessionForActionAsync(connection, sessionId, userId);
+                if (session == null)
+                    throw new KeyNotFoundException("Session not found or already completed");
+
+                await EnsureQuestionBelongsToSessionAsync(connection, (int)session.MockTestId, request.QuestionId);
+
+                var sql = @"
+                    IF EXISTS (SELECT 1 FROM MockTestSessionAnswers WHERE SessionId = @SessionId AND QuestionId = @QuestionId)
+                        UPDATE MockTestSessionAnswers
+                        SET IsReported = 1,
+                            ReportReason = @Reason,
+                            ReportedAt = GETDATE()
+                        WHERE SessionId = @SessionId AND QuestionId = @QuestionId
+                    ELSE
+                        INSERT INTO MockTestSessionAnswers
+                            (SessionId, QuestionId, SelectedAnswer, IsMarkedForReview, IsAnswered, TimeSpent, AnsweredAt, IsReported, ReportReason, ReportedAt, IsBookmarked, BookmarkedAt)
+                        VALUES
+                            (@SessionId, @QuestionId, NULL, 0, 0, 0, NULL, 1, @Reason, GETDATE(), 0, NULL)";
+
+                await connection.ExecuteAsync(sql, new
+                {
+                    SessionId = sessionId,
+                    QuestionId = request.QuestionId,
+                    Reason = string.IsNullOrWhiteSpace(request.Reason) ? "Reported from mock test session" : request.Reason.Trim()
+                });
+
+                return await GetQuestionActionSummaryAsync(connection, sessionId, request.QuestionId);
+            });
+        }
+
+        public async Task<MockTestQuestionActionResultDto> BookmarkQuestionAsync(int sessionId, int userId, BookmarkMockTestQuestionDto request)
+        {
+            return await WithConnectionAsync(async connection =>
+            {
+                var sessionAnswerColumns = await GetSessionAnswerFeatureColumnsAsync(connection);
+                if (!sessionAnswerColumns.HasIsBookmarked)
+                    throw new InvalidOperationException("Mock test bookmark support is not available in the current database schema. Apply database/Alter_MockTestSessionAnswers_AddReportBookmark.sql.");
+
+                var session = await GetActiveSessionForActionAsync(connection, sessionId, userId);
+                if (session == null)
+                    throw new KeyNotFoundException("Session not found or already completed");
+
+                await EnsureQuestionBelongsToSessionAsync(connection, (int)session.MockTestId, request.QuestionId);
+
+                var sql = @"
+                    IF EXISTS (SELECT 1 FROM MockTestSessionAnswers WHERE SessionId = @SessionId AND QuestionId = @QuestionId)
+                        UPDATE MockTestSessionAnswers
+                        SET IsBookmarked = @IsBookmarked,
+                            BookmarkedAt = CASE WHEN @IsBookmarked = 1 THEN GETDATE() ELSE NULL END
+                        WHERE SessionId = @SessionId AND QuestionId = @QuestionId
+                    ELSE
+                        INSERT INTO MockTestSessionAnswers
+                            (SessionId, QuestionId, SelectedAnswer, IsMarkedForReview, IsAnswered, TimeSpent, AnsweredAt, IsReported, ReportReason, ReportedAt, IsBookmarked, BookmarkedAt)
+                        VALUES
+                            (@SessionId, @QuestionId, NULL, 0, 0, 0, NULL, 0, NULL, NULL, @IsBookmarked,
+                                CASE WHEN @IsBookmarked = 1 THEN GETDATE() ELSE NULL END)";
+
+                await connection.ExecuteAsync(sql, new
+                {
+                    SessionId = sessionId,
+                    QuestionId = request.QuestionId,
+                    IsBookmarked = request.IsBookmarked
+                });
+
+                return await GetQuestionActionSummaryAsync(connection, sessionId, request.QuestionId);
             });
         }
 
@@ -1084,6 +1542,7 @@ namespace QuestionService.Infrastructure.Repositories
 
         private static async Task<MockTestAttemptDto> FinalizeSessionAsync(System.Data.IDbConnection connection, System.Data.IDbTransaction transaction, int sessionId, int userId, dynamic session)
         {
+            var sessionAnswerColumns = await GetSessionAnswerFeatureColumnsAsync(connection, transaction);
             var resultSql = @"
                 SELECT 
                     mtq.QuestionId, mtq.Marks, mtq.NegativeMarks, q.CorrectAnswer,
@@ -1096,10 +1555,13 @@ namespace QuestionService.Infrastructure.Repositories
             var questionResults = (await connection.QueryAsync(resultSql, new { SessionId = sessionId, MockTestId = session.MockTestId }, transaction)).ToList();
 
             int correctAnswers = 0, wrongAnswers = 0;
+            decimal totalMarks = 0;
             decimal obtainedMarks = 0;
+            decimal negativeMarksDeducted = 0;
 
             foreach (var qr in questionResults)
             {
+                totalMarks += qr.Marks;
                 bool isCorrect = qr.SelectedAnswer == qr.CorrectAnswer;
                 if (isCorrect)
                 {
@@ -1109,14 +1571,32 @@ namespace QuestionService.Infrastructure.Repositories
                 else if (!string.IsNullOrEmpty(qr.SelectedAnswer))
                 {
                     wrongAnswers++;
-                    if (session.HasNegativeMarking)
-                        obtainedMarks -= session.NegativeMarkingValue ?? 0;
+                    var negativeMarks = qr.NegativeMarks ?? 0;
+                    negativeMarksDeducted += negativeMarks;
+                    obtainedMarks -= negativeMarks;
                 }
             }
 
             var answeredQuestions = questionResults.Count(q => !string.IsNullOrEmpty((string?)q.SelectedAnswer));
-            var percentage = session.TotalMarks > 0 ? (obtainedMarks / session.TotalMarks) * 100 : 0;
+            obtainedMarks = Math.Max(0, obtainedMarks);
+            var percentage = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
             var grade = GetGrade(percentage);
+            var reportedQuestionIds = sessionAnswerColumns.HasIsReported
+                ? (await connection.QueryAsync<int>(
+                    @"SELECT QuestionId
+                      FROM MockTestSessionAnswers
+                      WHERE SessionId = @SessionId AND ISNULL(IsReported, 0) = 1
+                      ORDER BY QuestionId",
+                    new { SessionId = sessionId }, transaction)).ToList()
+                : new List<int>();
+            var bookmarkedQuestionIds = sessionAnswerColumns.HasIsBookmarked
+                ? (await connection.QueryAsync<int>(
+                    @"SELECT QuestionId
+                      FROM MockTestSessionAnswers
+                      WHERE SessionId = @SessionId AND ISNULL(IsBookmarked, 0) = 1
+                      ORDER BY QuestionId",
+                    new { SessionId = sessionId }, transaction)).ToList()
+                : new List<int>();
 
             var updateSessionSql = @"
                 UPDATE MockTestSessions SET 
@@ -1153,6 +1633,7 @@ namespace QuestionService.Infrastructure.Repositories
                 CorrectAnswers = correctAnswers,
                 WrongAnswers = wrongAnswers,
                 ObtainedMarks = obtainedMarks,
+                NegativeMarksDeducted = negativeMarksDeducted,
                 Percentage = percentage,
                 Grade = grade
             }, transaction);
@@ -1173,6 +1654,11 @@ namespace QuestionService.Infrastructure.Repositories
                 CorrectAnswers = result.CorrectAnswers,
                 WrongAnswers = result.WrongAnswers,
                 ObtainedMarks = result.ObtainedMarks,
+                NegativeMarksDeducted = negativeMarksDeducted,
+                ReportedQuestionsCount = reportedQuestionIds.Count,
+                BookmarkedQuestionsCount = bookmarkedQuestionIds.Count,
+                ReportedQuestionIds = reportedQuestionIds,
+                BookmarkedQuestionIds = bookmarkedQuestionIds,
                 Percentage = result.Percentage,
                 Status = result.Status,
                 Grade = result.Grade
@@ -1187,14 +1673,14 @@ namespace QuestionService.Infrastructure.Repositories
                 var sql = @"
                     SELECT 
                         COUNT(*) AS TotalMockTests,
-                        SUM(CASE WHEN mt.IsActive = 1 THEN 1 ELSE 0 END) AS ActiveMockTests,
-                        CAST(0 AS INT) AS ScheduledMockTests,
-                        CAST(0 AS INT) AS DraftMockTests,
+                        SUM(CASE WHEN mt.Status = 'Active' THEN 1 ELSE 0 END) AS ActiveMockTests,
+                        SUM(CASE WHEN mt.Status = 'Scheduled' THEN 1 ELSE 0 END) AS ScheduledMockTests,
+                        SUM(CASE WHEN mt.Status = 'Draft' THEN 1 ELSE 0 END) AS DraftMockTests,
                         SUM(CASE WHEN mt.AccessType = 'Paid' THEN 1 ELSE 0 END) AS PaidMockTests,
                         COUNT(*) AS MockTestCount,
-                        CAST(0 AS INT) AS TestSeriesCount,
-                        CAST(0 AS INT) AS DeepPracticeCount,
-                        CAST(0 AS INT) AS PreviousYearCount
+                        SUM(CASE WHEN mt.MockTestType = 2 THEN 1 ELSE 0 END) AS TestSeriesCount,
+                        SUM(CASE WHEN mt.MockTestType = 3 THEN 1 ELSE 0 END) AS DeepPracticeCount,
+                        SUM(CASE WHEN mt.MockTestType = 4 THEN 1 ELSE 0 END) AS PreviousYearCount
                     FROM MockTests mt
                     WHERE (@ExamId IS NULL OR mt.ExamId = @ExamId)
                     AND (@SubjectId IS NULL OR EXISTS (
@@ -1291,6 +1777,109 @@ namespace QuestionService.Infrastructure.Repositories
                 >= 50 => "C",
                 >= 40 => "D",
                 _ => "F"
+            };
+        }
+
+        private static int GetTotalDurationInSeconds(int totalQuestions)
+        {
+            return Math.Max(0, totalQuestions) * DefaultPerQuestionTimeInSeconds;
+        }
+
+        private static async Task<dynamic?> GetActiveSessionForActionAsync(System.Data.IDbConnection connection, int sessionId, int userId)
+        {
+            const string sql = @"
+                SELECT TOP 1
+                    Id,
+                    StartedAt,
+                    MockTestId,
+                    Status
+                FROM MockTestSessions
+                WHERE Id = @SessionId AND UserId = @UserId AND Status = 'InProgress'";
+
+            return await connection.QuerySingleOrDefaultAsync(sql, new { SessionId = sessionId, UserId = userId });
+        }
+
+        private static async Task EnsureQuestionBelongsToSessionAsync(System.Data.IDbConnection connection, int mockTestId, int questionId)
+        {
+            var exists = await connection.QuerySingleAsync<int>(
+                @"SELECT COUNT(1)
+                  FROM MockTestQuestions
+                  WHERE MockTestId = @MockTestId AND QuestionId = @QuestionId",
+                new { MockTestId = mockTestId, QuestionId = questionId });
+
+            if (exists == 0)
+            {
+                throw new InvalidOperationException("Question does not belong to this mock test session.");
+            }
+        }
+
+        private static async Task<MockTestQuestionActionResultDto> GetQuestionActionSummaryAsync(System.Data.IDbConnection connection, int sessionId, int questionId)
+        {
+            var sessionAnswerColumns = await GetSessionAnswerFeatureColumnsAsync(connection);
+            var summarySql = $@"
+                SELECT
+                    @SessionId AS SessionId,
+                    @QuestionId AS QuestionId,
+                    {(sessionAnswerColumns.HasIsReported ? "ISNULL(MAX(CASE WHEN msa.QuestionId = @QuestionId THEN msa.IsReported END), 0)" : "CAST(0 AS BIT)")} AS IsReported,
+                    {(sessionAnswerColumns.HasIsBookmarked ? "ISNULL(MAX(CASE WHEN msa.QuestionId = @QuestionId THEN msa.IsBookmarked END), 0)" : "CAST(0 AS BIT)")} AS IsBookmarked,
+                    {(sessionAnswerColumns.HasIsReported ? "SUM(CASE WHEN ISNULL(msa.IsReported, 0) = 1 THEN 1 ELSE 0 END)" : "0")} AS ReportedQuestionsCount,
+                    {(sessionAnswerColumns.HasIsBookmarked ? "SUM(CASE WHEN ISNULL(msa.IsBookmarked, 0) = 1 THEN 1 ELSE 0 END)" : "0")} AS BookmarkedQuestionsCount,
+                    {(sessionAnswerColumns.HasReportReason ? "MAX(CASE WHEN msa.QuestionId = @QuestionId THEN msa.ReportReason END)" : "CAST(NULL AS NVARCHAR(500))")} AS Reason
+                FROM MockTestSessionAnswers msa
+                WHERE msa.SessionId = @SessionId";
+
+            return await connection.QuerySingleAsync<MockTestQuestionActionResultDto>(summarySql, new
+            {
+                SessionId = sessionId,
+                QuestionId = questionId
+            });
+        }
+
+        private static (DateTime Start, DateTime End) GetQuestionWindow(DateTime sessionStartedAt, int zeroBasedQuestionIndex)
+        {
+            var start = sessionStartedAt.AddSeconds(zeroBasedQuestionIndex * DefaultPerQuestionTimeInSeconds);
+            var end = start.AddSeconds(DefaultPerQuestionTimeInSeconds);
+            return (start, end);
+        }
+
+        private sealed class SessionAnswerFeatureColumns
+        {
+            public bool HasIsReported { get; init; }
+            public bool HasIsBookmarked { get; init; }
+            public bool HasReportReason { get; init; }
+        }
+
+        private static async Task<SessionAnswerFeatureColumns> GetSessionAnswerFeatureColumnsAsync(System.Data.IDbConnection connection, System.Data.IDbTransaction? transaction = null)
+        {
+            var columns = (await connection.QueryAsync<string>(
+                @"SELECT c.name
+                  FROM sys.columns c
+                  WHERE c.object_id = OBJECT_ID('dbo.MockTestSessionAnswers')
+                    AND c.name IN ('IsReported', 'IsBookmarked', 'ReportReason')",
+                transaction: transaction)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return new SessionAnswerFeatureColumns
+            {
+                HasIsReported = columns.Contains("IsReported"),
+                HasIsBookmarked = columns.Contains("IsBookmarked"),
+                HasReportReason = columns.Contains("ReportReason")
+            };
+        }
+
+        private static string GetOptionText(string? answerKey, MockTestSolutionQuestionDto question)
+        {
+            if (string.IsNullOrWhiteSpace(answerKey))
+            {
+                return string.Empty;
+            }
+
+            return answerKey.Trim().ToUpperInvariant() switch
+            {
+                "A" => question.OptionA ?? string.Empty,
+                "B" => question.OptionB ?? string.Empty,
+                "C" => question.OptionC ?? string.Empty,
+                "D" => question.OptionD ?? string.Empty,
+                _ => string.Empty
             };
         }
     }

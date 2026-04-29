@@ -87,6 +87,11 @@ CREATE TABLE [dbo].[MockTestSessionAnswers] (
     [IsAnswered] BIT NOT NULL DEFAULT 0,
     [TimeSpent] INT NOT NULL DEFAULT 0, -- in seconds
     [AnsweredAt] DATETIME2 NULL,
+    [IsReported] BIT NOT NULL DEFAULT 0,
+    [ReportReason] NVARCHAR(500) NULL,
+    [ReportedAt] DATETIME2 NULL,
+    [IsBookmarked] BIT NOT NULL DEFAULT 0,
+    [BookmarkedAt] DATETIME2 NULL,
     [CreatedAt] DATETIME2 NOT NULL DEFAULT GETDATE(),
     
     -- Foreign Key Constraints

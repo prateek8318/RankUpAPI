@@ -248,6 +248,50 @@ namespace AdminService.Application.Clients
 
         }
 
+        
+
+        public async Task<object?> UpdateQuestionWithImagesAsync(int id, MultipartFormDataContent content)
+
+        {
+
+            try
+
+            {
+
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+
+                    await _httpClient.PutAsync($"/api/admin/questions/{id}", content));
+
+
+
+                if (response.IsSuccessStatusCode)
+
+                {
+
+                    var responseContent = await response.Content.ReadAsStringAsync();
+
+                    return JsonSerializer.Deserialize<object>(responseContent);
+
+                }
+
+
+
+                return null;
+
+            }
+
+            catch (Exception ex)
+
+            {
+
+                _logger.LogError(ex, $"Error calling QuestionService to update question {id} with images");
+
+                return null;
+
+            }
+
+        }
+
 
 
         public async Task<bool> DeleteQuestionAsync(int id)

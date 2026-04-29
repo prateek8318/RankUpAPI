@@ -623,15 +623,28 @@ namespace SubscriptionService.API.Controllers
             [FromQuery] int? examId = null,
             [FromQuery] string? popular = null,
             [FromQuery] string? priceSort = null,
-            [FromQuery] string? sort = null,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = null,
             [FromQuery] string? order = null,
-            [FromQuery] string? status = null)
+            [FromQuery] string? status = null,
+            [FromQuery] string? search = null)
         {
             try
             {
                 var currentLanguage = language ?? _languageService.GetCurrentLanguage();
                 var result = (await _subscriptionPlanService.GetAllPlansWithDurationsAsync(currentLanguage, includeInactive: true))
                     .ToList();
+
+                // Apply search filter
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var searchTerm = search.ToLowerInvariant();
+                    result = result.Where(p => 
+                        (p.Name?.ToLowerInvariant().Contains(searchTerm) == true) ||
+                        (p.Description?.ToLowerInvariant().Contains(searchTerm) == true) ||
+                        (p.ExamCategory?.ToLowerInvariant().Contains(searchTerm) == true)
+                    ).ToList();
+                }
 
                 // Apply filters
                 if (examId.HasValue)
@@ -667,35 +680,82 @@ namespace SubscriptionService.API.Controllers
                     }
                 }
 
-                // Apply price sorting - handle both priceSort and sort/order parameters
-                string? actualPriceSort = null;
+                // Apply sorting - handle priceSort, sortBy/sortOrder, and sort/order parameters
+                string? actualSortBy = null;
+                string? actualSortOrder = null;
                 
+                // Handle priceSort parameter
                 if (!string.IsNullOrWhiteSpace(priceSort))
                 {
-                    actualPriceSort = priceSort.ToLowerInvariant();
+                    actualSortBy = "price";
+                    actualSortOrder = priceSort.ToLowerInvariant();
                 }
-                else if (!string.IsNullOrWhiteSpace(sort) && sort.ToLowerInvariant() == "price")
+                // Handle sortBy/sortOrder parameters
+                else if (!string.IsNullOrWhiteSpace(sortBy))
                 {
-                    if (!string.IsNullOrWhiteSpace(order))
-                    {
-                        actualPriceSort = order.ToLowerInvariant();
-                    }
+                    actualSortBy = sortBy.ToLowerInvariant();
+                    actualSortOrder = !string.IsNullOrWhiteSpace(sortOrder) ? sortOrder.ToLowerInvariant() : "desc";
+                }
+                // Handle sort/order parameters (backward compatibility)
+                else if (!string.IsNullOrWhiteSpace(order))
+                {
+                    actualSortBy = "price"; // Default to price if only order is provided
+                    actualSortOrder = order.ToLowerInvariant();
                 }
 
-                if (!string.IsNullOrWhiteSpace(actualPriceSort))
+                if (!string.IsNullOrWhiteSpace(actualSortBy))
                 {
-                    if (actualPriceSort == "asc")
+                    switch (actualSortBy)
                     {
-                        result = result.OrderBy(p => p.DurationOptions.FirstOrDefault()?.Price ?? decimal.MaxValue).ToList();
-                    }
-                    else if (actualPriceSort == "desc")
-                    {
-                        result = result.OrderByDescending(p => p.DurationOptions.FirstOrDefault()?.Price ?? 0).ToList();
+                        case "price":
+                            if (actualSortOrder == "asc")
+                            {
+                                result = result.OrderBy(p => p.DurationOptions.FirstOrDefault()?.Price ?? decimal.MaxValue).ToList();
+                            }
+                            else // desc
+                            {
+                                result = result.OrderByDescending(p => p.DurationOptions.FirstOrDefault()?.Price ?? 0).ToList();
+                            }
+                            break;
+                        case "name":
+                            if (actualSortOrder == "asc")
+                            {
+                                result = result.OrderBy(p => p.Name ?? "").ToList();
+                            }
+                            else // desc
+                            {
+                                result = result.OrderByDescending(p => p.Name ?? "").ToList();
+                            }
+                            break;
+                        case "date":
+                        case "created":
+                            if (actualSortOrder == "asc")
+                            {
+                                result = result.OrderBy(p => p.SortOrder).ToList();
+                            }
+                            else // desc
+                            {
+                                result = result.OrderByDescending(p => p.SortOrder).ToList();
+                            }
+                            break;
+                        default:
+                            // Default sort by ID
+                            if (actualSortOrder == "asc")
+                            {
+                                result = result.OrderBy(p => p.Id).ToList();
+                            }
+                            else // desc
+                            {
+                                result = result.OrderByDescending(p => p.Id).ToList();
+                            }
+                            break;
                     }
                 }
-
-                // Default sort by ID descending
-                result = result.OrderByDescending(p => p.Id).ToList();
+                else
+                {
+                    // Default sort by ID descending
+                    result = result.OrderByDescending(p => p.Id).ToList();
+                }
 
                 if (limit <= 0) limit = 20;
                 if (limit > 100) limit = 100;
@@ -725,7 +785,8 @@ namespace SubscriptionService.API.Controllers
                         examId,
                         popular,
                         priceSort,
-                        sort,
+                        sortBy,
+                        sortOrder,
                         order,
                         status
                     },
@@ -761,6 +822,11 @@ namespace SubscriptionService.API.Controllers
             if (createPlanDto.Id.HasValue)
             {
                 return BadRequest(new { success = false, message = "For create operation, do not include 'id' field. Use PUT method for updates." });
+            }
+
+            if (createPlanDto.Type == 0)
+            {
+                return BadRequest(new { success = false, message = "For create operation, valid 'type' field is required." });
             }
             
             try
@@ -821,6 +887,17 @@ namespace SubscriptionService.API.Controllers
             if (!createPlanDto.Id.HasValue)
             {
                 return BadRequest(new { success = false, message = "For update operation, 'id' field is required. Use POST method for create." });
+            }
+
+            if (createPlanDto.Type == 0)
+            {
+                var existingPlan = await _subscriptionPlanService.GetPlanByIdAsync(createPlanDto.Id.Value);
+                if (existingPlan == null)
+                {
+                    return NotFound(new { success = false, message = $"Subscription plan with ID {createPlanDto.Id.Value} not found" });
+                }
+
+                createPlanDto.Type = existingPlan.Type;
             }
             
             try
@@ -1163,7 +1240,7 @@ namespace SubscriptionService.API.Controllers
                     dto.ImageFile = form.Files.GetFile("ImageFile") ?? form.Files[0];
                 }
 
-                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Description) || dto.Type == 0 || dto.DurationOptions == null || dto.DurationOptions.Count == 0)
+                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Description) || dto.DurationOptions == null || dto.DurationOptions.Count == 0)
                     return null;
 
                 return dto;

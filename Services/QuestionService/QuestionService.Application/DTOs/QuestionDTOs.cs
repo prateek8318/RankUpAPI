@@ -732,8 +732,8 @@ namespace QuestionService.Application.DTOs
         [Required]
         public int? ModuleId { get; set; }
         
-        [Required]
-        public int ExamId { get; set; }
+        public int? ExamId { get; set; }
+        public int? MockTestId { get; set; }
         
         [Required]
         public int SubjectId { get; set; }
@@ -780,6 +780,7 @@ namespace QuestionService.Application.DTOs
         public bool? SameExplanationForAllLanguages { get; set; }
         public string? Reference { get; set; }
         public string? Tags { get; set; }
+    public string? TranslationsJson { get; set; }
     }
 
     // Quiz and Subject Management DTOs
@@ -824,6 +825,12 @@ namespace QuestionService.Application.DTOs
         public bool IsMarkedForReview { get; set; }
         public bool IsAnswered { get; set; }
         public string? SelectedAnswer { get; set; }
+        public int TimeLimitInSeconds { get; set; }
+        public DateTime? AvailableFrom { get; set; }
+        public DateTime? AvailableUntil { get; set; }
+        public bool CanAnswer { get; set; } = true;
+        public bool IsReported { get; set; }
+        public bool IsBookmarked { get; set; }
     }
 
     public class QuizSessionDto

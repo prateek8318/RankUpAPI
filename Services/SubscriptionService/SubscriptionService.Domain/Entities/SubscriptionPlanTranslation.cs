@@ -25,6 +25,8 @@ namespace SubscriptionService.Domain.Entities
 
         public List<string> Features { get; set; } = new();
 
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public SubscriptionPlan SubscriptionPlan { get; set; } = null!;
     }
 }

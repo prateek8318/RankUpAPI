@@ -255,21 +255,7 @@ namespace SubscriptionService.Application.Services
         {
             try
             {
-                var (totalPayments, totalRevenue, todayRevenue, thisMonthRevenue, successfulPayments, failedPayments, pendingPayments, averageTransactionAmount, uniquePayingUsers) = 
-                    await _paymentRepository.GetStatisticsAsync();
-                
-                return new SubscriptionStatisticsDto
-                {
-                    TotalPayments = totalPayments,
-                    TotalRevenue = totalRevenue,
-                    TodayRevenue = todayRevenue,
-                    ThisMonthRevenue = thisMonthRevenue,
-                    SuccessfulPayments = successfulPayments,
-                    FailedPayments = failedPayments,
-                    PendingPayments = pendingPayments,
-                    AverageTransactionAmount = averageTransactionAmount,
-                    UniquePayingUsers = uniquePayingUsers
-                };
+                return await _paymentRepository.GetStatisticsAsync();
             }
             catch (Exception ex)
             {

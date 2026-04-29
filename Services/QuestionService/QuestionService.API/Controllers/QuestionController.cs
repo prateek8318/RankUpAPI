@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Services;
 using QuestionService.Application.Interfaces;
@@ -150,7 +151,47 @@ namespace QuestionService.API.Controllers
 
             dto.CreatedBy = userId;
             var question = await _service.CreateAdminQuestionWithImagesAsync(dto);
-            return Ok(new { success = true, questionId = question.Id, data = question });
+
+            // Always shape the response from the admin detail so `questionText/options/explanation`
+            // come from English (when available) and translations are still included.
+            var adminDetail = await _service.GetAdminQuestionByIdAsync(question.Id);
+            if (adminDetail == null)
+            {
+                return Ok(new { success = true, questionId = question.Id, data = question });
+            }
+
+            var en = adminDetail.Translations
+                .FirstOrDefault(t => string.Equals(t.LanguageCode, "en", StringComparison.OrdinalIgnoreCase))
+                ?? adminDetail.Translations.FirstOrDefault();
+
+            var responseData = new QuestionDto
+            {
+                Id = adminDetail.Id,
+                ModuleId = adminDetail.ModuleId,
+                ExamId = adminDetail.ExamId,
+                SubjectId = adminDetail.SubjectId,
+                TopicId = adminDetail.TopicId,
+                QuestionText = en?.QuestionText ?? string.Empty,
+                OptionA = en?.OptionA,
+                OptionB = en?.OptionB,
+                OptionC = en?.OptionC,
+                OptionD = en?.OptionD,
+                CorrectAnswer = adminDetail.CorrectAnswer,
+                Explanation = en?.Explanation,
+                Marks = adminDetail.Marks,
+                NegativeMarks = adminDetail.NegativeMarks,
+                DifficultyLevel = adminDetail.DifficultyLevel,
+                QuestionType = "MCQ",
+                SameExplanationForAllLanguages = adminDetail.SameExplanationForAllLanguages,
+                CreatedBy = dto.CreatedBy,
+                IsPublished = adminDetail.IsPublished,
+                IsActive = adminDetail.IsActive,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Translations = adminDetail.Translations
+            };
+
+            return Ok(new { success = true, questionId = question.Id, data = responseData });
         }
 
         // Keep the old JSON endpoint for backward compatibility
@@ -169,11 +210,76 @@ namespace QuestionService.API.Controllers
 
         [HttpPut("admin/{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<object>> UpdateAdminQuestion(int id, [FromBody] UpdateQuestionAdminDto dto)
+        public async Task<ActionResult<object>> UpdateAdminQuestion(int id)
         {
-            dto.Id = id;
-            var updated = await _service.UpdateAdminQuestionAsync(dto);
-            return Ok(new { success = true, data = updated });
+            var contentType = Request.ContentType?.ToLower();
+            
+            // Handle multipart/form-data with images
+            if (contentType != null && contentType.Contains("multipart/form-data"))
+            {
+                var form = Request.Form;
+                
+                // Get existing question data first
+                var existingQuestion = await _service.GetByIdAsync(id);
+                var existingAdminQuestion = await _service.GetAdminQuestionByIdAsync(id);
+                if (existingQuestion == null || existingAdminQuestion == null)
+                    return NotFound(new { success = false, message = "Question not found." });
+
+                var translationsJson = form.ContainsKey("TranslationsJson")
+                    ? form["TranslationsJson"].ToString()
+                    : (form.ContainsKey("Translations") ? form["Translations"].ToString() : null);
+                
+                var formDto = new UpdateQuestionWithImagesDto
+                {
+                    Id = id,
+                    ModuleId = form.ContainsKey("ModuleId") && !string.IsNullOrEmpty(form["ModuleId"].ToString()) ? int.Parse(form["ModuleId"].ToString()) : existingQuestion.ModuleId,
+                    ExamId = form.ContainsKey("ExamId") && !string.IsNullOrEmpty(form["ExamId"].ToString()) ? int.Parse(form["ExamId"].ToString()) : existingQuestion.ExamId,
+                    MockTestId = form.ContainsKey("MockTestId") && !string.IsNullOrEmpty(form["MockTestId"].ToString()) ? int.Parse(form["MockTestId"].ToString()) : existingQuestion.MockTestId,
+                    SubjectId = form.ContainsKey("SubjectId") && !string.IsNullOrEmpty(form["SubjectId"].ToString()) ? int.Parse(form["SubjectId"].ToString()) : existingQuestion.SubjectId,
+                    // TopicId = form.ContainsKey("TopicId") && !string.IsNullOrEmpty(form["TopicId"].ToString()) ? int.Parse(form["TopicId"].ToString()) : existingQuestion.TopicId,
+                    QuestionText = form.ContainsKey("QuestionText") ? form["QuestionText"].ToString() : existingQuestion.QuestionText,
+                    OptionA = form.ContainsKey("OptionA") ? form["OptionA"].ToString() : existingQuestion.OptionA,
+                    OptionB = form.ContainsKey("OptionB") ? form["OptionB"].ToString() : existingQuestion.OptionB,
+                    OptionC = form.ContainsKey("OptionC") ? form["OptionC"].ToString() : existingQuestion.OptionC,
+                    OptionD = form.ContainsKey("OptionD") ? form["OptionD"].ToString() : existingQuestion.OptionD,
+                    CorrectAnswer = form.ContainsKey("CorrectAnswer") ? form["CorrectAnswer"].ToString() : existingQuestion.CorrectAnswer,
+                    Explanation = form.ContainsKey("Explanation") ? form["Explanation"].ToString() : existingQuestion.Explanation,
+                    Marks = form.ContainsKey("Marks") && !string.IsNullOrEmpty(form["Marks"].ToString()) ? decimal.Parse(form["Marks"].ToString()) : existingQuestion.Marks,
+                    NegativeMarks = form.ContainsKey("NegativeMarks") && !string.IsNullOrEmpty(form["NegativeMarks"].ToString()) ? decimal.Parse(form["NegativeMarks"].ToString()) : existingQuestion.NegativeMarks,
+                    DifficultyLevel = form.ContainsKey("DifficultyLevel") ? form["DifficultyLevel"].ToString() : existingQuestion.DifficultyLevel,
+                    QuestionType = form.ContainsKey("QuestionType") ? form["QuestionType"].ToString() : existingQuestion.QuestionType,
+                    QuestionImage = form.Files.GetFile("QuestionImage"),
+                    OptionAImage = form.Files.GetFile("OptionAImage"),
+                    OptionBImage = form.Files.GetFile("OptionBImage"),
+                    OptionCImage = form.Files.GetFile("OptionCImage"),
+                    OptionDImage = form.Files.GetFile("OptionDImage"),
+                    ExplanationImage = form.Files.GetFile("ExplanationImage"),
+                    QuestionImageUrl = form.ContainsKey("QuestionImageUrl") ? form["QuestionImageUrl"].ToString() : existingQuestion.QuestionImageUrl,
+                    OptionAImageUrl = form.ContainsKey("OptionAImageUrl") ? form["OptionAImageUrl"].ToString() : existingQuestion.OptionAImageUrl,
+                    OptionBImageUrl = form.ContainsKey("OptionBImageUrl") ? form["OptionBImageUrl"].ToString() : existingQuestion.OptionBImageUrl,
+                    OptionCImageUrl = form.ContainsKey("OptionCImageUrl") ? form["OptionCImageUrl"].ToString() : existingQuestion.OptionCImageUrl,
+                    OptionDImageUrl = form.ContainsKey("OptionDImageUrl") ? form["OptionDImageUrl"].ToString() : existingQuestion.OptionDImageUrl,
+                    ExplanationImageUrl = form.ContainsKey("ExplanationImageUrl") ? form["ExplanationImageUrl"].ToString() : existingQuestion.ExplanationImageUrl,
+                    SameExplanationForAllLanguages = form.ContainsKey("SameExplanationForAllLanguages") && bool.TryParse(form["SameExplanationForAllLanguages"].ToString(), out var sameExp) ? sameExp : existingQuestion.SameExplanationForAllLanguages,
+                    Reference = form.ContainsKey("Reference") ? form["Reference"].ToString() : existingQuestion.Reference,
+                    Tags = form.ContainsKey("Tags") ? form["Tags"].ToString() : existingQuestion.Tags,
+                    TranslationsJson = translationsJson
+                };
+                
+                var updated = await _service.UpdateQuestionWithImagesAsync(formDto);
+                return Ok(new { success = true, data = updated });
+            }
+            
+            // Handle JSON without images
+            var jsonDto = await Request.ReadFromJsonAsync<UpdateQuestionAdminDto>();
+            if (jsonDto == null)
+            {
+                return BadRequest(new { success = false, message = "Invalid request payload." });
+            }
+            
+            jsonDto.Id = id;
+            var updatedJson = await _service.UpdateAdminQuestionAsync(jsonDto);
+            return Ok(new { success = true, data = updatedJson });
         }
 
         [HttpGet("admin/{id}")]

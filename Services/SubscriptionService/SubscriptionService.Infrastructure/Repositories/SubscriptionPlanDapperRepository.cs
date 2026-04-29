@@ -652,7 +652,8 @@ namespace SubscriptionService.Infrastructure.Repositories
                             LanguageCode = translation.LanguageCode,
                             Name = translation.Name,
                             Description = translation.Description,
-                            Features = translation.Features
+                            Features = translation.Features,
+                            CreatedAt = DateTime.UtcNow
                         };
 
                         var translationSql = @"
@@ -662,7 +663,15 @@ namespace SubscriptionService.Infrastructure.Repositories
                                 @SubscriptionPlanId, @LanguageCode, @Name, @Description, @Features, @CreatedAt
                             )";
                         
-                        await connection.ExecuteAsync(translationSql, translationEntity, transaction);
+                        await connection.ExecuteAsync(translationSql, new
+                        {
+                            translationEntity.SubscriptionPlanId,
+                            translationEntity.LanguageCode,
+                            translationEntity.Name,
+                            translationEntity.Description,
+                            translationEntity.Features,
+                            CreatedAt = DateTime.UtcNow
+                        }, transaction);
                     }
                 }
 
@@ -794,7 +803,8 @@ namespace SubscriptionService.Infrastructure.Repositories
                             LanguageCode = translation.LanguageCode,
                             Name = translation.Name,
                             Description = translation.Description,
-                            Features = translation.Features
+                            Features = translation.Features,
+                            CreatedAt = DateTime.UtcNow
                         };
 
                         var translationSql = @"

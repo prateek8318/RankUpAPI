@@ -251,6 +251,11 @@ namespace QuestionService.Application.DTOs
         public int CorrectAnswers { get; set; }
         public int WrongAnswers { get; set; }
         public decimal ObtainedMarks { get; set; }
+        public decimal NegativeMarksDeducted { get; set; }
+        public int ReportedQuestionsCount { get; set; }
+        public int BookmarkedQuestionsCount { get; set; }
+        public List<int> ReportedQuestionIds { get; set; } = new();
+        public List<int> BookmarkedQuestionIds { get; set; } = new();
         public decimal Percentage { get; set; }
         public string Status { get; set; } = "NotStarted"; // NotStarted, InProgress, Completed
         public string Grade { get; set; } = string.Empty;
@@ -278,6 +283,11 @@ namespace QuestionService.Application.DTOs
         public DateTime StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public int DurationInMinutes { get; set; }
+        public int TotalDurationInSeconds { get; set; }
+        public int PerQuestionTimeInSeconds { get; set; }
+        public int CurrentQuestionNumber { get; set; }
+        public int? CurrentQuestionId { get; set; }
+        public int RemainingTimeInSeconds { get; set; }
         public int TotalQuestions { get; set; }
         public int AnsweredQuestions { get; set; }
         public int MarkedForReview { get; set; }
@@ -287,6 +297,33 @@ namespace QuestionService.Application.DTOs
         public decimal NegativeMarksPerQuestion { get; set; }
         public string Status { get; set; } = "InProgress";
         public List<QuizQuestionDto> Questions { get; set; } = new();
+    }
+
+    public class MockTestSolutionDto
+    {
+        public int SessionId { get; set; }
+        public int MockTestId { get; set; }
+        public string MockTestName { get; set; } = string.Empty;
+        public string SubjectName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public List<MockTestSolutionQuestionDto> Questions { get; set; } = new();
+    }
+
+    public class MockTestSolutionQuestionDto
+    {
+        public int QuestionId { get; set; }
+        public int QuestionNumber { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string? OptionA { get; set; }
+        public string? OptionB { get; set; }
+        public string? OptionC { get; set; }
+        public string? OptionD { get; set; }
+        public string CorrectAnswer { get; set; } = string.Empty;
+        public string CorrectOptionText { get; set; } = string.Empty;
+        public string? SelectedAnswer { get; set; }
+        public bool IsCorrect { get; set; }
+        public string? Explanation { get; set; }
+        public string? ExplanationImageUrl { get; set; }
     }
 
     public class SaveMockTestAnswerDto
@@ -304,6 +341,34 @@ namespace QuestionService.Application.DTOs
     public class SubmitMockTestSessionDto
     {
         public int? TimeTakenInSeconds { get; set; }
+    }
+
+    public class ReportMockTestQuestionDto
+    {
+        [Required]
+        public int QuestionId { get; set; }
+
+        [StringLength(500)]
+        public string? Reason { get; set; }
+    }
+
+    public class BookmarkMockTestQuestionDto
+    {
+        [Required]
+        public int QuestionId { get; set; }
+
+        public bool IsBookmarked { get; set; } = true;
+    }
+
+    public class MockTestQuestionActionResultDto
+    {
+        public int SessionId { get; set; }
+        public int QuestionId { get; set; }
+        public bool IsReported { get; set; }
+        public bool IsBookmarked { get; set; }
+        public int ReportedQuestionsCount { get; set; }
+        public int BookmarkedQuestionsCount { get; set; }
+        public string? Reason { get; set; }
     }
 
     // Subscription Plan DTO for integration

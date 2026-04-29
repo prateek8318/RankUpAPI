@@ -216,6 +216,45 @@
       "Priority": 200
     },
     {
+      "DownstreamPathTemplate": "/images/question-images/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 56916 },
+        { "Host": "192.168.1.14", "Port": 56916 },
+        { "Host": "192.168.1.21", "Port": 56916 },
+        { "Host": "192.168.1.23", "Port": 56916 }
+      ],
+      "UpstreamPathTemplate": "/images/question-images/{everything}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 200
+    },
+    {
+      "DownstreamPathTemplate": "/images/option-images/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 56916 },
+        { "Host": "192.168.1.14", "Port": 56916 },
+        { "Host": "192.168.1.21", "Port": 56916 },
+        { "Host": "192.168.1.23", "Port": 56916 }
+      ],
+      "UpstreamPathTemplate": "/images/option-images/{everything}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 200
+    },
+    {
+      "DownstreamPathTemplate": "/images/explanation-images/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 56916 },
+        { "Host": "192.168.1.14", "Port": 56916 },
+        { "Host": "192.168.1.21", "Port": 56916 },
+        { "Host": "192.168.1.23", "Port": 56916 }
+      ],
+      "UpstreamPathTemplate": "/images/explanation-images/{everything}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 200
+    },
+    {
       "DownstreamPathTemplate": "/api/qualifications",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [

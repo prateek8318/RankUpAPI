@@ -689,12 +689,11 @@ namespace QuestionService.Infrastructure.Repositories
                 // Generate unique filename
                 var fileExtension = Path.GetExtension(image.FileName);
                 var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
-                var uploadPath = Path.Combine("uploads", "questions", DateTime.Now.ToString("yyyy-MM-dd"));
-                var fullPath = Path.Combine(uploadPath, uniqueFileName);
+                var relativePath = $"/images/{imageType}-images/{uniqueFileName}";
 
                 // Save file (in real implementation, this would save to cloud storage)
-                // For now, return a mock URL
-                var imageUrl = $"https://rankup-api.s3.amazonaws.com/{fullPath}";
+                // Return a gateway-friendly relative path instead of generating an absolute host URL.
+                var imageUrl = relativePath;
 
                 // Update question with image URL if questionId is provided
                 if (questionId.HasValue)

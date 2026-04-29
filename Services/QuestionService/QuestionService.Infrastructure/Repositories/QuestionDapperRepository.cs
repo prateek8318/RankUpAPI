@@ -157,25 +157,27 @@ namespace QuestionService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
-                // Create translations JSON for the stored procedure
-                var translationsJson = System.Text.Json.JsonSerializer.Serialize(new[]
-                {
-                    new
+                var translations = dto.Translations?.Any() == true
+                    ? dto.Translations
+                    : new List<QuestionTranslationUpsertDto>
                     {
-                        LanguageCode = "en",
-                        QuestionText = dto.QuestionText,
-                        OptionA = dto.OptionA,
-                        OptionB = dto.OptionB,
-                        OptionC = dto.OptionC,
-                        OptionD = dto.OptionD,
-                        Explanation = dto.Explanation,
-                        QuestionImageUrl = dto.QuestionImageUrl,
-                        OptionAImageUrl = dto.OptionAImageUrl,
-                        OptionBImageUrl = dto.OptionBImageUrl,
-                        OptionCImageUrl = dto.OptionCImageUrl,
-                        OptionDImageUrl = dto.OptionDImageUrl
-                    }
-                });
+                        new()
+                        {
+                            LanguageCode = "en",
+                            QuestionText = dto.QuestionText,
+                            OptionA = dto.OptionA,
+                            OptionB = dto.OptionB,
+                            OptionC = dto.OptionC,
+                            OptionD = dto.OptionD,
+                            Explanation = dto.Explanation,
+                            QuestionImageUrl = dto.QuestionImageUrl,
+                            OptionAImageUrl = dto.OptionAImageUrl,
+                            OptionBImageUrl = dto.OptionBImageUrl,
+                            OptionCImageUrl = dto.OptionCImageUrl,
+                            OptionDImageUrl = dto.OptionDImageUrl
+                        }
+                    };
+                var translationsJson = JsonSerializer.Serialize(translations);
 
                 var sql = "EXEC [dbo].[Question_AdminCreate] @ModuleId, @ExamId, @SubjectId, @TopicId, @Marks, @NegativeMarks, @Difficulty, @CorrectAnswer, @SameExplanationForAllLanguages, @IsPublished, @TranslationsJson, @CreatedBy";
                 
@@ -204,16 +206,17 @@ namespace QuestionService.Infrastructure.Repositories
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[Question_AdminUpdate] @Id, @ModuleId, @ExamId, @SubjectId, @TopicId, @Marks, @NegativeMarks, @Difficulty, @CorrectAnswer, @SameExplanationForAllLanguages, @IsPublished, @IsActive, @TranslationsJson";
-                var rows = await connection.ExecuteAsync(sql, new
+                var normalizedTopicId = dto.TopicId <= 0 ? (int?)null : dto.TopicId;
+                var rows = await connection.QueryFirstAsync<int>(sql, new
                 {
                     dto.Id,
                     dto.ModuleId,
                     dto.ExamId,
                     dto.SubjectId,
-                    dto.TopicId,
+                    TopicId = normalizedTopicId,
                     dto.Marks,
                     dto.NegativeMarks,
-                    Difficulty = (int)Enum.Parse(typeof(DifficultyLevel), dto.DifficultyLevel ?? "Medium"),
+                    Difficulty = (int)Enum.Parse(typeof(DifficultyLevel), dto.DifficultyLevel ?? "Medium", ignoreCase: true),
                     dto.CorrectAnswer,
                     dto.SameExplanationForAllLanguages,
                     dto.IsPublished,
@@ -818,7 +821,7 @@ namespace QuestionService.Infrastructure.Repositories
                     filter.SubjectId,
                     filter.ExamId,
                     filter.TopicId,
-                    Difficulty = !string.IsNullOrEmpty(filter.DifficultyLevel) ? (int?)Enum.Parse(typeof(DifficultyLevel), filter.DifficultyLevel) : null,
+                    Difficulty = !string.IsNullOrEmpty(filter.DifficultyLevel) ? filter.DifficultyLevel : null,
                     filter.IsPublished
                 });
             });

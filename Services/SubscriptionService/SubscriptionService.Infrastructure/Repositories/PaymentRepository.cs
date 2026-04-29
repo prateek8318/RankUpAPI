@@ -195,32 +195,71 @@ namespace SubscriptionService.Infrastructure.Repositories
             });
         }
 
-        public async Task<(int TotalPayments, decimal TotalRevenue, decimal TodayRevenue, decimal ThisMonthRevenue, int SuccessfulPayments, int FailedPayments, int PendingPayments, decimal AverageTransactionAmount, int UniquePayingUsers)> GetStatisticsAsync()
+        public async Task<SubscriptionStatisticsDto> GetStatisticsAsync()
         {
             return await WithConnectionAsync(async connection =>
             {
                 var sql = "EXEC [dbo].[Payment_GetStatistics]";
                 var result = await connection.QueryFirstOrDefaultAsync<PaymentStatisticsRow>(sql);
+                
+                // Debug: Log the result
+                System.Diagnostics.Debug.WriteLine($"PaymentStatisticsRow result: TotalPayments={result?.TotalPayments}, ActivePlansCount={result?.ActivePlansCount}, ActiveSubscribers={result?.ActiveSubscribers}");
                 if (result == null)
                 {
-                    return (0, 0m, 0m, 0m, 0, 0, 0, 0m, 0);
+                    return new SubscriptionStatisticsDto
+                    {
+                        TotalPayments = 0,
+                        TotalRevenue = 0m,
+                        TodayRevenue = 0m,
+                        ThisMonthRevenue = 0m,
+                        SuccessfulPayments = 0,
+                        FailedPayments = 0,
+                        PendingPayments = 0,
+                        AverageTransactionAmount = 0m,
+                        UniquePayingUsers = 0,
+                        RefundedAmount = 0m,
+                        RefundedPayments = 0,
+                        ActivePlansCount = 0,
+                        ActiveSubscribers = 0,
+                        ExpiringSoon = 0,
+                        NewSubscribersToday = 0,
+                        NewUsersLast7Days = 0,
+                        BlockedUsers = 0,
+                        TotalUsers = 0,
+                        FreeUsers = 0,
+                        LastUpdated = DateTime.UtcNow
+                    };
                 }
 
-                return (
-                    result.TotalPayments,
-                    result.TotalRevenue,
-                    result.TodayRevenue,
-                    result.ThisMonthRevenue,
-                    result.SuccessfulPayments,
-                    result.FailedPayments,
-                    result.PendingPayments,
-                    result.AverageTransactionAmount,
-                    result.UniquePayingUsers);
+                return new SubscriptionStatisticsDto
+                {
+                    TotalPayments = result.TotalPayments,
+                    TotalRevenue = result.TotalRevenue,
+                    TodayRevenue = result.TodayRevenue,
+                    ThisMonthRevenue = result.ThisMonthRevenue,
+                    SuccessfulPayments = result.SuccessfulPayments,
+                    FailedPayments = result.FailedPayments,
+                    PendingPayments = result.PendingPayments,
+                    AverageTransactionAmount = result.AverageTransactionAmount,
+                    UniquePayingUsers = result.UniquePayingUsers,
+                    RefundedAmount = result.RefundedAmount,
+                    RefundedPayments = result.RefundedPayments,
+                    ActivePlansCount = 20, // Hardcoded as requested
+                    ActiveSubscribers = result.ActiveSubscribers,
+                    ExpiringSoon = result.ExpiringSoon,
+                    NewSubscribersToday = result.NewSubscribersToday,
+                    NewUsersLast7Days = result.NewUsersLast7Days,
+                    BlockedUsers = result.BlockedUsers,
+                    TotalUsers = result.TotalUsers,
+                    FreeUsers = result.FreeUsers,
+                    LastUpdated = DateTime.UtcNow
+                };
             });
         }
 
         private sealed class PaymentStatisticsRow
         {
+            // Payment Statistics
             public int TotalPayments { get; set; }
             public decimal TotalRevenue { get; set; }
             public decimal TodayRevenue { get; set; }
@@ -230,6 +269,22 @@ namespace SubscriptionService.Infrastructure.Repositories
             public int PendingPayments { get; set; }
             public decimal AverageTransactionAmount { get; set; }
             public int UniquePayingUsers { get; set; }
+            public decimal RefundedAmount { get; set; }
+            public int RefundedPayments { get; set; }
+            
+            // Plan Statistics
+            public int ActivePlansCount { get; set; }
+            
+            // User Subscription Statistics
+            public int ActiveSubscribers { get; set; }
+            public int ExpiringSoon { get; set; }
+            public int NewUsersLast7Days { get; set; }
+            public int BlockedUsers { get; set; }
+            public int TotalUsers { get; set; }
+            public int FreeUsers { get; set; }
+            public int NewSubscribersToday { get; set; }
+            
+            public DateTime LastUpdated { get; set; }
         }
     }
 }

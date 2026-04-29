@@ -12,13 +12,15 @@ namespace MasterService.Application.Services
     public class StateService : IStateService
     {
         private readonly IStateRepository _stateRepository;
+        private readonly ICountryRepository _countryRepository;
         private readonly IMapper _mapper;
         private readonly ILanguageDataService _languageDataService;
         private readonly ILogger<StateService> _logger;
 
-        public StateService(IStateRepository stateRepository, IMapper mapper, ILanguageDataService languageDataService, ILogger<StateService> logger)
+        public StateService(IStateRepository stateRepository, ICountryRepository countryRepository, IMapper mapper, ILanguageDataService languageDataService, ILogger<StateService> logger)
         {
             _stateRepository = stateRepository;
+            _countryRepository = countryRepository;
             _mapper = mapper;
             _languageDataService = languageDataService;
             _logger = logger;
@@ -30,6 +32,23 @@ namespace MasterService.Application.Services
             if (createDto.Names == null || !createDto.Names.Any())
             {
                 throw new ArgumentException("At least one language name must be provided for the state.");
+            }
+
+            // Validate country code exists
+            if (string.IsNullOrWhiteSpace(createDto.CountryCode))
+            {
+                throw new ArgumentException("Country code is required.");
+            }
+
+            var country = await _countryRepository.GetByCodeAsync(createDto.CountryCode);
+            if (country == null)
+            {
+                throw new ArgumentException($"Invalid country code: '{createDto.CountryCode}'. Country does not exist.");
+            }
+
+            if (!country.IsActive)
+            {
+                throw new ArgumentException($"Country '{createDto.CountryCode}' is not active.");
             }
 
             // Check for existing state with same code (case-insensitive)
@@ -80,6 +99,21 @@ namespace MasterService.Application.Services
             var state = await _stateRepository.GetByIdAsync(id);
             if (state == null)
                 return null;
+
+            // Validate country code exists if provided
+            if (!string.IsNullOrWhiteSpace(updateDto.CountryCode))
+            {
+                var country = await _countryRepository.GetByCodeAsync(updateDto.CountryCode);
+                if (country == null)
+                {
+                    throw new ArgumentException($"Invalid country code: '{updateDto.CountryCode}'. Country does not exist.");
+                }
+
+                if (!country.IsActive)
+                {
+                    throw new ArgumentException($"Country '{updateDto.CountryCode}' is not active.");
+                }
+            }
 
             // Check for existing state with same code (excluding current state)
             var existingStates = await _stateRepository.GetActiveAsync();

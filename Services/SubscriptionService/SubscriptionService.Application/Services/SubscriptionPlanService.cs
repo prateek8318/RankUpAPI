@@ -609,6 +609,7 @@ namespace SubscriptionService.Application.Services
                 // Prepare duration options
                 var durationOptions = createPlanDto.DurationOptions.Select(dto => new PlanDurationOption
                 {
+                    SubscriptionPlanId = plan.Id,
                     DurationMonths = dto.DurationMonths,
                     Price = dto.Price,
                     DiscountPercentage = dto.DiscountPercentage,
@@ -616,7 +617,8 @@ namespace SubscriptionService.Application.Services
                     IsPopular = dto.IsPopular,
                     SortOrder = dto.SortOrder,
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 }).ToList();
 
                 // Prepare translations
@@ -709,7 +711,8 @@ namespace SubscriptionService.Application.Services
                     IsPopular = x.IsPopular,
                     SortOrder = x.SortOrder,
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 }).ToList();
 
                 var translations = dto.Translations?
@@ -895,7 +898,8 @@ namespace SubscriptionService.Application.Services
                         IsPopular = dto.IsPopular,
                         SortOrder = dto.SortOrder,
                         IsActive = true,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
                     };
                     await _subscriptionPlanRepository.AddDurationOptionAsync(option);
                 }

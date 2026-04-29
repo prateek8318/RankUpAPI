@@ -1,0 +1,10 @@
+-- Check MockTests table structure
+SELECT COLUMN_NAME, DATA_TYPE
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_NAME = 'MockTests'
+ORDER BY ORDINAL_POSITION;
+
+-- Get sample data from MockTests for ID 12
+SELECT TOP 5 *
+FROM MockTests
+WHERE Id = 12;

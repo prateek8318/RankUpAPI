@@ -153,6 +153,8 @@ namespace QuestionService.Application.DTOs
         
         public string? Name { get; set; }
         public string? Description { get; set; }
+        public int? ExamId { get; set; }
+        public int? SubjectId { get; set; }
         public int? DurationInMinutes { get; set; }
         public int? TotalQuestions { get; set; }
         public decimal? TotalMarks { get; set; }
@@ -210,6 +212,7 @@ namespace QuestionService.Application.DTOs
         public int AttemptsAllowed { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         
         // Type-specific display properties
         public int? Year { get; set; } // For PreviousYear papers

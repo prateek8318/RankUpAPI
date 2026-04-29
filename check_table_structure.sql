@@ -1,0 +1,12 @@
+-- Check table structures to get correct column names
+SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_NAME IN ('MockTests', 'Questions', 'Topics', 'Exams', 'Subjects')
+ORDER BY TABLE_NAME, ORDINAL_POSITION;
+
+-- Also check what tables exist
+SELECT TABLE_NAME 
+FROM INFORMATION_SCHEMA.TABLES 
+WHERE TABLE_TYPE = 'BASE TABLE' 
+AND (TABLE_NAME LIKE '%Mock%' OR TABLE_NAME LIKE '%Question%' OR TABLE_NAME LIKE '%Test%')
+ORDER BY TABLE_NAME;

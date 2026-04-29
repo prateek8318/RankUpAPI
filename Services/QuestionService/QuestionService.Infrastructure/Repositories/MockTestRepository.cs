@@ -116,15 +116,15 @@ namespace QuestionService.Infrastructure.Repositories
                         TotalQuestions, TotalMarks, PassingMarks, MarksPerQuestion, HasNegativeMarking, 
                         NegativeMarkingValue, SubscriptionPlanId, AccessType, AttemptsAllowed, Status,
                         Year, Difficulty, PaperCode, ExamDate, PublishDateTime, ValidTill, 
-                        ShowResultType, ImageUrl, CreatedBy, CreatedAt
+                        ShowResultType, ImageUrl, CreatedBy, CreatedAt, UpdatedAt
                     )
-                    OUTPUT INSERTED.Id, INSERTED.CreatedAt
+                    OUTPUT INSERTED.Id, INSERTED.CreatedAt, INSERTED.UpdatedAt
                     VALUES (
                         @Name, @Description, @MockTestType, @ExamId, @SubjectId, @TopicId, @DurationInMinutes, 
                         @TotalQuestions, @TotalMarks, @PassingMarks, @MarksPerQuestion, @HasNegativeMarking, 
                         @NegativeMarkingValue, @SubscriptionPlanId, @AccessType, @AttemptsAllowed, @Status,
                         @Year, @Difficulty, @PaperCode, @ExamDate, @PublishDateTime, @ValidTill, 
-                        @ShowResultType, @ImageUrl, @CreatedBy, GETDATE()
+                        @ShowResultType, @ImageUrl, @CreatedBy, GETDATE(), GETDATE()
                     )";
 
                 var parameters = new
@@ -157,7 +157,7 @@ namespace QuestionService.Infrastructure.Repositories
                     CreatedBy = dto.CreatedBy
                 };
 
-                var result = await connection.QuerySingleAsync<(int Id, DateTime CreatedAt)>(sql, parameters);
+                var result = await connection.QuerySingleAsync<(int Id, DateTime CreatedAt, DateTime? UpdatedAt)>(sql, parameters);
                 
                 // Get the created mock test with full details
                 return await GetByIdInternalAsync((SqlConnection)connection, result.Id);
@@ -294,6 +294,8 @@ namespace QuestionService.Infrastructure.Repositories
                     UPDATE MockTests SET
                         Name = COALESCE(@Name, Name),
                         Description = COALESCE(@Description, Description),
+                        ExamId = COALESCE(@ExamId, ExamId),
+                        SubjectId = COALESCE(@SubjectId, SubjectId),
                         DurationInMinutes = COALESCE(@DurationInMinutes, DurationInMinutes),
                         TotalQuestions = COALESCE(@TotalQuestions, TotalQuestions),
                         TotalMarks = COALESCE(@TotalMarks, TotalMarks),
@@ -321,6 +323,8 @@ namespace QuestionService.Infrastructure.Repositories
                     Id = dto.Id,
                     Name = dto.Name,
                     Description = dto.Description,
+                    ExamId = dto.ExamId,
+                    SubjectId = dto.SubjectId,
                     DurationInMinutes = dto.DurationInMinutes,
                     TotalQuestions = dto.TotalQuestions,
                     TotalMarks = dto.TotalMarks,
@@ -985,6 +989,7 @@ namespace QuestionService.Infrastructure.Repositories
                         OptionBImageUrl = q.Question?.OptionBImageUrl,
                         OptionCImageUrl = q.Question?.OptionCImageUrl,
                         OptionDImageUrl = q.Question?.OptionDImageUrl,
+                        ExplanationImageUrl = q.Question?.ExplanationImageUrl,
                         Marks = q.Marks,
                         NegativeMarks = q.NegativeMarks,
                         DifficultyLevel = q.Question?.DifficultyLevel ?? "Medium",
@@ -994,7 +999,8 @@ namespace QuestionService.Infrastructure.Repositories
                         TimeLimitInSeconds = DefaultPerQuestionTimeInSeconds,
                         AvailableFrom = window.Start,
                         AvailableUntil = window.End,
-                        CanAnswer = true
+                        CanAnswer = true,
+                        Translations = q.Question?.Translations ?? new List<QuestionTranslationDto>()
                     };
                 }).ToList();
 

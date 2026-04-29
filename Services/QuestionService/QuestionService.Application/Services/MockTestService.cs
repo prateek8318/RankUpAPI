@@ -563,6 +563,7 @@ namespace QuestionService.Application.Services
                         AttemptsAllowed = mt.AttemptsAllowed,
                         Status = mt.Status?.ToString() ?? string.Empty,
                         CreatedAt = mt.CreatedAt,
+                        UpdatedAt = mt.UpdatedAt,
                         Year = mt.Year,
                         Difficulty = mt.Difficulty,
                         PaperCode = mt.PaperCode,

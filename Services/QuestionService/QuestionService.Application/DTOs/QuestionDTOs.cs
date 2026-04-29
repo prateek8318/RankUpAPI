@@ -818,6 +818,7 @@ namespace QuestionService.Application.DTOs
         public string? OptionBImageUrl { get; set; }
         public string? OptionCImageUrl { get; set; }
         public string? OptionDImageUrl { get; set; }
+        public string? ExplanationImageUrl { get; set; }
         public decimal Marks { get; set; }
         public decimal NegativeMarks { get; set; }
         public string DifficultyLevel { get; set; } = "Medium";
@@ -831,6 +832,7 @@ namespace QuestionService.Application.DTOs
         public bool CanAnswer { get; set; } = true;
         public bool IsReported { get; set; }
         public bool IsBookmarked { get; set; }
+        public List<QuestionTranslationDto> Translations { get; set; } = new();
     }
 
     public class QuizSessionDto

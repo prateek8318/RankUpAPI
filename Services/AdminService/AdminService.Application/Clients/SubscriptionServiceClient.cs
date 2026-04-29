@@ -350,7 +350,7 @@ namespace AdminService.Application.Clients
                         },
                         daysLeft = daysUntilExpiry,
                         daysUntilExpiry,
-                        currentStatus = validTill <= DateTime.UtcNow ? "Expired" : "Active"
+                        currentStatus = reader.GetString(reader.GetOrdinal("Status"))
                     };
                     
                     return subscription;

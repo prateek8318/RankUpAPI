@@ -194,7 +194,9 @@ static async Task ExecuteStoredProcedureScriptsAsync(WebApplication app, ILogger
     {
         Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "Scripts", "QuestionService_StoredProcedures.sql")),
         Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "Scripts", "MockTests_Schema_Migration.sql")),
-        Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "..", "..", "database", "Create_QuestionService_Enhanced_SPs.sql"))
+        Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "..", "..", "database", "Create_QuestionService_Enhanced_SPs.sql")),
+        Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "..", "..", "database", "Fix_Update_Topic_Validation_Final.sql")),
+        Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "..", "..", "database", "Fix_RowCount_Return.sql"))
     };
 
     var connectionString = GetQuestionServiceConnectionString(app.Configuration);
@@ -250,6 +252,30 @@ static async Task ExecuteStoredProcedureScriptsAsync(WebApplication app, ILogger
         }
 
         logger.LogInformation("Stored procedures synced successfully from {ScriptPath}", scriptPath);
+    }
+    
+    // Execute MockTestQuestions column verification query
+    try
+    {
+        var columnQuery = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MockTestQuestions' ORDER BY ORDINAL_POSITION";
+        await using var command = new SqlCommand(columnQuery, connection)
+        {
+            CommandType = CommandType.Text,
+            CommandTimeout = 30
+        };
+        
+        using var reader = await command.ExecuteReaderAsync();
+        var columns = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            columns.Add(reader.GetString(0));
+        }
+        
+        logger.LogInformation("MockTestQuestions table verified with {Count} columns: {Columns}", columns.Count, string.Join(", ", columns));
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Failed to verify MockTestQuestions table columns");
     }
 }
 

@@ -89,6 +89,8 @@ namespace SubscriptionService.Application.DTOs
         public string? CardColorTheme { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public List<PlanDurationOptionDto> DurationOptions { get; set; } = new();
     }
 

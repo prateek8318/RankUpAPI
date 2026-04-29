@@ -481,10 +481,10 @@ namespace SubscriptionService.Infrastructure.Repositories
                 var sql = @"
                     INSERT INTO PlanDurationOptions (
                         SubscriptionPlanId, DurationMonths, Price, DiscountPercentage, 
-                        DisplayLabel, IsPopular, SortOrder, IsActive, CreatedAt
+                        DisplayLabel, IsPopular, SortOrder, IsActive, CreatedAt, UpdatedAt
                     ) VALUES (
                         @SubscriptionPlanId, @DurationMonths, @Price, @DiscountPercentage,
-                        @DisplayLabel, @IsPopular, @SortOrder, @IsActive, @CreatedAt
+                        @DisplayLabel, @IsPopular, @SortOrder, @IsActive, @CreatedAt, @UpdatedAt
                     )";
                 
                 await connection.ExecuteAsync(sql, durationOption);
@@ -866,9 +866,7 @@ namespace SubscriptionService.Infrastructure.Repositories
                 DisplayLabel = row.DisplayLabel,
                 IsPopular = row.IsPopular,
                 SortOrder = row.SortOrder,
-                IsActive = row.IsActive,
-                CreatedAt = row.CreatedAt,
-                UpdatedAt = row.UpdatedAt
+                IsActive = row.IsActive
             };
         }
 
@@ -914,8 +912,6 @@ namespace SubscriptionService.Infrastructure.Repositories
             public bool IsPopular { get; set; }
             public int SortOrder { get; set; }
             public bool IsActive { get; set; }
-            public DateTime CreatedAt { get; set; }
-            public DateTime? UpdatedAt { get; set; }
         }
 
         private sealed class UserSubscriptionDbRow

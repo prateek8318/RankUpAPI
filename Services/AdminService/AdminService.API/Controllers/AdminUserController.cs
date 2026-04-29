@@ -58,7 +58,7 @@ namespace AdminService.API.Controllers
                                 Subscription = subscriptionData,
                                 
                                 // Extract key subscription details for easier access
-                                HasActiveSubscription = subscriptionData != null,
+                                HasActiveSubscription = IsSubscriptionActive(subscriptionData),
                                 PlanName = GetPlanName(subscriptionData),
                                 PlanPrice = GetPlanPrice(subscriptionData),
                                 SubscriptionStatus = GetSubscriptionStatus(subscriptionData),
@@ -112,7 +112,7 @@ namespace AdminService.API.Controllers
                     Subscription = subscriptionData,
                     
                     // Extract key subscription details for easier access
-                    HasActiveSubscription = subscriptionData != null,
+                    HasActiveSubscription = IsSubscriptionActive(subscriptionData),
                     PlanName = GetPlanName(subscriptionData),
                     PlanPrice = GetPlanPrice(subscriptionData),
                     SubscriptionStatus = GetSubscriptionStatus(subscriptionData),
@@ -249,14 +249,20 @@ namespace AdminService.API.Controllers
                 var json = System.Text.Json.JsonSerializer.Serialize(subscriptionData);
                 var subscription = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
                 
+                _logger.LogInformation("Subscription data JSON: {Json}", json);
+                
                 if (subscription.TryGetProperty("status", out var statusProp))
                 {
-                    return statusProp.GetString();
+                    var status = statusProp.GetString();
+                    _logger.LogInformation("Found status field: {Status}", status);
+                    return status;
                 }
                 
                 if (subscription.TryGetProperty("currentStatus", out var currentStatusProp))
                 {
-                    return currentStatusProp.GetString();
+                    var currentStatus = currentStatusProp.GetString();
+                    _logger.LogInformation("Found currentStatus field: {CurrentStatus}", currentStatus);
+                    return currentStatus;
                 }
             }
             catch (Exception ex)
@@ -314,6 +320,67 @@ namespace AdminService.API.Controllers
             }
             
             return null;
+        }
+
+        private bool IsSubscriptionActive(object? subscriptionData)
+        {
+            if (subscriptionData == null) return false;
+            
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(subscriptionData);
+                var subscription = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
+                
+                // Check status field first - this is the primary indicator
+                if (subscription.TryGetProperty("status", out var statusProp))
+                {
+                    var status = statusProp.GetString();
+                    if (!string.IsNullOrEmpty(status))
+                    {
+                        // Only return true if status is explicitly "Active"
+                        if (string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                        // If status is anything else (Expired, Cancelled, etc), return false immediately
+                        return false;
+                    }
+                }
+                
+                // Check currentStatus field if status is not available
+                if (subscription.TryGetProperty("currentStatus", out var currentStatusProp))
+                {
+                    var currentStatus = currentStatusProp.GetString();
+                    if (!string.IsNullOrEmpty(currentStatus))
+                    {
+                        // Only return true if currentStatus is explicitly "Active"
+                        if (string.Equals(currentStatus, "Active", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                        // If currentStatus is anything else, return false immediately
+                        return false;
+                    }
+                }
+                
+                // Additional check: if subscription has validTill date and it's in the future
+                // But only use this if status fields are not present
+                if (subscription.TryGetProperty("validTill", out var validTillProp))
+                {
+                    var validTill = validTillProp.GetDateTime();
+                    // Check for default/invalid date (year 0001)
+                    if (validTill.Year > 1 && validTill > DateTime.UtcNow)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error checking subscription active status");
+            }
+            
+            return false;
         }
 
         private int? GetUserIdFromUser(object user)

@@ -720,11 +720,8 @@ namespace SubscriptionService.Application.Services
                 {
                     var latestSubscription = userGroup.OrderByDescending(s => s.CreatedAt).First();
                     var activeSubscription = userGroup.FirstOrDefault(s => s.Status == "Active");
-                    var latestStatus = string.Equals(latestSubscription.Status, "Cancelled", StringComparison.OrdinalIgnoreCase)
-                        ? "Cancelled"
-                        : latestSubscription.ValidTill < DateTime.UtcNow
-                            ? "Expired"
-                            : "Active";
+                    // Use database status field directly - it's the source of truth
+                    var latestStatus = latestSubscription.Status;
 
                     var userManagement = new UserManagementDto
                     {

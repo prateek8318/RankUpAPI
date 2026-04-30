@@ -50,9 +50,11 @@ namespace QuestionService.Application.Services
                 ShowResultType = dto.ShowResultType,
                 ImageUrl = dto.ImageUrl,
                 CreatedBy = dto.CreatedBy,
-                QuestionIds = dto.QuestionIds
+                QuestionIds = dto.QuestionIds,
+                Languages = dto.Languages
             };
 
+            _logger.LogInformation("CreateMockTestWithImageAsync - Languages count: {Count}", dto.Languages?.Count ?? 0);
             return CreateMockTestAsync(createDto);
         }
 
@@ -104,6 +106,7 @@ namespace QuestionService.Application.Services
                     ImageUrl = dto.ImageUrl,
                     CreatedBy = dto.CreatedBy,
                     QuestionIds = dto.QuestionIds,
+                    Languages = dto.Languages,
                     Status = MockTestStatus.Draft // Force draft status
                 };
 
@@ -480,11 +483,58 @@ namespace QuestionService.Application.Services
             }
         }
 
+        public async Task<MockTestDto> UpdateMockTestAsync(UpdateMockTestWithImageDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Updating mock test with image: {Id}", dto.Id);
+                _logger.LogInformation("UPDATE MockTestAsync (WithImage) - Languages count: {Count}", dto.Languages?.Count ?? 0);
+
+                // Convert to base UpdateMockTestDto
+                var baseDto = new UpdateMockTestDto
+                {
+                    Id = dto.Id,
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    ExamId = dto.ExamId,
+                    SubjectId = dto.SubjectId,
+                    DurationInMinutes = dto.DurationInMinutes,
+                    TotalQuestions = dto.TotalQuestions,
+                    TotalMarks = dto.TotalMarks,
+                    PassingMarks = dto.PassingMarks,
+                    MarksPerQuestion = dto.MarksPerQuestion,
+                    HasNegativeMarking = dto.HasNegativeMarking,
+                    NegativeMarkingValue = dto.NegativeMarkingValue,
+                    SubscriptionPlanId = dto.SubscriptionPlanId,
+                    AccessType = dto.AccessType,
+                    AttemptsAllowed = dto.AttemptsAllowed,
+                    Status = dto.Status,
+                    Year = dto.Year,
+                    Difficulty = dto.Difficulty,
+                    PaperCode = dto.PaperCode,
+                    ExamDate = dto.ExamDate,
+                    PublishDateTime = dto.PublishDateTime,
+                    ValidTill = dto.ValidTill,
+                    ShowResultType = dto.ShowResultType,
+                    ImageUrl = dto.ImageUrl,
+                    Languages = dto.Languages // Explicitly pass languages
+                };
+
+                return await UpdateMockTestAsync(baseDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating mock test with image: {Id}", dto.Id);
+                throw;
+            }
+        }
+
         public async Task<MockTestDto> UpdateMockTestAsync(UpdateMockTestDto dto)
         {
             try
             {
                 _logger.LogInformation("Updating mock test: {Id}", dto.Id);
+                _logger.LogInformation("UPDATE MockTestAsync - Languages count: {Count}", dto.Languages?.Count ?? 0);
 
                 var existingMockTest = await _mockTestRepository.GetByIdAsync(dto.Id);
                 if (existingMockTest == null)

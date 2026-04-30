@@ -109,6 +109,35 @@ namespace QuestionService.API.Controllers
 
                 dto.CreatedBy = userId;
                 dto.ImageUrl = await SaveMockTestImageAsync(dto.ImageFile);
+                
+                // Debug: Log form data
+                _logger.LogInformation("Form data keys: {Keys}", string.Join(", ", Request.Form.Keys));
+                
+                // Parse Languages from form data if present
+                if (Request.Form.ContainsKey("Languages"))
+                {
+                    var languagesJson = Request.Form["Languages"];
+                    _logger.LogInformation("Languages JSON from form: {LanguagesJson}", languagesJson);
+                    
+                    if (!string.IsNullOrEmpty(languagesJson))
+                    {
+                        try
+                        {
+                            var languages = System.Text.Json.JsonSerializer.Deserialize<List<MockTestLanguageDto>>(languagesJson);
+                            dto.Languages = languages;
+                            _logger.LogInformation("Parsed languages count: {Count}", languages?.Count ?? 0);
+                        }
+                        catch (System.Text.Json.JsonException ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to parse Languages JSON: {LanguagesJson}", languagesJson);
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("Languages from DTO: {Languages}", dto.Languages?.Count ?? 0);
+                }
+                
                 var mockTest = await _mockTestService.CreateMockTestWithImageAsync(dto);
                 return Ok(new { success = true, data = mockTest, message = "Mock test created successfully" });
             }
@@ -264,6 +293,46 @@ namespace QuestionService.API.Controllers
                 {
                     dto.ImageUrl = uploadedImagePath;
                 }
+                
+                // Debug: Log form data for update
+                _logger.LogInformation("UPDATE Form data keys: {Keys}", string.Join(", ", Request.Form.Keys));
+                
+                // Parse Languages from form data if present
+                if (Request.Form.ContainsKey("Languages"))
+                {
+                    var languagesJson = Request.Form["Languages"];
+                    _logger.LogInformation("UPDATE Languages JSON from form: {LanguagesJson}", languagesJson);
+                    
+                    if (!string.IsNullOrEmpty(languagesJson))
+                    {
+                        try
+                        {
+                            var languages = System.Text.Json.JsonSerializer.Deserialize<List<MockTestLanguageDto>>(languagesJson);
+                            dto.Languages = languages;
+                            _logger.LogInformation("UPDATE Parsed languages count: {Count}", languages?.Count ?? 0);
+                            
+                            // Log each language details
+                            if (languages != null)
+                            {
+                                for (int i = 0; i < languages.Count; i++)
+                                {
+                                    var lang = languages[i];
+                                    _logger.LogInformation("Language {Index}: LanguageId={LanguageId}, Name='{Name}', Description='{Description}'", 
+                                        i, lang.LanguageId, lang.Name, lang.Description);
+                                }
+                            }
+                        }
+                        catch (System.Text.Json.JsonException ex)
+                        {
+                            _logger.LogWarning(ex, "UPDATE Failed to parse Languages JSON: {LanguagesJson}", languagesJson);
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("UPDATE Languages from DTO: {Languages}", dto.Languages?.Count ?? 0);
+                }
+                
                 var mockTest = await _mockTestService.UpdateMockTestAsync(dto);
                 return Ok(new { success = true, data = mockTest, message = "Mock test updated successfully" });
             }

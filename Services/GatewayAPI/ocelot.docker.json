@@ -351,16 +351,7 @@
       "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
       "Priority": 110
     },
-    {
-      "DownstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],
-      "UpstreamPathTemplate": "/api/admin/subscription-plans/{everything}",
-      "UpstreamHttpMethod": ["GET", "POST", "PUT", "DELETE", "PATCH"],
-      "UpstreamHeaderTransform": { "Accept-Language": "{HttpContext.Request.Headers.Accept-Language}" },
-      "Priority": 100
-    },
-    {
+        {
       "DownstreamPathTemplate": "/api/v1/user/plans/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "subscriptionservice", "Port": 80 }],

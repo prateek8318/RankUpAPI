@@ -72,6 +72,7 @@ namespace QuestionService.Application.DTOs
         
         // Navigation properties
         public List<MockTestQuestionDto> Questions { get; set; } = new();
+        public List<MockTestLanguageDto>? Languages { get; set; }
         public SubscriptionPlanDto? SubscriptionPlan { get; set; }
     }
 
@@ -103,6 +104,9 @@ namespace QuestionService.Application.DTOs
         
         public int? SubjectId { get; set; } // Required for MockTest, optional for others
         public int? TopicId { get; set; } // Required for DeepPractice
+        
+        // Multi-language support
+        public List<MockTestLanguageDto>? Languages { get; set; }
         
         [Required]
         public int DurationInMinutes { get; set; } = 30;
@@ -155,6 +159,9 @@ namespace QuestionService.Application.DTOs
         public string? Description { get; set; }
         public int? ExamId { get; set; }
         public int? SubjectId { get; set; }
+        
+        // Multi-language support
+        public List<MockTestLanguageDto>? Languages { get; set; }
         public int? DurationInMinutes { get; set; }
         public int? TotalQuestions { get; set; }
         public decimal? TotalMarks { get; set; }
@@ -183,6 +190,22 @@ namespace QuestionService.Application.DTOs
     public class UpdateMockTestWithImageDto : UpdateMockTestDto
     {
         public IFormFile? ImageFile { get; set; }
+        
+        // Explicitly declare Languages property for multipart binding
+        public new List<MockTestLanguageDto>? Languages { get; set; }
+    }
+
+    // Multi-language DTO for MockTest
+    public class MockTestLanguageDto
+    {
+        [Required]
+        public int LanguageId { get; set; }
+        
+        [Required]
+        public string Name { get; set; } = string.Empty;
+        
+        public string? Description { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 
     public class MockTestListDto
@@ -327,6 +350,11 @@ namespace QuestionService.Application.DTOs
         public bool IsCorrect { get; set; }
         public string? Explanation { get; set; }
         public string? ExplanationImageUrl { get; set; }
+        public string? QuestionImageUrl { get; set; }
+        public string? OptionAImageUrl { get; set; }
+        public string? OptionBImageUrl { get; set; }
+        public string? OptionCImageUrl { get; set; }
+        public string? OptionDImageUrl { get; set; }
     }
 
     public class SaveMockTestAnswerDto
@@ -424,6 +452,9 @@ namespace QuestionService.Application.DTOs
     public class MockTestCreateWithImageDto : CreateMockTestDto
     {
         public IFormFile? ImageFile { get; set; }
+        
+        // Explicitly declare Languages property for multipart binding
+        public new List<MockTestLanguageDto>? Languages { get; set; }
     }
 
     public class MockTestListRequestDto

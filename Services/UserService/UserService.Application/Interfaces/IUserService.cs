@@ -1,4 +1,5 @@
 using UserService.Application.DTOs;
+using UserService.Domain.Entities;
 
 
 
@@ -11,6 +12,8 @@ namespace UserService.Application.Interfaces
     {
 
         Task<UserDto?> GetUserByIdAsync(int userId);
+
+        Task<User?> GetUserEntityByIdAsync(int userId);
 
         Task<UserDto> GetOrCreateUserAsync(string phoneNumber, string? countryCode = null, bool markPhoneVerified = false);
 

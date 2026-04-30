@@ -383,13 +383,13 @@ namespace SubscriptionService.Application.Services
                 var allPlans = await _subscriptionPlanRepository.GetActivePlansAsync();
                 
                 // Filter plans by user's selected exam IDs
-                // Check if ExamCategory matches any of the user's selected exam IDs
+                // Check if ExamId matches any of the user's selected exam IDs
                 var filteredPlans = allPlans.Where(plan => 
                 {
-                    // Try to parse ExamCategory as integer to match with exam IDs
-                    if (int.TryParse(plan.ExamCategory, out int planExamId))
+                    // Use ExamId directly if it has a value
+                    if (plan.ExamId.HasValue)
                     {
-                        return examIds.Contains(planExamId);
+                        return examIds.Contains(plan.ExamId.Value);
                     }
                     return false;
                 }).ToList();

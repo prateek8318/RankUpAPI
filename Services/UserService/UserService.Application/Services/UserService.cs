@@ -54,6 +54,11 @@ namespace UserService.Application.Services
             return userDto;
         }
 
+        public async Task<User?> GetUserEntityByIdAsync(int userId)
+        {
+            return await _userRepository.GetUserEntityByIdAsync(userId);
+        }
+
 
 
         public async Task<UserDto> GetOrCreateUserAsync(string phoneNumber, string? countryCode = null, bool markPhoneVerified = false)

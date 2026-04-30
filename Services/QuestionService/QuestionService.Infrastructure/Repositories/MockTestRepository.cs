@@ -3,6 +3,8 @@ using Microsoft.Data.SqlClient;
 using QuestionService.Application.DTOs;
 using QuestionService.Application.Interfaces;
 using System.Text.Json;
+using System.Data;
+using Microsoft.Extensions.Logging;
 
 namespace QuestionService.Infrastructure.Repositories
 {
@@ -10,8 +12,16 @@ namespace QuestionService.Infrastructure.Repositories
     {
         private const int DefaultPerQuestionTimeInSeconds = 45;
 
+        private readonly ILogger<MockTestRepository> _logger;
+
         public MockTestRepository(string connectionString) : base(connectionString)
         {
+            _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<MockTestRepository>();
+        }
+
+        public MockTestRepository(string connectionString, ILogger<MockTestRepository> logger) : base(connectionString)
+        {
+            _logger = logger;
         }
 
         private sealed class MockTestQuestionFlatRow
@@ -159,6 +169,17 @@ namespace QuestionService.Infrastructure.Repositories
 
                 var result = await connection.QuerySingleAsync<(int Id, DateTime CreatedAt, DateTime? UpdatedAt)>(sql, parameters);
                 
+                // Save languages if provided
+                if (dto.Languages != null && dto.Languages.Any())
+                {
+                    _logger.LogInformation("Saving {Count} languages for MockTest {Id}", dto.Languages.Count, result.Id);
+                    await SaveMockTestLanguagesAsync(connection, result.Id, dto.Languages);
+                }
+                else
+                {
+                    _logger.LogWarning("No languages provided for MockTest {Id}", result.Id);
+                }
+                
                 // Get the created mock test with full details
                 return await GetByIdInternalAsync((SqlConnection)connection, result.Id);
             });
@@ -281,6 +302,24 @@ namespace QuestionService.Infrastructure.Repositories
                         Translations = translationsByQuestionId.GetValueOrDefault(r.QuestionId) ?? new List<QuestionTranslationDto>()
                     }
                 }).ToList();
+
+                // Load languages for this mock test
+                var languagesSql = @"
+                    SELECT 
+                        ml.Id,
+                        ml.MockTestId,
+                        ml.LanguageId,
+                        ml.Name,
+                        ml.Description,
+                        ml.IsActive,
+                        ml.CreatedAt,
+                        ml.UpdatedAt
+                    FROM MockTestLanguages ml
+                    WHERE ml.MockTestId = @MockTestId AND ml.IsActive = 1
+                    ORDER BY ml.LanguageId";
+
+                var languageRows = await connection.QueryAsync<MockTestLanguageDto>(languagesSql, new { MockTestId = id });
+                mockTest.Languages = languageRows.ToList();
             }
 
             return mockTest;
@@ -347,8 +386,49 @@ namespace QuestionService.Infrastructure.Repositories
                 };
 
                 await connection.ExecuteAsync(sql, parameters);
+                
+                // Update languages if provided
+                if (dto.Languages != null && dto.Languages.Any())
+                {
+                    await SaveMockTestLanguagesAsync(connection, dto.Id, dto.Languages);
+                }
+                
                 return await GetByIdInternalAsync((SqlConnection)connection, dto.Id);
             });
+        }
+
+        private async Task SaveMockTestLanguagesAsync(IDbConnection connection, int mockTestId, List<MockTestLanguageDto> languages)
+        {
+            _logger.LogInformation("SaveMockTestLanguagesAsync called with {Count} languages for MockTest {Id}", languages.Count, mockTestId);
+            
+            // Delete existing languages for this mock test
+            await connection.ExecuteAsync("DELETE FROM MockTestLanguages WHERE MockTestId = @MockTestId", new { MockTestId = mockTestId });
+            
+            // Insert new languages
+            foreach (var language in languages)
+            {
+                // Validate language name
+                if (string.IsNullOrWhiteSpace(language.Name))
+                {
+                    _logger.LogWarning("Skipping language with empty name: LanguageId={LanguageId}", language.LanguageId);
+                    continue;
+                }
+
+                var languageSql = @"
+                    INSERT INTO MockTestLanguages (MockTestId, LanguageId, Name, Description, IsActive, CreatedAt, UpdatedAt)
+                    VALUES (@MockTestId, @LanguageId, @Name, @Description, @IsActive, GETUTCDATE(), GETUTCDATE())";
+                
+                await connection.ExecuteAsync(languageSql, new
+                {
+                    MockTestId = mockTestId,
+                    LanguageId = language.LanguageId,
+                    Name = language.Name?.Trim(),
+                    Description = language.Description,
+                    IsActive = language.IsActive
+                });
+                
+                _logger.LogInformation("Saved language: LanguageId={LanguageId}, Name={Name}", language.LanguageId, language.Name);
+            }
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -1134,102 +1214,84 @@ namespace QuestionService.Infrastructure.Repositories
         {
             return await WithConnectionAsync(async connection =>
             {
+                // First try to find the session info
                 var sessionInfo = await connection.QuerySingleOrDefaultAsync(
                     @"SELECT Id, MockTestId, UserId, StartedAt, Status
                       FROM MockTestSessions
                       WHERE Id = @SessionId AND UserId = @UserId",
                     new { SessionId = sessionId, UserId = userId });
 
-                if (sessionInfo == null)
+                MockTestAttemptDto? attempt = null;
+
+                if (sessionInfo != null)
                 {
-                    return null;
+                    // Try to find attempt by exact StartedAt match first (for backwards compatibility)
+                    var exactAttempt = await connection.QuerySingleOrDefaultAsync<dynamic>(
+                        @"SELECT TOP 1
+                            Id,
+                            MockTestId,
+                            UserId,
+                            StartedAt,
+                            CompletedAt,
+                            Duration,
+                            TotalQuestions,
+                            AnsweredQuestions,
+                            CorrectAnswers,
+                            WrongAnswers,
+                            ObtainedMarks,
+                            Percentage,
+                            Status,
+                            Grade
+                          FROM MockTestAttempts
+                          WHERE MockTestId = @MockTestId
+                            AND UserId = @UserId
+                            AND StartedAt = @StartedAt
+                          ORDER BY Id DESC",
+                        new
+                        {
+                            MockTestId = (int)sessionInfo.MockTestId,
+                            UserId = userId,
+                            StartedAt = (DateTime)sessionInfo.StartedAt
+                        });
+
+                    if (exactAttempt != null)
+                    {
+                        attempt = await CreateMockTestAttemptDtoAsync(connection, exactAttempt, userId);
+                    }
                 }
 
-                var attempt = await connection.QuerySingleOrDefaultAsync<dynamic>(
-                    @"SELECT TOP 1
-                        Id,
-                        MockTestId,
-                        UserId,
-                        StartedAt,
-                        CompletedAt,
-                        Duration,
-                        TotalQuestions,
-                        AnsweredQuestions,
-                        CorrectAnswers,
-                        WrongAnswers,
-                        ObtainedMarks,
-                        Percentage,
-                        Status,
-                        Grade
-                      FROM MockTestAttempts
-                      WHERE MockTestId = @MockTestId
-                        AND UserId = @UserId
-                        AND StartedAt = @StartedAt
-                      ORDER BY Id DESC",
-                    new
-                    {
-                        MockTestId = (int)sessionInfo.MockTestId,
-                        UserId = userId,
-                        StartedAt = (DateTime)sessionInfo.StartedAt
-                    });
-
+                // If no attempt found by exact match, try to find the most recent attempt for this session
                 if (attempt == null)
                 {
-                    return null;
+                    var recentAttempt = await connection.QuerySingleOrDefaultAsync<dynamic>(
+                        @"SELECT TOP 1
+                            mta.Id,
+                            mta.MockTestId,
+                            mta.UserId,
+                            mta.StartedAt,
+                            mta.CompletedAt,
+                            mta.Duration,
+                            mta.TotalQuestions,
+                            mta.AnsweredQuestions,
+                            mta.CorrectAnswers,
+                            mta.WrongAnswers,
+                            mta.ObtainedMarks,
+                            mta.Percentage,
+                            mta.Status,
+                            mta.Grade
+                          FROM MockTestAttempts mta
+                          INNER JOIN MockTestSessions mts ON mta.MockTestId = mts.MockTestId AND mta.UserId = mts.UserId
+                          WHERE mts.Id = @SessionId AND mta.UserId = @UserId
+                          ORDER BY mta.Id DESC",
+                        new { SessionId = sessionId, UserId = userId });
+
+                    if (recentAttempt != null)
+                    {
+                        attempt = await CreateMockTestAttemptDtoAsync(connection, recentAttempt, userId);
+                    }
                 }
 
-                var reportedQuestionIds = (await connection.QueryAsync<int>(
-                    @"SELECT QuestionId
-                      FROM MockTestSessionAnswers
-                      WHERE SessionId = @SessionId AND ISNULL(IsReported, 0) = 1
-                      ORDER BY QuestionId",
-                    new { SessionId = sessionId })).ToList();
-                var bookmarkedQuestionIds = (await connection.QueryAsync<int>(
-                    @"SELECT QuestionId
-                      FROM MockTestSessionAnswers
-                      WHERE SessionId = @SessionId AND ISNULL(IsBookmarked, 0) = 1
-                      ORDER BY QuestionId",
-                    new { SessionId = sessionId })).ToList();
-                var negativeMarksDeducted = await connection.QuerySingleAsync<decimal>(
-                    @"SELECT ISNULL(SUM(ISNULL(mtq.NegativeMarks, 0)), 0)
-                      FROM MockTestSessionAnswers mtsa
-                      INNER JOIN MockTestSessions mts ON mts.Id = mtsa.SessionId
-                      INNER JOIN MockTestQuestions mtq
-                          ON mtq.MockTestId = mts.MockTestId
-                         AND mtq.QuestionId = mtsa.QuestionId
-                      WHERE mtsa.SessionId = @SessionId
-                        AND ISNULL(mtsa.IsAnswered, 0) = 1
-                        AND ISNULL(mtsa.SelectedAnswer, '') <> ''
-                        AND NOT EXISTS (
-                            SELECT 1
-                            FROM Questions q
-                            WHERE q.Id = mtsa.QuestionId
-                              AND q.CorrectAnswer = mtsa.SelectedAnswer
-                        )",
-                    new { SessionId = sessionId });
-
-                return new MockTestAttemptDto
-                {
-                    Id = attempt.Id,
-                    MockTestId = attempt.MockTestId,
-                    UserId = attempt.UserId,
-                    StartedAt = attempt.StartedAt,
-                    CompletedAt = attempt.CompletedAt,
-                    Duration = attempt.Duration != null ? TimeSpan.FromMinutes((int)attempt.Duration) : null,
-                    TotalQuestions = attempt.TotalQuestions,
-                    AnsweredQuestions = attempt.AnsweredQuestions,
-                    CorrectAnswers = attempt.CorrectAnswers,
-                    WrongAnswers = attempt.WrongAnswers,
-                    ObtainedMarks = attempt.ObtainedMarks,
-                    NegativeMarksDeducted = negativeMarksDeducted,
-                    ReportedQuestionsCount = reportedQuestionIds.Count,
-                    BookmarkedQuestionsCount = bookmarkedQuestionIds.Count,
-                    ReportedQuestionIds = reportedQuestionIds,
-                    BookmarkedQuestionIds = bookmarkedQuestionIds,
-                    Percentage = attempt.Percentage,
-                    Status = attempt.Status,
-                    Grade = attempt.Grade
-                };
+                return attempt;
             });
         }
 
@@ -1243,7 +1305,8 @@ namespace QuestionService.Infrastructure.Repositories
                         mts.MockTestId,
                         mt.Name AS MockTestName,
                         ISNULL(s.Name, '') AS SubjectName,
-                        ISNULL(mts.Status, 'InProgress') AS Status
+                        ISNULL(mts.Status, 'InProgress') AS Status,
+                        ISNULL(mts.LanguageCode, 'en') AS LanguageCode
                     FROM MockTestSessions mts
                     INNER JOIN MockTests mt ON mts.MockTestId = mt.Id
                     LEFT JOIN [RankUp_MasterDB].[dbo].[Subjects] s ON mt.SubjectId = s.Id
@@ -1258,33 +1321,57 @@ namespace QuestionService.Infrastructure.Repositories
                     return null;
                 }
 
-                var questionsSql = @"
+                // Get questions with translations based on session language
+                var questionsSql = $@"
                     SELECT
                         mtq.QuestionId,
                         mtq.QuestionNumber,
-                        q.QuestionText,
                         q.OptionA,
                         q.OptionB,
                         q.OptionC,
                         q.OptionD,
                         q.CorrectAnswer,
                         mtsa.SelectedAnswer,
-                        q.Explanation,
-                        q.ExplanationImageUrl
+                        q.ExplanationImageUrl,
+                        q.QuestionImageUrl,
+                        q.OptionAImageUrl,
+                        q.OptionBImageUrl,
+                        q.OptionCImageUrl,
+                        q.OptionDImageUrl,
+                        qt.QuestionText,
+                        qt.OptionA AS TranslatedOptionA,
+                        qt.OptionB AS TranslatedOptionB,
+                        qt.OptionC AS TranslatedOptionC,
+                        qt.OptionD AS TranslatedOptionD,
+                        qt.Explanation
                     FROM MockTestQuestions mtq
                     INNER JOIN Questions q ON mtq.QuestionId = q.Id
                     LEFT JOIN MockTestSessionAnswers mtsa
                         ON mtq.QuestionId = mtsa.QuestionId
                         AND mtsa.SessionId = @SessionId
+                    OUTER APPLY (
+                        SELECT TOP 1 t.QuestionText, t.OptionA, t.OptionB, t.OptionC, t.OptionD, t.Explanation
+                        FROM QuestionTranslations t
+                        WHERE t.QuestionId = q.Id
+                        ORDER BY CASE WHEN t.LanguageCode = @LanguageCode THEN 0 ELSE 1 END, t.Id
+                    ) qt
                     WHERE mtq.MockTestId = @MockTestId
                     ORDER BY mtq.QuestionNumber";
 
                 var questions = (await connection.QueryAsync<MockTestSolutionQuestionDto>(
                     questionsSql,
-                    new { SessionId = sessionId, MockTestId = solution.MockTestId })).ToList();
+                    new { SessionId = sessionId, MockTestId = solution.MockTestId, LanguageCode = solution.LanguageCode })).ToList();
 
                 foreach (var question in questions)
                 {
+                    // Use translated text if available, otherwise fall back to base text
+                    question.QuestionText = question.QuestionText ?? string.Empty;
+                    question.OptionA = question.TranslatedOptionA ?? question.OptionA;
+                    question.OptionB = question.TranslatedOptionB ?? question.OptionB;
+                    question.OptionC = question.TranslatedOptionC ?? question.OptionC;
+                    question.OptionD = question.TranslatedOptionD ?? question.OptionD;
+                    question.Explanation = question.Explanation ?? string.Empty;
+                    
                     question.CorrectOptionText = GetOptionText(question.CorrectAnswer, question);
                     question.IsCorrect = !string.IsNullOrWhiteSpace(question.SelectedAnswer) &&
                                          string.Equals(question.SelectedAnswer, question.CorrectAnswer, StringComparison.OrdinalIgnoreCase);
@@ -1886,6 +1973,72 @@ namespace QuestionService.Infrastructure.Repositories
                 "C" => question.OptionC ?? string.Empty,
                 "D" => question.OptionD ?? string.Empty,
                 _ => string.Empty
+            };
+        }
+
+        private static async Task<MockTestAttemptDto> CreateMockTestAttemptDtoAsync(System.Data.IDbConnection connection, dynamic attempt, int userId)
+        {
+            var reportedQuestionIds = (await connection.QueryAsync<int>(
+                @"SELECT QuestionId
+                  FROM MockTestSessionAnswers
+                  WHERE SessionId IN (
+                      SELECT Id FROM MockTestSessions 
+                      WHERE MockTestId = @MockTestId AND UserId = @UserId AND StartedAt = @StartedAt
+                  ) AND ISNULL(IsReported, 0) = 1
+                  ORDER BY QuestionId",
+                new { MockTestId = attempt.MockTestId, UserId = userId, StartedAt = attempt.StartedAt })).ToList();
+            
+            var bookmarkedQuestionIds = (await connection.QueryAsync<int>(
+                @"SELECT QuestionId
+                  FROM MockTestSessionAnswers
+                  WHERE SessionId IN (
+                      SELECT Id FROM MockTestSessions 
+                      WHERE MockTestId = @MockTestId AND UserId = @UserId AND StartedAt = @StartedAt
+                  ) AND ISNULL(IsBookmarked, 0) = 1
+                  ORDER BY QuestionId",
+                new { MockTestId = attempt.MockTestId, UserId = userId, StartedAt = attempt.StartedAt })).ToList();
+            
+            var negativeMarksDeducted = await connection.QuerySingleAsync<decimal>(
+                @"SELECT ISNULL(SUM(ISNULL(mtq.NegativeMarks, 0)), 0)
+                  FROM MockTestSessionAnswers mtsa
+                  INNER JOIN MockTestSessions mts ON mts.Id = mtsa.SessionId
+                  INNER JOIN MockTestQuestions mtq
+                      ON mtq.MockTestId = mts.MockTestId
+                     AND mtq.QuestionId = mtsa.QuestionId
+                  WHERE mts.MockTestId = @MockTestId
+                    AND mts.UserId = @UserId
+                    AND mts.StartedAt = @StartedAt
+                    AND ISNULL(mtsa.IsAnswered, 0) = 1
+                    AND ISNULL(mtsa.SelectedAnswer, '') <> ''
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM Questions q
+                        WHERE q.Id = mtsa.QuestionId
+                          AND q.CorrectAnswer = mtsa.SelectedAnswer
+                    )",
+                new { MockTestId = attempt.MockTestId, UserId = userId, StartedAt = attempt.StartedAt });
+
+            return new MockTestAttemptDto
+            {
+                Id = attempt.Id,
+                MockTestId = attempt.MockTestId,
+                UserId = attempt.UserId,
+                StartedAt = attempt.StartedAt,
+                CompletedAt = attempt.CompletedAt,
+                Duration = attempt.Duration != null ? TimeSpan.FromMinutes((int)attempt.Duration) : null,
+                TotalQuestions = attempt.TotalQuestions,
+                AnsweredQuestions = attempt.AnsweredQuestions,
+                CorrectAnswers = attempt.CorrectAnswers,
+                WrongAnswers = attempt.WrongAnswers,
+                ObtainedMarks = attempt.ObtainedMarks,
+                NegativeMarksDeducted = negativeMarksDeducted,
+                ReportedQuestionsCount = reportedQuestionIds.Count,
+                BookmarkedQuestionsCount = bookmarkedQuestionIds.Count,
+                ReportedQuestionIds = reportedQuestionIds,
+                BookmarkedQuestionIds = bookmarkedQuestionIds,
+                Percentage = attempt.Percentage,
+                Status = attempt.Status,
+                Grade = attempt.Grade
             };
         }
     }

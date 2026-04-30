@@ -4,6 +4,7 @@ using SubscriptionService.Application.DTOs;
 using SubscriptionService.Application.Interfaces;
 using Common.Services;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http.Json;
 
 namespace SubscriptionService.API.Controllers
 {
@@ -19,17 +20,20 @@ namespace SubscriptionService.API.Controllers
         private readonly ILogger<UserPlansController> _logger;
         private readonly ILanguageService _languageService;
         private readonly IConfiguration _configuration;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         public UserPlansController(
             ISubscriptionPlanService subscriptionPlanService,
             ILogger<UserPlansController> logger,
             ILanguageService languageService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHttpClientFactory httpClientFactory)
         {
             _subscriptionPlanService = subscriptionPlanService;
             _logger = logger;
             _languageService = languageService;
             _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
         }
 
         /// <summary>
@@ -179,26 +183,28 @@ namespace SubscriptionService.API.Controllers
             {
                 var examIds = new List<int>();
                 
-                // Extract only ExamId from JWT token claims
+                // Extract ExamId from JWT token claims
                 var examIdClaim = User.FindFirst("ExamId");
                 
                 // Add ExamId if present in token
-                if (examIdClaim != null && int.TryParse(examIdClaim.Value, out int examId))
-                    examIds.Add(examId);
-                
-                // If no ExamId in token, return empty list (will show no plans)
-                if (!examIds.Any())
+                if (examIdClaim != null && !string.IsNullOrWhiteSpace(examIdClaim.Value) && int.TryParse(examIdClaim.Value, out int examId))
                 {
-                    _logger.LogInformation("No ExamId found in token for userId: {UserId}", userId);
+                    examIds.Add(examId);
+                    _logger.LogInformation("Found ExamId {ExamId} in JWT token for userId: {UserId}", examId, userId);
+                }
+                else
+                {
+                    _logger.LogInformation("No ExamId found in JWT token for userId: {UserId}", userId);
                 }
                 
                 return examIds.Distinct().ToList();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error extracting ExamId from token for userId: {UserId}", userId);
+                _logger.LogError(ex, "Error extracting ExamId from JWT token for userId: {UserId}", userId);
                 return new List<int>();
             }
         }
-    }
+
+            }
 }

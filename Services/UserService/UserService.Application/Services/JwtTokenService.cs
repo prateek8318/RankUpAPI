@@ -39,6 +39,7 @@ namespace UserService.Application.Services
                 new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? ""),
                 new Claim("is_phone_verified", user.IsPhoneVerified.ToString()),
                 new Claim("is_active", user.IsActive.ToString()),
+                new Claim("ExamId", user.ExamId?.ToString() ?? ""),
                 new Claim(ClaimTypes.Role, "User"),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)

@@ -780,7 +780,7 @@ namespace QuestionService.Application.DTOs
         public bool? SameExplanationForAllLanguages { get; set; }
         public string? Reference { get; set; }
         public string? Tags { get; set; }
-    public string? TranslationsJson { get; set; }
+        public string? TranslationsJson { get; set; }
     }
 
     // Quiz and Subject Management DTOs

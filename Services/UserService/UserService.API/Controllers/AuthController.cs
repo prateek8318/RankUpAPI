@@ -20,19 +20,22 @@ namespace UserService.API.Controllers
         private readonly IOtpService _otpService;
         private readonly IDeviceInfoService _deviceInfoService;
         private readonly ILogger<AuthController> _logger;
+        private readonly IJwtTokenService _jwtTokenService;
 
         public AuthController(
             IConfiguration configuration,
             IUserService userService,
             IOtpService otpService,
             IDeviceInfoService deviceInfoService,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            IJwtTokenService jwtTokenService)
         {
             _configuration = configuration;
             _userService = userService;
             _otpService = otpService;
             _deviceInfoService = deviceInfoService;
             _logger = logger;
+            _jwtTokenService = jwtTokenService;
         }
 
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AuthResponse))]
@@ -148,7 +151,9 @@ namespace UserService.API.Controllers
                 
                 _otpService.RemoveOtp(fullPhoneNumber);
 
-                var token = GenerateJwtToken(userDto.Id.ToString(), userDto.PhoneNumber);
+                // Get full user entity to generate proper JWT token with ExamId
+                var userEntity = await _userService.GetUserEntityByIdAsync(userDto.Id);
+                var token = _jwtTokenService.GenerateToken(userEntity);
 
                 var responseData = new Dictionary<string, object>
                 {
@@ -258,33 +263,5 @@ namespace UserService.API.Controllers
                    Regex.IsMatch(countryCode, @"^\+[0-9]{1,3}$");
         }
 
-        private string GenerateJwtToken(string userId, string mobileNumber)
-        {
-            var jwtSettings = _configuration.GetSection("Jwt");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
-            var tokenExpiryInMinutes = int.Parse(jwtSettings["ExpireInMinutes"] ?? "60");
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, userId),
-                    new Claim(JwtRegisteredClaimNames.Sub, userId),
-                    new Claim(ClaimTypes.MobilePhone, mobileNumber),
-                    new Claim(ClaimTypes.Role, "User"),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                }),
-                Expires = DateTime.UtcNow.AddMinutes(tokenExpiryInMinutes),
-                Issuer = jwtSettings["Issuer"],
-                Audience = jwtSettings["Audience"],
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
-    }
+            }
 }

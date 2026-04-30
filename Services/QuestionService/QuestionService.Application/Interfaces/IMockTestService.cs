@@ -9,6 +9,7 @@ namespace QuestionService.Application.Interfaces
         Task<MockTestDto> CreateMockTestDraftAsync(MockTestCreateWithImageDto dto);
         Task<MockTestDto> CreateMockTestAsync(CreateMockTestDto dto);
         Task<MockTestDto> UpdateMockTestAsync(UpdateMockTestDto dto);
+        Task<MockTestDto> UpdateMockTestAsync(UpdateMockTestWithImageDto dto);
         Task<bool> DeleteMockTestAsync(int id);
         Task<MockTestDto?> GetMockTestByIdAsync(int id);
         Task<MockTestListResponseDto> GetMockTestsAsync(int pageNumber = 1, int pageSize = 20, int? examId = null, int? subjectId = null, bool? isActive = null, MockTestListRequestDto? request = null);
